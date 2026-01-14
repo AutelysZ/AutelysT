@@ -29,6 +29,13 @@ interface ToolHistoryDB extends DBSchema {
       lastUsed: number
     }
   }
+  favorites: {
+    key: string
+    value: {
+      toolId: string
+      addedAt: number
+    }
+  }
 }
 
 let dbPromise: Promise<IDBPDatabase<ToolHistoryDB>> | null = null
@@ -39,13 +46,18 @@ export function getDB(): Promise<IDBPDatabase<ToolHistoryDB>> {
   }
 
   if (!dbPromise) {
-    dbPromise = openDB<ToolHistoryDB>("autelyst-tools", 1, {
-      upgrade(db) {
-        const historyStore = db.createObjectStore("history", { keyPath: "id" })
-        historyStore.createIndex("by-tool", "toolId")
-        historyStore.createIndex("by-date", "createdAt")
+    dbPromise = openDB<ToolHistoryDB>("autelyst-tools", 2, {
+      upgrade(db, oldVersion) {
+        if (oldVersion < 1) {
+          const historyStore = db.createObjectStore("history", { keyPath: "id" })
+          historyStore.createIndex("by-tool", "toolId")
+          historyStore.createIndex("by-date", "createdAt")
 
-        db.createObjectStore("recentTools", { keyPath: "toolId" })
+          db.createObjectStore("recentTools", { keyPath: "toolId" })
+        }
+        if (oldVersion < 2) {
+          db.createObjectStore("favorites", { keyPath: "toolId" })
+        }
       },
     })
   }

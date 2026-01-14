@@ -3,14 +3,14 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ChevronDown, ChevronRight, Clock, Search, Wrench } from "lucide-react"
+import { ChevronDown, ChevronRight, Search, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { tools, getToolsGroupedByCategory } from "@/lib/tools/registry"
-import { useRecentTools } from "@/lib/history/use-tool-history"
+import { useFavorites } from "@/lib/history/use-favorites"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export function Sidebar() {
@@ -25,7 +25,8 @@ export function Sidebar() {
     })
     return allExpanded
   })
-  const { recentTools } = useRecentTools()
+
+  const { favorites, toggleFavorite, isFavorite } = useFavorites()
 
   const filteredTools = React.useMemo(() => {
     if (!searchQuery.trim()) return null
@@ -35,12 +36,9 @@ export function Sidebar() {
     )
   }, [searchQuery])
 
-  const recentToolsList = React.useMemo(() => {
-    return recentTools
-      .map((id) => tools.find((t) => t.id === id))
-      .filter(Boolean)
-      .slice(0, 5)
-  }, [recentTools])
+  const favoriteToolsList = React.useMemo(() => {
+    return favorites.map((id) => tools.find((t) => t.id === id)).filter(Boolean)
+  }, [favorites])
 
   const toggleCategory = (category: string) => {
     setExpandedCategories((prev) => ({
@@ -52,12 +50,10 @@ export function Sidebar() {
   return (
     <aside className="flex h-full min-h-0 w-64 flex-col overflow-hidden border-r border-border bg-sidebar">
       <div className="shrink-0 flex items-center justify-between border-b border-border p-4">
-        <div className="flex items-center gap-2">
-          <Wrench className="h-5 w-5 text-primary" />
-          <Link href="/" className="font-semibold text-sidebar-foreground">
-            AutelysT
-          </Link>
-        </div>
+        <Link href="/" className="flex items-center gap-2">
+          <img src="/images/autelys.png" alt="AutelysT" className="h-8 w-8" />
+          <span className="font-semibold text-sidebar-foreground">AutelysT</span>
+        </Link>
         <ThemeToggle />
       </div>
 
@@ -101,29 +97,40 @@ export function Sidebar() {
           </div>
         ) : (
           <>
-            {/* Recent Tools */}
-            {recentToolsList.length > 0 && (
+            {favoriteToolsList.length > 0 && (
               <div className="py-2">
                 <div className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  Recent
+                  <Star className="h-3 w-3" />
+                  Favorites
                 </div>
                 <div className="space-y-0.5">
-                  {recentToolsList.map(
+                  {favoriteToolsList.map(
                     (tool) =>
                       tool && (
-                        <Link
-                          key={tool.id}
-                          href={tool.route}
-                          className={cn(
-                            "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                            pathname === tool.route
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                          )}
-                        >
-                          {tool.name}
-                        </Link>
+                        <div key={tool.id} className="group relative">
+                          <Link
+                            href={tool.route}
+                            className={cn(
+                              "flex items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-sm transition-colors",
+                              pathname === tool.route
+                                ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                            )}
+                          >
+                            {tool.name}
+                          </Link>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              toggleFavorite(tool.id)
+                            }}
+                          >
+                            <Star className="h-3 w-3 fill-current" />
+                          </Button>
+                        </div>
                       ),
                   )}
                 </div>
@@ -154,18 +161,30 @@ export function Sidebar() {
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-0.5 pl-2">
                   {categoryTools.map((tool) => (
-                    <Link
-                      key={tool.id}
-                      href={tool.route}
-                      className={cn(
-                        "flex items-center rounded-md px-2 py-1.5 text-sm transition-colors",
-                        pathname === tool.route
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                      )}
-                    >
-                      {tool.name}
-                    </Link>
+                    <div key={tool.id} className="group relative">
+                      <Link
+                        href={tool.route}
+                        className={cn(
+                          "flex items-center rounded-md px-2 py-1.5 pr-8 text-sm transition-colors",
+                          pathname === tool.route
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                        )}
+                      >
+                        {tool.name}
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          toggleFavorite(tool.id)
+                        }}
+                      >
+                        <Star className={cn("h-3 w-3", isFavorite(tool.id) && "fill-current")} />
+                      </Button>
+                    </div>
                   ))}
                 </CollapsibleContent>
               </Collapsible>

@@ -18,6 +18,10 @@ export const metadata: Metadata = {
     "A comprehensive collection of free online tools for encoding, decoding, number conversion, text manipulation, and more.",
   keywords: ["web tools", "encoder", "decoder", "base64", "converter", "online tools"],
   authors: [{ name: "AutelysT" }],
+  icons: {
+    icon: "/images/autelys.png",
+    apple: "/images/autelys.png",
+  },
   openGraph: {
     type: "website",
     siteName: "AutelysT",
@@ -29,7 +33,7 @@ export const metadata: Metadata = {
     "opensearch-type": "application/opensearchdescription+xml",
     "opensearch-title": "AutelysT",
   },
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export const viewport: Viewport = {

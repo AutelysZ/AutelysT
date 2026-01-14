@@ -1,6 +1,5 @@
 "use client"
 
-import { ThemeToggle } from "@/components/theme-toggle"
 import { HistoryPanel } from "./history-panel"
 import type { HistoryEntry } from "@/lib/history/db"
 
@@ -29,17 +28,14 @@ export function ToolHeader({
         <h1 className="text-xl font-semibold">{title}</h1>
         {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
       </div>
-      <div className="flex items-center gap-2">
-        <HistoryPanel
-          entries={historyEntries}
-          loading={historyLoading}
-          onSelect={onHistorySelect}
-          onDelete={onHistoryDelete}
-          onClear={onHistoryClear}
-          toolName={title}
-        />
-        <ThemeToggle />
-      </div>
+      <HistoryPanel
+        entries={historyEntries}
+        loading={historyLoading}
+        onSelect={onHistorySelect}
+        onDelete={onHistoryDelete}
+        onClear={onHistoryClear}
+        toolName={title}
+      />
     </header>
   )
 }
