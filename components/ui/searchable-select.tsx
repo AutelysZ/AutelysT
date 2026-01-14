@@ -28,12 +28,19 @@ export function SearchableSelect({
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  const [search, setSearch] = React.useState("")
 
   React.useEffect(() => {
     setMounted(true)
   }, [])
 
   const selectedOption = options.find((opt) => opt.value === value)
+
+  const filteredOptions = React.useMemo(() => {
+    if (!search) return options
+    const lowerSearch = search.toLowerCase()
+    return options.filter((opt) => opt.label.toLowerCase().includes(lowerSearch))
+  }, [options, search])
 
   if (!mounted) {
     return (
@@ -58,18 +65,19 @@ export function SearchableSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent className={cn("p-0", className)} align="start">
-        <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+        <Command shouldFilter={false}>
+          <CommandInput placeholder={searchPlaceholder} value={search} onValueChange={setSearch} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
-              {options.map((option) => (
+              {filteredOptions.map((option) => (
                 <CommandItem
                   key={option.value}
-                  value={option.label}
+                  value={option.value}
                   onSelect={() => {
                     onValueChange(option.value)
                     setOpen(false)
+                    setSearch("")
                   }}
                 >
                   <Check className={cn("mr-2 h-4 w-4", value === option.value ? "opacity-100" : "opacity-0")} />

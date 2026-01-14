@@ -185,6 +185,21 @@ export const tools: Tool[] = [
       keywords: ["number format", "thousand separator", "chinese numerals", "roman numerals"],
     },
   },
+  // Date & Time Tools
+  {
+    id: "timezone",
+    name: "Time Zone Converter",
+    description: "Convert times between different time zones with Unix epoch support",
+    category: "Date & Time",
+    route: "/tools/timezone",
+    keywords: ["timezone", "time", "date", "convert", "epoch", "unix", "utc", "iana"],
+    seo: {
+      title: "Time Zone Converter - AutelysT",
+      description:
+        "Free online time zone converter. Convert times between different time zones with Unix epoch timestamp support. Supports all IANA time zones.",
+      keywords: ["timezone converter", "time zone", "unix timestamp", "epoch converter"],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
