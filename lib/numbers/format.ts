@@ -1,4 +1,5 @@
-// Number format conversion utilities
+// Number format conversion utilities using nzh for Chinese numbers
+import Nzh from "nzh"
 
 export type NumberFormat =
   | "plain"
@@ -15,11 +16,6 @@ export type NumberFormat =
   | "indian"
 
 export type EngineeringUnit = "P" | "T" | "G" | "M" | "K" | "h"
-
-const CHINESE_LOWER = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
-const CHINESE_UPPER = ["零", "壹", "贰", "叁", "肆", "伍", "陆", "柒", "捌", "玖"]
-const CHINESE_UNITS_LOWER = ["", "十", "百", "千", "万", "亿"]
-const CHINESE_UNITS_UPPER = ["", "拾", "佰", "仟", "万", "亿"]
 
 const JAPANESE_DIGITS = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"]
 const KOREAN_DIGITS = ["영", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"]
@@ -73,8 +69,10 @@ export function parseFormattedNumber(value: string, format: NumberFormat): numbe
       return Number.parseFloat(trimmed.replace(/,/g, ""))
 
     case "chinese-lower":
+      return Nzh.cn.decodeS(trimmed) ?? 0
+
     case "chinese-upper":
-      return parseChineseNumber(trimmed, format === "chinese-upper")
+      return Nzh.cn.decodeB(trimmed) ?? 0
 
     case "roman":
       return parseRomanNumeral(trimmed)
@@ -117,10 +115,10 @@ export function formatNumber(value: number, format: NumberFormat, unit?: Enginee
       return formatIndian(value)
 
     case "chinese-lower":
-      return toChineseNumber(Math.floor(value), false)
+      return Nzh.cn.encodeS(value)
 
     case "chinese-upper":
-      return toChineseNumber(Math.floor(value), true)
+      return Nzh.cn.encodeB(value)
 
     case "roman":
       return toRomanNumeral(Math.floor(value))
@@ -158,118 +156,6 @@ function formatIndian(value: number): string {
     remaining = remaining.slice(0, -2)
   }
   return decPart ? `${result}.${decPart}` : result
-}
-
-function toChineseNumber(n: number, upper: boolean): string {
-  if (n === 0) return upper ? CHINESE_UPPER[0] : CHINESE_LOWER[0]
-  if (n < 0) return (upper ? "负" : "负") + toChineseNumber(-n, upper)
-
-  const digits = upper ? CHINESE_UPPER : CHINESE_LOWER
-  const units = upper ? CHINESE_UNITS_UPPER : CHINESE_UNITS_LOWER
-
-  let result = ""
-  let num = n
-
-  // Handle 亿 (100 million)
-  if (num >= 100000000) {
-    result += toChineseNumber(Math.floor(num / 100000000), upper) + "亿"
-    num %= 100000000
-  }
-
-  // Handle 万 (10 thousand)
-  if (num >= 10000) {
-    result += toChineseNumber(Math.floor(num / 10000), upper) + "万"
-    num %= 10000
-  }
-
-  // Handle thousands
-  if (num >= 1000) {
-    result += digits[Math.floor(num / 1000)] + units[3]
-    num %= 1000
-  }
-
-  // Handle hundreds
-  if (num >= 100) {
-    result += digits[Math.floor(num / 100)] + units[2]
-    num %= 100
-  }
-
-  // Handle tens
-  if (num >= 10) {
-    const tens = Math.floor(num / 10)
-    if (tens > 1 || result.length > 0) {
-      result += digits[tens]
-    }
-    result += units[1]
-    num %= 10
-  }
-
-  // Handle ones
-  if (num > 0) {
-    result += digits[num]
-  }
-
-  return result
-}
-
-function parseChineseNumber(str: string, _upper: boolean): number {
-  // Simplified parsing - just handle common cases
-  const map: Record<string, number> = {
-    零: 0,
-    〇: 0,
-    一: 1,
-    壹: 1,
-    二: 2,
-    贰: 2,
-    三: 3,
-    叁: 3,
-    四: 4,
-    肆: 4,
-    五: 5,
-    伍: 5,
-    六: 6,
-    陆: 6,
-    七: 7,
-    柒: 7,
-    八: 8,
-    捌: 8,
-    九: 9,
-    玖: 9,
-    十: 10,
-    拾: 10,
-    百: 100,
-    佰: 100,
-    千: 1000,
-    仟: 1000,
-    万: 10000,
-    亿: 100000000,
-  }
-
-  let result = 0
-  let current = 0
-  let lastUnit = 1
-
-  for (const char of str) {
-    const val = map[char]
-    if (val === undefined) continue
-
-    if (val >= 10) {
-      if (current === 0) current = 1
-      if (val === 10000 || val === 100000000) {
-        current *= val
-        result += current
-        current = 0
-        lastUnit = val
-      } else {
-        current *= val
-        lastUnit = val
-      }
-    } else {
-      current = val
-    }
-  }
-
-  return result + current
 }
 
 function toRomanNumeral(n: number): string {

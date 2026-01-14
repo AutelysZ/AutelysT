@@ -1,5 +1,7 @@
 import type { Tool, ToolCategory } from "./types"
 
+export type { Tool, ToolCategory }
+
 export const tools: Tool[] = [
   // Encoding Tools
   {

@@ -19,6 +19,7 @@ import {
   type EngineeringUnit,
 } from "@/lib/numbers/format"
 import { cn } from "@/lib/utils"
+import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
   leftFormat: z.string().default("plain"),
@@ -97,6 +98,16 @@ function NumberFormatContent() {
     }
   }, [state.leftFormat, state.leftUnit, state.rightFormat, state.rightUnit])
 
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
+      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
+      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+    },
+    [setParam],
+  )
+
   const renderSidePanel = (side: "left" | "right") => {
     const isLeft = side === "left"
     const format = isLeft ? state.leftFormat : state.rightFormat
@@ -170,50 +181,16 @@ function NumberFormatContent() {
       toolId="number-format"
       title="Number Format"
       description="Convert between different number formatting styles"
-      seoContent={<NumberFormatSEOContent />}
+      onLoadHistory={handleLoadHistory}
     >
-      {() => (
-        <div className="flex min-h-[400px] gap-4">
-          {renderSidePanel("left")}
-          <div className="flex items-center">
-            <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
-          </div>
-          {renderSidePanel("right")}
+      <div className="flex min-h-[400px] gap-4">
+        {renderSidePanel("left")}
+        <div className="flex items-center">
+          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
         </div>
-      )}
+        {renderSidePanel("right")}
+      </div>
     </ToolPageWrapper>
-  )
-}
-
-function NumberFormatSEOContent() {
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
-      <h2>What is Number Format Conversion?</h2>
-      <p>
-        Number format conversion transforms how numbers are displayed without changing their value. Different cultures
-        and contexts use different conventions for number formatting.
-      </p>
-
-      <h2>Supported Formats</h2>
-      <ul>
-        <li>
-          <strong>Thousand separators:</strong> Comma (1,234), dot (1.234), ISO space (1 234), Indian (12,34,567)
-        </li>
-        <li>
-          <strong>Numeral systems:</strong> Chinese (一二三), Japanese (一二三), Korean (일이삼), Roman (MCMLXXXIV)
-        </li>
-        <li>
-          <strong>Scientific notation:</strong> Standard (1.23e+6) and engineering (1.23M, 4.56G)
-        </li>
-      </ul>
-
-      <h2>FAQ</h2>
-      <h3>What is engineering notation?</h3>
-      <p>
-        Engineering notation is similar to scientific notation but restricts the exponent to multiples of 3, using
-        prefixes like K (kilo), M (mega), G (giga), etc.
-      </p>
-    </div>
   )
 }
 

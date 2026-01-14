@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeftRight } from "lucide-react"
 import { convertRadix, toBase60, fromBase60, isValidBase60 } from "@/lib/numbers/radix"
 import { cn } from "@/lib/utils"
+import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
   leftRadix: z.string().default("10"),
@@ -149,6 +150,16 @@ function RadixContent() {
     state.rightPadding,
   ])
 
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
+      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
+      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+    },
+    [setParam],
+  )
+
   const renderSidePanel = (side: "left" | "right") => {
     const isLeft = side === "left"
     const radix = isLeft ? state.leftRadix : state.rightRadix
@@ -262,16 +273,15 @@ function RadixContent() {
       title="Base Conversion"
       description="Convert numbers between different bases (radixes)"
       seoContent={<RadixSEOContent />}
+      onLoadHistory={handleLoadHistory}
     >
-      {() => (
-        <div className="flex min-h-[400px] gap-4">
-          {renderSidePanel("left")}
-          <div className="flex items-center">
-            <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
-          </div>
-          {renderSidePanel("right")}
+      <div className="flex min-h-[400px] gap-4">
+        {renderSidePanel("left")}
+        <div className="flex items-center">
+          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
         </div>
-      )}
+        {renderSidePanel("right")}
+      </div>
     </ToolPageWrapper>
   )
 }

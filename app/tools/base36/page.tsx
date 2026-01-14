@@ -9,14 +9,20 @@ import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { encodeBase36, decodeBase36, isValidBase36 } from "@/lib/encoding/base36"
+import { encodeText, decodeText, getAllEncodings } from "@/lib/encoding/text-encodings"
+import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
+  encoding: z.string().default("utf8"),
   upperCase: z.boolean().default(true),
   activeSide: z.enum(["left", "right"]).default("left"),
   leftText: z.string().default(""),
   rightText: z.string().default(""),
 })
+
+const encodings = getAllEncodings()
 
 function Base36Content() {
   const { state, setParam } = useUrlSyncedState("base36", {
@@ -26,6 +32,18 @@ function Base36Content() {
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
   const [rightError, setRightError] = React.useState<string | null>(null)
+  const [leftFileResult, setLeftFileResult] = React.useState<{
+    status: "success" | "error"
+    message: string
+    downloadUrl?: string
+    downloadName?: string
+  } | null>(null)
+  const [rightFileResult, setRightFileResult] = React.useState<{
+    status: "success" | "error"
+    message: string
+    downloadUrl?: string
+    downloadName?: string
+  } | null>(null)
 
   const encodeToBase36 = React.useCallback(
     (text: string) => {
@@ -35,14 +53,14 @@ function Base36Content() {
           setParam("rightText", "")
           return
         }
-        const bytes = new TextEncoder().encode(text)
+        const bytes = encodeText(text, state.encoding)
         const encoded = encodeBase36(bytes, { upperCase: state.upperCase })
         setParam("rightText", encoded)
       } catch (err) {
         setLeftError(err instanceof Error ? err.message : "Encoding failed")
       }
     },
-    [state.upperCase, setParam],
+    [state.encoding, state.upperCase, setParam],
   )
 
   const decodeFromBase36 = React.useCallback(
@@ -58,13 +76,13 @@ function Base36Content() {
           return
         }
         const bytes = decodeBase36(base36)
-        const text = new TextDecoder().decode(bytes)
+        const text = decodeText(bytes, state.encoding)
         setParam("leftText", text)
       } catch (err) {
         setRightError(err instanceof Error ? err.message : "Decoding failed")
       }
     },
-    [setParam],
+    [state.encoding, setParam],
   )
 
   const handleLeftChange = React.useCallback(
@@ -88,89 +106,133 @@ function Base36Content() {
   React.useEffect(() => {
     if (state.activeSide === "left" && state.leftText) {
       encodeToBase36(state.leftText)
+    } else if (state.activeSide === "right" && state.rightText) {
+      decodeFromBase36(state.rightText)
     }
-  }, [state.upperCase])
+  }, [state.encoding, state.upperCase])
+
+  const handleLeftFileUpload = React.useCallback(
+    async (file: File) => {
+      try {
+        const buffer = await file.arrayBuffer()
+        const bytes = new Uint8Array(buffer)
+        const encoded = encodeBase36(bytes, { upperCase: state.upperCase })
+
+        const blob = new Blob([encoded], { type: "text/plain" })
+        const url = URL.createObjectURL(blob)
+
+        setLeftFileResult({
+          status: "success",
+          message: `Encoded ${file.name} (${bytes.length} bytes)`,
+          downloadUrl: url,
+          downloadName: file.name + ".base36",
+        })
+      } catch (err) {
+        setLeftFileResult({
+          status: "error",
+          message: err instanceof Error ? err.message : "Encoding failed",
+        })
+      }
+    },
+    [state.upperCase],
+  )
+
+  const handleRightFileUpload = React.useCallback(async (file: File) => {
+    try {
+      const text = await file.text()
+      const bytes = decodeBase36(text.trim())
+
+      const blob = new Blob([bytes], { type: "application/octet-stream" })
+      const url = URL.createObjectURL(blob)
+
+      const baseName = file.name.replace(/\.base36$/i, "")
+      setRightFileResult({
+        status: "success",
+        message: `Decoded ${file.name} (${bytes.length} bytes)`,
+        downloadUrl: url,
+        downloadName: baseName + ".raw",
+      })
+    } catch (err) {
+      setRightFileResult({
+        status: "error",
+        message: err instanceof Error ? err.message : "Decoding failed",
+      })
+    }
+  }, [])
+
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
+      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
+      if (params.encoding) setParam("encoding", params.encoding as string)
+      if (params.upperCase !== undefined) setParam("upperCase", params.upperCase as boolean)
+      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+    },
+    [setParam],
+  )
 
   return (
     <ToolPageWrapper
       toolId="base36"
       title="Base36"
       description="Encode and decode Base36 (alphanumeric: 0-9, A-Z)"
-      seoContent={<Base36SEOContent />}
+      onLoadHistory={handleLoadHistory}
     >
-      {({ addHistoryEntry }) => {
-        const lastSavedRef = React.useRef("")
-        React.useEffect(() => {
-          const key = `${state.leftText}|${state.rightText}`
-          if (key !== lastSavedRef.current && (state.leftText || state.rightText)) {
-            lastSavedRef.current = key
-            addHistoryEntry(
-              { leftText: state.leftText, rightText: state.rightText },
-              { upperCase: state.upperCase, activeSide: state.activeSide },
-              state.activeSide,
-              state.leftText.slice(0, 50) || state.rightText.slice(0, 50),
-            )
-          }
-        }, [state.leftText, state.rightText])
-
-        return (
-          <DualPaneLayout
-            leftLabel="Plain Text"
-            rightLabel="Base36"
-            leftValue={state.leftText}
-            rightValue={state.rightText}
-            onLeftChange={handleLeftChange}
-            onRightChange={handleRightChange}
-            activeSide={state.activeSide}
-            onActiveSideChange={(side) => setParam("activeSide", side, true)}
-            leftError={leftError}
-            rightError={rightError}
-            leftPlaceholder="Enter text to encode..."
-            rightPlaceholder="Enter Base36 to decode..."
-          >
-            <Card>
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="upperCase"
-                    checked={state.upperCase}
-                    onCheckedChange={(c) => setParam("upperCase", c === true, true)}
-                  />
-                  <Label htmlFor="upperCase" className="text-sm cursor-pointer">
-                    Upper case
-                  </Label>
-                </div>
-              </CardContent>
-            </Card>
-          </DualPaneLayout>
-        )
-      }}
+      <DualPaneLayout
+        leftLabel="Plain Text"
+        rightLabel="Base36"
+        leftValue={state.leftText}
+        rightValue={state.rightText}
+        onLeftChange={handleLeftChange}
+        onRightChange={handleRightChange}
+        activeSide={state.activeSide}
+        onActiveSideChange={(side) => setParam("activeSide", side, true)}
+        leftError={leftError}
+        rightError={rightError}
+        leftPlaceholder="Enter text to encode..."
+        rightPlaceholder="Enter Base36 to decode..."
+        leftFileUpload={handleLeftFileUpload}
+        rightFileUpload={handleRightFileUpload}
+        leftFileResult={leftFileResult}
+        rightFileResult={rightFileResult}
+        onClearLeftFile={() => setLeftFileResult(null)}
+        onClearRightFile={() => setRightFileResult(null)}
+      >
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-6 p-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Text Encoding</Label>
+              <SearchableSelect
+                value={state.encoding}
+                onValueChange={(v) => setParam("encoding", v, true)}
+                options={encodings}
+                placeholder="Select encoding..."
+                searchPlaceholder="Search encodings..."
+                triggerClassName="w-48"
+                className="w-64"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="upperCase"
+                checked={state.upperCase}
+                onCheckedChange={(c) => setParam("upperCase", c === true, true)}
+              />
+              <Label htmlFor="upperCase" className="text-sm cursor-pointer">
+                Upper case
+              </Label>
+            </div>
+          </CardContent>
+        </Card>
+      </DualPaneLayout>
     </ToolPageWrapper>
-  )
-}
-
-function Base36SEOContent() {
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
-      <h2>What is Base36?</h2>
-      <p>
-        Base36 uses the characters 0-9 and A-Z (36 characters total) to represent binary data. It{"'"}s commonly used
-        for generating short, human-readable identifiers.
-      </p>
-
-      <h2>Common Use Cases</h2>
-      <ul>
-        <li>Short URL identifiers</li>
-        <li>Case-insensitive unique IDs</li>
-        <li>Compact number representation</li>
-      </ul>
-    </div>
   )
 }
 
 export default function Base36Page() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <Base36Content />
     </Suspense>
   )

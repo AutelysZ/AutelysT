@@ -6,13 +6,21 @@ import { z } from "zod"
 import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
 import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { SearchableSelect } from "@/components/ui/searchable-select"
 import { encodeBase58, decodeBase58, isValidBase58 } from "@/lib/encoding/base58"
+import { encodeText, decodeText, getAllEncodings } from "@/lib/encoding/text-encodings"
+import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
+  encoding: z.string().default("utf8"),
   activeSide: z.enum(["left", "right"]).default("left"),
   leftText: z.string().default(""),
   rightText: z.string().default(""),
 })
+
+const encodings = getAllEncodings()
 
 function Base58Content() {
   const { state, setParam } = useUrlSyncedState("base58", {
@@ -22,7 +30,18 @@ function Base58Content() {
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
   const [rightError, setRightError] = React.useState<string | null>(null)
-  const lastSavedRef = React.useRef("")
+  const [leftFileResult, setLeftFileResult] = React.useState<{
+    status: "success" | "error"
+    message: string
+    downloadUrl?: string
+    downloadName?: string
+  } | null>(null)
+  const [rightFileResult, setRightFileResult] = React.useState<{
+    status: "success" | "error"
+    message: string
+    downloadUrl?: string
+    downloadName?: string
+  } | null>(null)
 
   const encodeToBase58 = React.useCallback(
     (text: string) => {
@@ -32,14 +51,14 @@ function Base58Content() {
           setParam("rightText", "")
           return
         }
-        const bytes = new TextEncoder().encode(text)
+        const bytes = encodeText(text, state.encoding)
         const encoded = encodeBase58(bytes)
         setParam("rightText", encoded)
       } catch (err) {
         setLeftError(err instanceof Error ? err.message : "Encoding failed")
       }
     },
-    [setParam],
+    [state.encoding, setParam],
   )
 
   const decodeFromBase58 = React.useCallback(
@@ -55,13 +74,13 @@ function Base58Content() {
           return
         }
         const bytes = decodeBase58(base58)
-        const text = new TextDecoder().decode(bytes)
+        const text = decodeText(bytes, state.encoding)
         setParam("leftText", text)
       } catch (err) {
         setRightError(err instanceof Error ? err.message : "Decoding failed")
       }
     },
-    [setParam],
+    [state.encoding, setParam],
   )
 
   const handleLeftChange = React.useCallback(
@@ -83,72 +102,121 @@ function Base58Content() {
   )
 
   React.useEffect(() => {
-    const key = `${state.leftText}|${state.rightText}`
-    if (key !== lastSavedRef.current && (state.leftText || state.rightText)) {
-      lastSavedRef.current = key
-      // Assuming addHistoryEntry is available in the context or passed as a prop
-      // const { addHistoryEntry } = useContext(SomeContext);
-      // addHistoryEntry(
-      //   { leftText: state.leftText, rightText: state.rightText },
-      //   { activeSide: state.activeSide },
-      //   state.activeSide,
-      //   state.leftText.slice(0, 50) || state.rightText.slice(0, 50),
-      // );
+    if (state.activeSide === "left" && state.leftText) {
+      encodeToBase58(state.leftText)
+    } else if (state.activeSide === "right" && state.rightText) {
+      decodeFromBase58(state.rightText)
     }
-  }, [state.leftText, state.rightText])
+  }, [state.encoding])
+
+  const handleLeftFileUpload = React.useCallback(async (file: File) => {
+    try {
+      const buffer = await file.arrayBuffer()
+      const bytes = new Uint8Array(buffer)
+      const encoded = encodeBase58(bytes)
+
+      const blob = new Blob([encoded], { type: "text/plain" })
+      const url = URL.createObjectURL(blob)
+
+      setLeftFileResult({
+        status: "success",
+        message: `Encoded ${file.name} (${bytes.length} bytes)`,
+        downloadUrl: url,
+        downloadName: file.name + ".base58",
+      })
+    } catch (err) {
+      setLeftFileResult({
+        status: "error",
+        message: err instanceof Error ? err.message : "Encoding failed",
+      })
+    }
+  }, [])
+
+  const handleRightFileUpload = React.useCallback(async (file: File) => {
+    try {
+      const text = await file.text()
+      const bytes = decodeBase58(text.trim())
+
+      const blob = new Blob([bytes], { type: "application/octet-stream" })
+      const url = URL.createObjectURL(blob)
+
+      const baseName = file.name.replace(/\.base58$/i, "")
+      setRightFileResult({
+        status: "success",
+        message: `Decoded ${file.name} (${bytes.length} bytes)`,
+        downloadUrl: url,
+        downloadName: baseName + ".raw",
+      })
+    } catch (err) {
+      setRightFileResult({
+        status: "error",
+        message: err instanceof Error ? err.message : "Decoding failed",
+      })
+    }
+  }, [])
+
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
+      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
+      if (params.encoding) setParam("encoding", params.encoding as string)
+      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+    },
+    [setParam],
+  )
 
   return (
     <ToolPageWrapper
       toolId="base58"
       title="Base58"
       description="Encode and decode Base58 (Bitcoin alphabet)"
-      seoContent={<Base58SEOContent />}
+      onLoadHistory={handleLoadHistory}
     >
-      {({ addHistoryEntry }) => {
-        return (
-          <DualPaneLayout
-            leftLabel="Plain Text"
-            rightLabel="Base58"
-            leftValue={state.leftText}
-            rightValue={state.rightText}
-            onLeftChange={handleLeftChange}
-            onRightChange={handleRightChange}
-            activeSide={state.activeSide}
-            onActiveSideChange={(side) => setParam("activeSide", side, true)}
-            leftError={leftError}
-            rightError={rightError}
-            leftPlaceholder="Enter text to encode..."
-            rightPlaceholder="Enter Base58 to decode..."
-          />
-        )
-      }}
+      <DualPaneLayout
+        leftLabel="Plain Text"
+        rightLabel="Base58"
+        leftValue={state.leftText}
+        rightValue={state.rightText}
+        onLeftChange={handleLeftChange}
+        onRightChange={handleRightChange}
+        activeSide={state.activeSide}
+        onActiveSideChange={(side) => setParam("activeSide", side, true)}
+        leftError={leftError}
+        rightError={rightError}
+        leftPlaceholder="Enter text to encode..."
+        rightPlaceholder="Enter Base58 to decode..."
+        leftFileUpload={handleLeftFileUpload}
+        rightFileUpload={handleRightFileUpload}
+        leftFileResult={leftFileResult}
+        rightFileResult={rightFileResult}
+        onClearLeftFile={() => setLeftFileResult(null)}
+        onClearRightFile={() => setRightFileResult(null)}
+      >
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-6 p-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Text Encoding</Label>
+              <SearchableSelect
+                value={state.encoding}
+                onValueChange={(v) => setParam("encoding", v, true)}
+                options={encodings}
+                placeholder="Select encoding..."
+                searchPlaceholder="Search encodings..."
+                triggerClassName="w-48"
+                className="w-64"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </DualPaneLayout>
     </ToolPageWrapper>
-  )
-}
-
-function Base58SEOContent() {
-  return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
-      <h2>What is Base58?</h2>
-      <p>
-        Base58 is a binary-to-text encoding scheme similar to Base64, but it avoids visually ambiguous characters (0, O,
-        I, l) and special characters (+, /). It{"'"}s primarily used in Bitcoin and other cryptocurrencies.
-      </p>
-
-      <h2>Common Use Cases</h2>
-      <ul>
-        <li>Bitcoin addresses</li>
-        <li>IPFS content identifiers (CIDs)</li>
-        <li>Other cryptocurrency addresses</li>
-        <li>Short URLs and identifiers</li>
-      </ul>
-    </div>
   )
 }
 
 export default function Base58Page() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <Base58Content />
     </Suspense>
   )

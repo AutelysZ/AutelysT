@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { Suspense, useSyncExternalStore } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Search, Binary, Hash, ArrowRight } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -12,10 +12,26 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { searchTools, getToolsGroupedByCategory, type Tool } from "@/lib/tools/registry"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+function useQueryParam(key: string): string | null {
+  const getSnapshot = () => {
+    if (typeof window === "undefined") return null
+    const params = new URLSearchParams(window.location.search)
+    return params.get(key)
+  }
+
+  const getServerSnapshot = () => null
+
+  const subscribe = (callback: () => void) => {
+    window.addEventListener("popstate", callback)
+    return () => window.removeEventListener("popstate", callback)
+  }
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
+
 function SearchPageContent() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const initialQuery = searchParams.get("q") || ""
+  const initialQuery = useQueryParam("q") || ""
 
   const [query, setQuery] = React.useState(initialQuery)
   const [results, setResults] = React.useState<Tool[]>([])

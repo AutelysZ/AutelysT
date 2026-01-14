@@ -1,8 +1,24 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { usePathname } from "next/navigation"
 import type { z, ZodObject, ZodRawShape } from "zod"
+
+function useSearchParamsString() {
+  const getSnapshot = () => {
+    if (typeof window === "undefined") return ""
+    return window.location.search
+  }
+
+  const getServerSnapshot = () => ""
+
+  const subscribe = (callback: () => void) => {
+    window.addEventListener("popstate", callback)
+    return () => window.removeEventListener("popstate", callback)
+  }
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+}
 
 export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
   schema: ZodObject<T>
@@ -12,47 +28,60 @@ export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
 
 export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options: UseUrlSyncedStateOptions<T>) {
   const { schema, defaults, debounceMs = 300 } = options
-  const router = useRouter()
   const pathname = usePathname()
-  const searchParams = useSearchParams()
+  const searchString = useSearchParamsString()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
-  const isInitializedRef = useRef(false)
+  const isUpdatingUrlRef = useRef(false)
+  const lastUrlRef = useRef<string>("")
 
-  // Parse URL params on mount and popstate
-  const parseUrlParams = useCallback((): z.infer<ZodObject<T>> => {
-    const params: Record<string, unknown> = { ...defaults }
+  // Parse URL params
+  const parseUrlParams = useCallback(
+    (searchStr: string): z.infer<ZodObject<T>> => {
+      const params = new URLSearchParams(searchStr)
+      const result: Record<string, unknown> = { ...defaults }
 
-    searchParams.forEach((value, key) => {
-      if (key in defaults) {
-        const defaultValue = defaults[key as keyof typeof defaults]
-        if (typeof defaultValue === "boolean") {
-          params[key] = value === "true" || value === "1"
-        } else if (typeof defaultValue === "number") {
-          const num = Number(value)
-          params[key] = isNaN(num) ? defaultValue : num
-        } else {
-          params[key] = value
+      params.forEach((value, key) => {
+        if (key in defaults) {
+          const defaultValue = defaults[key as keyof typeof defaults]
+          if (typeof defaultValue === "boolean") {
+            result[key] = value === "true" || value === "1"
+          } else if (typeof defaultValue === "number") {
+            const num = Number(value)
+            result[key] = isNaN(num) ? defaultValue : num
+          } else {
+            result[key] = value
+          }
         }
+      })
+
+      try {
+        return schema.parse(result)
+      } catch {
+        return defaults
       }
-    })
+    },
+    [schema, defaults],
+  )
 
-    try {
-      return schema.parse(params)
-    } catch {
-      return defaults
+  // Initialize state from URL on first render only
+  const [state, setStateInternal] = useState<z.infer<ZodObject<T>>>(() => {
+    if (typeof window !== "undefined") {
+      lastUrlRef.current = window.location.search
+      return parseUrlParams(window.location.search)
     }
-  }, [searchParams, schema, defaults])
+    return defaults
+  })
 
-  const [state, setStateInternal] = useState<z.infer<ZodObject<T>>>(() => parseUrlParams())
-
-  // Sync URL to state on popstate
   useEffect(() => {
-    if (!isInitializedRef.current) {
-      isInitializedRef.current = true
+    // Skip if we caused this URL change or if URL hasn't actually changed
+    if (isUpdatingUrlRef.current || searchString === lastUrlRef.current) {
+      isUpdatingUrlRef.current = false
       return
     }
-    setStateInternal(parseUrlParams())
-  }, [searchParams, parseUrlParams])
+
+    lastUrlRef.current = searchString
+    setStateInternal(parseUrlParams(searchString))
+  }, [searchString, parseUrlParams])
 
   // Update URL when state changes
   const updateUrl = useCallback(
@@ -68,7 +97,9 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
       const queryString = params.toString()
       const newUrl = queryString ? `${pathname}?${queryString}` : pathname
 
-      window.history.pushState({}, "", newUrl)
+      isUpdatingUrlRef.current = true
+      lastUrlRef.current = queryString ? `?${queryString}` : ""
+      window.history.replaceState({}, "", newUrl)
     },
     [pathname, defaults],
   )
