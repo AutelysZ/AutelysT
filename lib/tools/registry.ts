@@ -200,6 +200,21 @@ export const tools: Tool[] = [
       keywords: ["timezone converter", "time zone", "unix timestamp", "epoch converter"],
     },
   },
+  // Web Tools
+  {
+    id: "url-encode",
+    name: "URL Encoder/Decoder",
+    description: "Encode and decode URL strings with detailed URL parsing including search params and hash params",
+    category: "Web",
+    route: "/tools/url-encode",
+    keywords: ["url", "encode", "decode", "percent", "uri", "query", "parser", "search params", "hash"],
+    seo: {
+      title: "URL Encoder/Decoder - AutelysT",
+      description:
+        "Free online URL encoder and decoder. Encode and decode URL strings with detailed parsing of protocol, hostname, pathname, search params, and hash params.",
+      keywords: ["url encoder", "url decoder", "percent encoding", "uri encode", "query string", "url parser"],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {

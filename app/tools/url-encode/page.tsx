@@ -1,0 +1,318 @@
+"use client"
+
+import * as React from "react"
+import { Suspense } from "react"
+import { z } from "zod"
+import { Copy, Check, Link2 } from "lucide-react"
+import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
+import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { parseURL, encodeURL, decodeURL } from "@/lib/url/url-parser"
+import type { HistoryEntry } from "@/lib/history/db"
+import { cn } from "@/lib/utils"
+
+const paramsSchema = z.object({
+  encoded: z.string().default(""),
+  decoded: z.string().default(""),
+  activeSide: z.enum(["encoded", "decoded"]).default("decoded"),
+})
+
+export default function URLEncodePage() {
+  return (
+    <Suspense fallback={null}>
+      <URLEncodeContent />
+    </Suspense>
+  )
+}
+
+function URLEncodeContent() {
+  const { state, setParam } = useUrlSyncedState("url-encode", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  })
+
+  const handleEncodedChange = React.useCallback(
+    (value: string) => {
+      setParam("encoded", value)
+      setParam("activeSide", "encoded")
+      const decoded = decodeURL(value)
+      setParam("decoded", decoded)
+    },
+    [setParam],
+  )
+
+  const handleDecodedChange = React.useCallback(
+    (value: string) => {
+      setParam("decoded", value)
+      setParam("activeSide", "decoded")
+      const encoded = encodeURL(value)
+      setParam("encoded", encoded)
+    },
+    [setParam],
+  )
+
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.encoded !== undefined) setParam("encoded", inputs.encoded)
+      if (inputs.decoded !== undefined) setParam("decoded", inputs.decoded)
+      if (params.activeSide) setParam("activeSide", params.activeSide as "encoded" | "decoded")
+    },
+    [setParam],
+  )
+
+  return (
+    <ToolPageWrapper
+      toolId="url-encode"
+      title="URL Encoder/Decoder"
+      description="Encode and decode URL strings with detailed URL parsing"
+      onLoadHistory={handleLoadHistory}
+    >
+      <URLEncodeInner
+        state={state}
+        handleEncodedChange={handleEncodedChange}
+        handleDecodedChange={handleDecodedChange}
+      />
+    </ToolPageWrapper>
+  )
+}
+
+function URLEncodeInner({
+  state,
+  handleEncodedChange,
+  handleDecodedChange,
+}: {
+  state: z.infer<typeof paramsSchema>
+  handleEncodedChange: (value: string) => void
+  handleDecodedChange: (value: string) => void
+}) {
+  const { addHistoryEntry } = useToolHistoryContext()
+  const lastInputRef = React.useRef<string>("")
+
+  React.useEffect(() => {
+    const activeText = state.activeSide === "encoded" ? state.encoded : state.decoded
+    if (!activeText || activeText === lastInputRef.current) return
+
+    const timer = setTimeout(() => {
+      lastInputRef.current = activeText
+      addHistoryEntry(
+        { encoded: state.encoded, decoded: state.decoded },
+        { activeSide: state.activeSide },
+        state.activeSide,
+        activeText.slice(0, 100),
+      )
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [state.encoded, state.decoded, state.activeSide, addHistoryEntry])
+
+  const parsedURL = React.useMemo(() => {
+    if (!state.encoded) return null
+    return parseURL(state.encoded)
+  }, [state.encoded])
+
+  return (
+    <div className="flex h-full gap-4">
+      {/* Left Column - Encoded */}
+      <URLColumn
+        label="URL Encoded"
+        value={state.encoded}
+        onChange={handleEncodedChange}
+        isActive={state.activeSide === "encoded"}
+        showParsed={false}
+        parsedURL={null}
+      />
+
+      {/* Divider */}
+      <div className="flex shrink-0 items-center justify-center">
+        <Link2 className="h-5 w-5 text-muted-foreground" />
+      </div>
+
+      {/* Right Column - Decoded */}
+      <URLColumn
+        label="URL Decoded"
+        value={state.decoded}
+        onChange={handleDecodedChange}
+        isActive={state.activeSide === "decoded"}
+        showParsed={true}
+        parsedURL={parsedURL}
+      />
+    </div>
+  )
+}
+
+function URLColumn({
+  label,
+  value,
+  onChange,
+  isActive,
+  showParsed,
+  parsedURL,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  isActive: boolean
+  showParsed: boolean
+  parsedURL: ReturnType<typeof parseURL> | null
+}) {
+  const [copied, setCopied] = React.useState<string | null>(null)
+
+  const handleCopy = async (text: string, key: string) => {
+    await navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const isValidURL = parsedURL !== null
+
+  return (
+    <div className="flex w-0 flex-1 flex-col gap-3">
+      {/* Row 1: Input Box */}
+      <div className="shrink-0">
+        <div className="mb-1 flex items-center justify-between">
+          <Label className={cn("text-sm font-medium", isActive && "text-primary")}>{label}</Label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleCopy(value, "input")}
+            disabled={!value}
+            className="h-7 gap-1 px-2 text-xs"
+          >
+            {copied === "input" ? (
+              <>
+                <Check className="h-3 w-3" />
+                Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-3 w-3" />
+                Copy
+              </>
+            )}
+          </Button>
+        </div>
+        <Textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={`Enter ${label.toLowerCase()}...`}
+          className={cn(
+            "max-h-[400px] min-h-[120px] overflow-auto break-all font-mono text-sm",
+            isActive && "ring-1 ring-primary",
+          )}
+          style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
+        />
+      </div>
+
+      {/* Row 2: Parsed Result */}
+      {showParsed && isValidURL && parsedURL && (
+        <div className="min-h-0 flex-1 space-y-2 overflow-auto text-sm">
+          {/* Basic fields */}
+          {Object.entries({
+            Protocol: parsedURL.protocol,
+            Username: parsedURL.username,
+            Password: parsedURL.password,
+            Hostname: parsedURL.hostname,
+            Port: parsedURL.port,
+            Host: parsedURL.host,
+            Origin: parsedURL.origin,
+            Pathname: parsedURL.pathname,
+            Search: parsedURL.search,
+            Hash: parsedURL.hash,
+          }).map(([key, val]) => {
+            if (!val) return null
+            return (
+              <div key={key} className="group flex items-start gap-1">
+                <span className="w-20 shrink-0 text-muted-foreground">{key}:</span>
+                <code className="break-all text-muted-foreground">{val}</code>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCopy(val, key)}
+                  className="h-5 w-5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                  aria-label={`Copy ${key}`}
+                >
+                  {copied === key ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </Button>
+              </div>
+            )
+          })}
+
+          {parsedURL.searchParams.length > 0 && (
+            <div className="space-y-1">
+              <div className="font-medium text-muted-foreground">Search Params:</div>
+              <div className="ml-4 overflow-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Key</th>
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Value</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedURL.searchParams.map((param, idx) => (
+                      <tr key={`search-${idx}`} className="group border-b last:border-0">
+                        <td className="break-all px-2 py-1 font-mono text-muted-foreground">{param.key}</td>
+                        <td className="break-all px-2 py-1 font-mono text-muted-foreground">{param.value}</td>
+                        <td className="px-2 py-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCopy(param.value, `search-${idx}`)}
+                            className="h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-label={`Copy ${param.key} value`}
+                          >
+                            {copied === `search-${idx}` ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {parsedURL.hashParams.length > 0 && (
+            <div className="space-y-1">
+              <div className="font-medium text-muted-foreground">Hash Params:</div>
+              <div className="ml-4 overflow-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Key</th>
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Value</th>
+                      <th className="w-8"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {parsedURL.hashParams.map((param, idx) => (
+                      <tr key={`hash-${idx}`} className="group border-b last:border-0">
+                        <td className="break-all px-2 py-1 font-mono text-muted-foreground">{param.key}</td>
+                        <td className="break-all px-2 py-1 font-mono text-muted-foreground">{param.value}</td>
+                        <td className="px-2 py-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleCopy(param.value, `hash-${idx}`)}
+                            className="h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-label={`Copy ${param.key} value`}
+                          >
+                            {copied === `hash-${idx}` ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
