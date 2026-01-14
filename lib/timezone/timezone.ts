@@ -520,7 +520,7 @@ export function formatTimestamp(date: Date, timezone: string): string {
 }
 
 export function getFormattedOutputs(date: Date, timezone: string): Record<string, string> {
-  const tz = timezone === "local" ? getLocalTimezone() : timezone
+  const tz = timezone === "local" ? getLocalTimezone() : isUnixEpochTimezone(timezone) ? "UTC" : timezone
 
   // Use Intl.DateTimeFormat for locale formats with proper dateStyle/timeStyle
   const localeFull = new Intl.DateTimeFormat(undefined, {

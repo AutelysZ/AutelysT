@@ -293,7 +293,7 @@ function TimezonePaneColumn({
   }, [text, timezone])
 
   const outputs = React.useMemo(() => {
-    if (!date || isUnixEpochTimezone(timezone)) return null
+    if (!date) return null
     return getFormattedOutputs(date, timezone)
   }, [date, timezone])
 
