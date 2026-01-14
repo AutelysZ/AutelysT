@@ -286,6 +286,12 @@ function TimezonePaneColumn({
     [timezone, onTextChange],
   )
 
+  const currentDate = React.useMemo(() => {
+    if (!text) return undefined
+    const parsed = parseTimestamp(text, timezone)
+    return parsed || undefined
+  }, [text, timezone])
+
   const outputs = React.useMemo(() => {
     if (!date || isUnixEpochTimezone(timezone)) return null
     return getFormattedOutputs(date, timezone)
@@ -303,7 +309,7 @@ function TimezonePaneColumn({
           triggerClassName="flex-1 min-w-[140px]"
           className="w-80"
         />
-        <DateTimePicker date={date || undefined} setDate={handleDateTimeChange} />
+        <DateTimePicker date={currentDate} setDate={handleDateTimeChange} />
         <Button variant="outline" size="sm" onClick={onNow}>
           Now
         </Button>

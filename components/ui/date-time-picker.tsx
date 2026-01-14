@@ -28,6 +28,15 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const is12Hour = useLocale12Hour()
 
+  const [displayMonth, setDisplayMonth] = React.useState<Date | undefined>(date)
+
+  // Update display month when date prop changes
+  React.useEffect(() => {
+    if (date) {
+      setDisplayMonth(date)
+    }
+  }, [date])
+
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       // Preserve time if date already exists
@@ -92,6 +101,8 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
             mode="single"
             selected={date}
             onSelect={handleDateSelect}
+            month={displayMonth}
+            onMonthChange={setDisplayMonth}
             initialFocus
             captionLayout="dropdown"
             fromYear={1900}
