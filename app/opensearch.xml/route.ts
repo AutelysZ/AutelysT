@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   <Description>Search AutelysT web tools - encoding, decoding, conversion, and more</Description>
   <InputEncoding>UTF-8</InputEncoding>
   <Image width="16" height="16" type="image/x-icon">${baseUrl}/favicon.ico</Image>
-  <Url type="text/html" template="${baseUrl}/search?q={searchTerms}"/>
+  <Url type="text/html" template="${baseUrl}/?q={searchTerms}"/>
   <Url type="application/opensearchdescription+xml" rel="self" template="${baseUrl}/opensearch.xml"/>
 </OpenSearchDescription>`
 
