@@ -1,0 +1,226 @@
+"use client"
+
+import * as React from "react"
+import { Suspense } from "react"
+import { z } from "zod"
+import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
+import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { Card, CardContent } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ArrowLeftRight } from "lucide-react"
+import {
+  parseFormattedNumber,
+  formatNumber,
+  NUMBER_FORMATS,
+  ENGINEERING_UNITS,
+  type NumberFormat,
+  type EngineeringUnit,
+} from "@/lib/numbers/format"
+import { cn } from "@/lib/utils"
+
+const paramsSchema = z.object({
+  leftFormat: z.string().default("plain"),
+  leftUnit: z.string().default("h"),
+  rightFormat: z.string().default("comma"),
+  rightUnit: z.string().default("h"),
+  activeSide: z.enum(["left", "right"]).default("left"),
+  leftText: z.string().default(""),
+  rightText: z.string().default(""),
+})
+
+function NumberFormatContent() {
+  const { state, setParam } = useUrlSyncedState("number-format", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  })
+
+  const [leftError, setLeftError] = React.useState<string | null>(null)
+  const [rightError, setRightError] = React.useState<string | null>(null)
+
+  const convertValue = React.useCallback(
+    (value: string, fromSide: "left" | "right") => {
+      const toSide = fromSide === "left" ? "right" : "left"
+      const fromFormat = (fromSide === "left" ? state.leftFormat : state.rightFormat) as NumberFormat
+      const toFormat = (toSide === "left" ? state.leftFormat : state.rightFormat) as NumberFormat
+      const toUnit = (toSide === "left" ? state.leftUnit : state.rightUnit) as EngineeringUnit
+
+      try {
+        if (fromSide === "left") setLeftError(null)
+        else setRightError(null)
+
+        if (!value.trim()) {
+          setParam(toSide === "left" ? "leftText" : "rightText", "")
+          return
+        }
+
+        const num = parseFormattedNumber(value, fromFormat)
+        if (isNaN(num)) {
+          throw new Error("Invalid number format")
+        }
+
+        const result = formatNumber(num, toFormat, toUnit)
+        setParam(toSide === "left" ? "leftText" : "rightText", result)
+      } catch (err) {
+        if (fromSide === "left") setLeftError(err instanceof Error ? err.message : "Conversion failed")
+        else setRightError(err instanceof Error ? err.message : "Conversion failed")
+      }
+    },
+    [state, setParam],
+  )
+
+  const handleLeftChange = React.useCallback(
+    (value: string) => {
+      setParam("leftText", value)
+      setParam("activeSide", "left")
+      convertValue(value, "left")
+    },
+    [setParam, convertValue],
+  )
+
+  const handleRightChange = React.useCallback(
+    (value: string) => {
+      setParam("rightText", value)
+      setParam("activeSide", "right")
+      convertValue(value, "right")
+    },
+    [setParam, convertValue],
+  )
+
+  // Reconvert when format changes
+  React.useEffect(() => {
+    if (state.activeSide === "left" && state.leftText) {
+      convertValue(state.leftText, "left")
+    } else if (state.activeSide === "right" && state.rightText) {
+      convertValue(state.rightText, "right")
+    }
+  }, [state.leftFormat, state.leftUnit, state.rightFormat, state.rightUnit])
+
+  const renderSidePanel = (side: "left" | "right") => {
+    const isLeft = side === "left"
+    const format = isLeft ? state.leftFormat : state.rightFormat
+    const unit = isLeft ? state.leftUnit : state.rightUnit
+    const text = isLeft ? state.leftText : state.rightText
+    const error = isLeft ? leftError : rightError
+    const isActive = state.activeSide === side
+
+    const showUnitSelect = format === "engineering"
+
+    return (
+      <div className="flex flex-1 flex-col gap-3">
+        <Card>
+          <CardContent className="flex flex-wrap items-center gap-4 p-4">
+            <div className="flex items-center gap-2">
+              <Label className="text-sm whitespace-nowrap">Format</Label>
+              <Select value={format} onValueChange={(v) => setParam(isLeft ? "leftFormat" : "rightFormat", v, true)}>
+                <SelectTrigger className="w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {NUMBER_FORMATS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {showUnitSelect && (
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Unit</Label>
+                <Select value={unit} onValueChange={(v) => setParam(isLeft ? "leftUnit" : "rightUnit", v, true)}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ENGINEERING_UNITS.map((u) => (
+                      <SelectItem key={u.value} value={u.value}>
+                        {u.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="flex-1">
+          <Textarea
+            value={text}
+            onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
+            onFocus={() => setParam("activeSide", side, true)}
+            placeholder="Enter number..."
+            className={cn(
+              "h-full min-h-[150px] resize-none font-mono",
+              error && "border-destructive",
+              isActive && "ring-1 ring-primary",
+            )}
+          />
+          {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <ToolPageWrapper
+      toolId="number-format"
+      title="Number Format"
+      description="Convert between different number formatting styles"
+      seoContent={<NumberFormatSEOContent />}
+    >
+      {() => (
+        <div className="flex min-h-[400px] gap-4">
+          {renderSidePanel("left")}
+          <div className="flex items-center">
+            <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+          </div>
+          {renderSidePanel("right")}
+        </div>
+      )}
+    </ToolPageWrapper>
+  )
+}
+
+function NumberFormatSEOContent() {
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <h2>What is Number Format Conversion?</h2>
+      <p>
+        Number format conversion transforms how numbers are displayed without changing their value. Different cultures
+        and contexts use different conventions for number formatting.
+      </p>
+
+      <h2>Supported Formats</h2>
+      <ul>
+        <li>
+          <strong>Thousand separators:</strong> Comma (1,234), dot (1.234), ISO space (1 234), Indian (12,34,567)
+        </li>
+        <li>
+          <strong>Numeral systems:</strong> Chinese (一二三), Japanese (一二三), Korean (일이삼), Roman (MCMLXXXIV)
+        </li>
+        <li>
+          <strong>Scientific notation:</strong> Standard (1.23e+6) and engineering (1.23M, 4.56G)
+        </li>
+      </ul>
+
+      <h2>FAQ</h2>
+      <h3>What is engineering notation?</h3>
+      <p>
+        Engineering notation is similar to scientific notation but restricts the exponent to multiples of 3, using
+        prefixes like K (kilo), M (mega), G (giga), etc.
+      </p>
+    </div>
+  )
+}
+
+export default function NumberFormatPage() {
+  return (
+    <Suspense>
+      <NumberFormatContent />
+    </Suspense>
+  )
+}
