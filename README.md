@@ -48,7 +48,7 @@ A comprehensive web-based toolkit for developers featuring encoding tools, ident
 
 ### Installation
 
-```bash
+\`\`\`bash
 # Clone the repository
 git clone https://github.com/yourusername/autelyst.git
 cd autelyst
@@ -58,19 +58,19 @@ pnpm install
 
 # Run development server
 pnpm dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000) to see the application.
 
 ### Build for Production
 
-```bash
+\`\`\`bash
 # Build the application
 pnpm build
 
 # Start production server
 pnpm start
-```
+\`\`\`
 
 ## 🛠️ Tech Stack
 
@@ -90,7 +90,7 @@ pnpm start
 
 ## 📁 Project Structure
 
-```
+\`\`\`
 ├── app/                    # Next.js App Router pages
 │   ├── tools/             # Individual tool pages
 │   │   ├── base64/
@@ -110,7 +110,7 @@ pnpm start
 │   ├── url-state/         # URL state synchronization
 │   └── tools/             # Tool registry
 └── public/                # Static assets
-```
+\`\`\`
 
 ## 🤖 Built with AI
 
