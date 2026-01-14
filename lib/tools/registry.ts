@@ -97,6 +97,63 @@ export const tools: Tool[] = [
       keywords: ["hex escape", "encoder", "decoder", "byte sequence"],
     },
   },
+  // Identifier Tools
+  {
+    id: "uuid",
+    name: "UUID",
+    description: "Generate and parse UUIDs v1, v4, v6, and v7 with timestamp and node ID extraction",
+    category: "Identifier",
+    route: "/tools/uuid",
+    keywords: ["uuid", "guid", "generate", "parse", "v1", "v4", "v6", "v7", "timestamp"],
+    seo: {
+      title: "UUID - AutelysT",
+      description:
+        "Free online UUID generator and parser. Generate v1, v4, v6, v7 UUIDs and parse to extract timestamp, node ID, and version info.",
+      keywords: ["uuid generator", "uuid parser", "guid", "v1", "v4", "v6", "v7"],
+    },
+  },
+  {
+    id: "ulid",
+    name: "ULID",
+    description: "Generate and parse ULIDs (Universally Unique Lexicographically Sortable Identifiers)",
+    category: "Identifier",
+    route: "/tools/ulid",
+    keywords: ["ulid", "generate", "parse", "sortable", "timestamp", "unique"],
+    seo: {
+      title: "ULID - AutelysT",
+      description:
+        "Free online ULID generator and parser. Generate ULIDs and parse to extract timestamp and randomness.",
+      keywords: ["ulid generator", "ulid parser", "sortable identifier"],
+    },
+  },
+  {
+    id: "ksuid",
+    name: "KSUID",
+    description: "Generate and parse KSUIDs (K-Sortable Unique Identifiers)",
+    category: "Identifier",
+    route: "/tools/ksuid",
+    keywords: ["ksuid", "generate", "parse", "sortable", "timestamp", "unique"],
+    seo: {
+      title: "KSUID - AutelysT",
+      description:
+        "Free online KSUID generator and parser. Generate KSUIDs and parse to extract timestamp and payload.",
+      keywords: ["ksuid generator", "ksuid parser", "sortable identifier"],
+    },
+  },
+  {
+    id: "objectid",
+    name: "BSON ObjectID",
+    description: "Generate and parse MongoDB BSON ObjectIDs",
+    category: "Identifier",
+    route: "/tools/objectid",
+    keywords: ["objectid", "mongodb", "bson", "generate", "parse", "timestamp"],
+    seo: {
+      title: "BSON ObjectID - AutelysT",
+      description:
+        "Free online MongoDB BSON ObjectID generator and parser. Generate ObjectIDs and parse to extract timestamp and machine info.",
+      keywords: ["objectid generator", "objectid parser", "mongodb", "bson"],
+    },
+  },
   // Number Tools
   {
     id: "radix",

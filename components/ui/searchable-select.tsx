@@ -27,8 +27,22 @@ export function SearchableSelect({
   triggerClassName,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const selectedOption = options.find((opt) => opt.value === value)
+
+  if (!mounted) {
+    return (
+      <Button variant="outline" role="combobox" className={cn("justify-between", triggerClassName)} disabled>
+        {selectedOption?.label ?? placeholder}
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+    )
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

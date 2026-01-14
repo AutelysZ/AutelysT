@@ -43,7 +43,6 @@ function Pane({
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   const handleCopy = async () => {
-    // Preserve exact characters including NBSP
     await navigator.clipboard.writeText(value)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
@@ -72,7 +71,7 @@ function Pane({
   )
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex w-0 flex-1 flex-col">
       <div className="mb-2 flex items-center justify-between">
         <span className={cn("text-sm font-medium", isActive && "text-primary")}>{label}</span>
         <div className="flex items-center gap-1">
@@ -161,10 +160,11 @@ function Pane({
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
-              "h-full min-h-[200px] resize-none font-mono text-sm",
+              "h-full min-h-[200px] max-h-[400px] resize-none overflow-auto font-mono text-sm break-all",
               error && "border-destructive",
               isActive && "ring-1 ring-primary",
             )}
+            style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
           />
         </div>
       )}
@@ -247,7 +247,7 @@ export function DualPaneLayout({
           onClearFile={onClearLeftFile}
         />
 
-        <div className="flex items-center">
+        <div className="flex shrink-0 items-center">
           <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
         </div>
 

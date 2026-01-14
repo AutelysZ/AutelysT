@@ -15,13 +15,16 @@ import { useRecentTools } from "@/lib/history/use-tool-history"
 export function Sidebar() {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = React.useState("")
-  const [expandedCategories, setExpandedCategories] = React.useState<Record<string, boolean>>({
-    Encoding: true,
-    Numbers: true,
+  const groupedTools = React.useMemo(() => getToolsGroupedByCategory(), [])
+
+  const [expandedCategories, setExpandedCategories] = React.useState<Record<string, boolean>>(() => {
+    const allExpanded: Record<string, boolean> = {}
+    Object.keys(getToolsGroupedByCategory()).forEach((category) => {
+      allExpanded[category] = true
+    })
+    return allExpanded
   })
   const { recentTools } = useRecentTools()
-
-  const groupedTools = React.useMemo(() => getToolsGroupedByCategory(), [])
 
   const filteredTools = React.useMemo(() => {
     if (!searchQuery.trim()) return null

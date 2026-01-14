@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation"
 import type { z, ZodObject, ZodRawShape } from "zod"
+import { getDB, type HistoryEntry } from "@/lib/history/db"
 
 function useSearchParamsString() {
   const getSnapshot = () => {
@@ -20,6 +21,17 @@ function useSearchParamsString() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 }
 
+async function getLatestHistoryEntry(toolId: string): Promise<HistoryEntry | null> {
+  try {
+    const db = await getDB()
+    const entries = await db.getAllFromIndex("history", "by-tool", toolId)
+    if (entries.length === 0) return null
+    return entries.sort((a, b) => b.createdAt - a.createdAt)[0]
+  } catch {
+    return null
+  }
+}
+
 export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
   schema: ZodObject<T>
   defaults: z.infer<ZodObject<T>>
@@ -33,6 +45,8 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
   const isUpdatingUrlRef = useRef(false)
   const lastUrlRef = useRef<string>("")
+  const hasRestoredFromHistoryRef = useRef(false)
+  const isMountedRef = useRef(true)
 
   // Parse URL params
   const parseUrlParams = useCallback(
@@ -71,6 +85,58 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     }
     return defaults
   })
+
+  useEffect(() => {
+    isMountedRef.current = true
+    return () => {
+      isMountedRef.current = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (hasRestoredFromHistoryRef.current) return
+
+    // Check if URL has any meaningful params (excluding defaults)
+    const currentParams = new URLSearchParams(window.location.search)
+    const hasUrlParams = Array.from(currentParams.keys()).some((key) => key in defaults)
+
+    if (!hasUrlParams) {
+      hasRestoredFromHistoryRef.current = true
+      getLatestHistoryEntry(toolId).then((entry) => {
+        if (!isMountedRef.current) return
+        if (entry) {
+          const restored: Record<string, unknown> = { ...defaults }
+
+          // Restore inputs
+          if (entry.inputs) {
+            for (const [key, value] of Object.entries(entry.inputs)) {
+              if (key in defaults) {
+                restored[key] = value
+              }
+            }
+          }
+
+          // Restore params
+          if (entry.params) {
+            for (const [key, value] of Object.entries(entry.params)) {
+              if (key in defaults) {
+                restored[key] = value
+              }
+            }
+          }
+
+          try {
+            const parsed = schema.parse(restored)
+            setStateInternal(parsed)
+          } catch {
+            // Ignore parse errors
+          }
+        }
+      })
+    } else {
+      hasRestoredFromHistoryRef.current = true
+    }
+  }, [toolId, defaults, schema])
 
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed
