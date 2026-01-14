@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
+import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,7 +15,7 @@ import { encodeText, decodeText, getAllEncodings } from "@/lib/encoding/text-enc
 import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
-  encoding: z.string().default("utf8"),
+  encoding: z.string().default("UTF-8"),
   upperCase: z.boolean().default(true),
   activeSide: z.enum(["left", "right"]).default("left"),
   leftText: z.string().default(""),
@@ -179,54 +179,119 @@ function Base36Content() {
       description="Encode and decode Base36 (alphanumeric: 0-9, A-Z)"
       onLoadHistory={handleLoadHistory}
     >
-      <DualPaneLayout
-        leftLabel="Plain Text"
-        rightLabel="Base36"
-        leftValue={state.leftText}
-        rightValue={state.rightText}
-        onLeftChange={handleLeftChange}
-        onRightChange={handleRightChange}
-        activeSide={state.activeSide}
-        onActiveSideChange={(side) => setParam("activeSide", side, true)}
+      <Base36Inner
+        state={state}
+        setParam={setParam}
         leftError={leftError}
         rightError={rightError}
-        leftPlaceholder="Enter text to encode..."
-        rightPlaceholder="Enter Base36 to decode..."
-        leftFileUpload={handleLeftFileUpload}
-        rightFileUpload={handleRightFileUpload}
+        handleLeftChange={handleLeftChange}
+        handleRightChange={handleRightChange}
+        handleLeftFileUpload={handleLeftFileUpload}
+        handleRightFileUpload={handleRightFileUpload}
         leftFileResult={leftFileResult}
         rightFileResult={rightFileResult}
-        onClearLeftFile={() => setLeftFileResult(null)}
-        onClearRightFile={() => setRightFileResult(null)}
-      >
-        <Card>
-          <CardContent className="flex flex-wrap items-center gap-6 p-4">
-            <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Text Encoding</Label>
-              <SearchableSelect
-                value={state.encoding}
-                onValueChange={(v) => setParam("encoding", v, true)}
-                options={encodings}
-                placeholder="Select encoding..."
-                searchPlaceholder="Search encodings..."
-                triggerClassName="w-48"
-                className="w-64"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="upperCase"
-                checked={state.upperCase}
-                onCheckedChange={(c) => setParam("upperCase", c === true, true)}
-              />
-              <Label htmlFor="upperCase" className="text-sm cursor-pointer">
-                Upper case
-              </Label>
-            </div>
-          </CardContent>
-        </Card>
-      </DualPaneLayout>
+        setLeftFileResult={setLeftFileResult}
+        setRightFileResult={setRightFileResult}
+      />
     </ToolPageWrapper>
+  )
+}
+
+function Base36Inner({
+  state,
+  setParam,
+  leftError,
+  rightError,
+  handleLeftChange,
+  handleRightChange,
+  handleLeftFileUpload,
+  handleRightFileUpload,
+  leftFileResult,
+  rightFileResult,
+  setLeftFileResult,
+  setRightFileResult,
+}: {
+  state: z.infer<typeof paramsSchema>
+  setParam: (key: string, value: unknown, updateHistory?: boolean) => void
+  leftError: string | null
+  rightError: string | null
+  handleLeftChange: (value: string) => void
+  handleRightChange: (value: string) => void
+  handleLeftFileUpload: (file: File) => void
+  handleRightFileUpload: (file: File) => void
+  leftFileResult: { status: "success" | "error"; message: string; downloadUrl?: string; downloadName?: string } | null
+  rightFileResult: { status: "success" | "error"; message: string; downloadUrl?: string; downloadName?: string } | null
+  setLeftFileResult: (v: typeof leftFileResult) => void
+  setRightFileResult: (v: typeof rightFileResult) => void
+}) {
+  const { addHistoryEntry } = useToolHistoryContext()
+  const lastInputRef = React.useRef<string>("")
+
+  React.useEffect(() => {
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    if (!activeText || activeText === lastInputRef.current) return
+
+    const timer = setTimeout(() => {
+      lastInputRef.current = activeText
+      addHistoryEntry(
+        { leftText: state.leftText, rightText: state.rightText },
+        { encoding: state.encoding, upperCase: state.upperCase, activeSide: state.activeSide },
+        state.activeSide,
+        activeText.slice(0, 100),
+      )
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [state.leftText, state.rightText, state.activeSide, state.encoding, state.upperCase, addHistoryEntry])
+
+  return (
+    <DualPaneLayout
+      leftLabel="Plain Text"
+      rightLabel="Base36"
+      leftValue={state.leftText}
+      rightValue={state.rightText}
+      onLeftChange={handleLeftChange}
+      onRightChange={handleRightChange}
+      activeSide={state.activeSide}
+      onActiveSideChange={(side) => setParam("activeSide", side, true)}
+      leftError={leftError}
+      rightError={rightError}
+      leftPlaceholder="Enter text to encode..."
+      rightPlaceholder="Enter Base36 to decode..."
+      leftFileUpload={handleLeftFileUpload}
+      rightFileUpload={handleRightFileUpload}
+      leftFileResult={leftFileResult}
+      rightFileResult={rightFileResult}
+      onClearLeftFile={() => setLeftFileResult(null)}
+      onClearRightFile={() => setRightFileResult(null)}
+    >
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-6 p-4">
+          <div className="flex items-center gap-2">
+            <Label className="text-sm whitespace-nowrap">Text Encoding</Label>
+            <SearchableSelect
+              value={state.encoding}
+              onValueChange={(v) => setParam("encoding", v, true)}
+              options={encodings}
+              placeholder="Select encoding..."
+              searchPlaceholder="Search encodings..."
+              triggerClassName="w-48"
+              className="w-64"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="upperCase"
+              checked={state.upperCase}
+              onCheckedChange={(c) => setParam("upperCase", c === true, true)}
+            />
+            <Label htmlFor="upperCase" className="text-sm cursor-pointer">
+              Upper case
+            </Label>
+          </div>
+        </CardContent>
+      </Card>
+    </DualPaneLayout>
   )
 }
 

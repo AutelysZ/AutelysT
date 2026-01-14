@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
+import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -272,50 +272,54 @@ function RadixContent() {
       toolId="radix"
       title="Base Conversion"
       description="Convert numbers between different bases (radixes)"
-      seoContent={<RadixSEOContent />}
       onLoadHistory={handleLoadHistory}
     >
-      <div className="flex min-h-[400px] gap-4">
-        {renderSidePanel("left")}
-        <div className="flex items-center">
-          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
-        </div>
-        {renderSidePanel("right")}
-      </div>
+      <RadixInner state={state} renderSidePanel={renderSidePanel} />
     </ToolPageWrapper>
   )
 }
 
-function RadixSEOContent() {
+function RadixInner({
+  state,
+  renderSidePanel,
+}: {
+  state: z.infer<typeof paramsSchema>
+  renderSidePanel: (side: "left" | "right") => React.ReactNode
+}) {
+  const { addHistoryEntry } = useToolHistoryContext()
+  const lastInputRef = React.useRef<string>("")
+
+  React.useEffect(() => {
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    if (!activeText || activeText === lastInputRef.current) return
+
+    const timer = setTimeout(() => {
+      lastInputRef.current = activeText
+      addHistoryEntry(
+        { leftText: state.leftText, rightText: state.rightText },
+        { activeSide: state.activeSide },
+        state.activeSide,
+        activeText.slice(0, 100),
+      )
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [state.leftText, state.rightText, state.activeSide, addHistoryEntry])
+
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
-      <h2>What is Base Conversion?</h2>
-      <p>
-        Base conversion (or radix conversion) is the process of converting numbers from one numeral system to another.
-        Common bases include binary (base 2), octal (base 8), decimal (base 10), and hexadecimal (base 16).
-      </p>
-
-      <h2>Common Use Cases</h2>
-      <ul>
-        <li>Converting between binary and hexadecimal in programming</li>
-        <li>Understanding memory addresses and byte values</li>
-        <li>Converting Unix timestamps to base60 (time format)</li>
-        <li>Working with custom numeral systems</li>
-      </ul>
-
-      <h2>FAQ</h2>
-      <h3>What is Base 60?</h3>
-      <p>
-        Base 60 (sexagesimal) is used in time measurement. Our converter displays it in time-like format (xx:xx:xx)
-        where each segment represents a value from 0-59.
-      </p>
+    <div className="flex min-h-[400px] gap-4">
+      {renderSidePanel("left")}
+      <div className="flex items-center">
+        <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+      </div>
+      {renderSidePanel("right")}
     </div>
   )
 }
 
 export default function RadixPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <RadixContent />
     </Suspense>
   )

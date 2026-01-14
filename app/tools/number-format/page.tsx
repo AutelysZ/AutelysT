@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
+import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
@@ -104,9 +104,65 @@ function NumberFormatContent() {
       if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
       if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
       if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+      if (params.leftFormat) setParam("leftFormat", params.leftFormat as string)
+      if (params.rightFormat) setParam("rightFormat", params.rightFormat as string)
     },
     [setParam],
   )
+
+  return (
+    <ToolPageWrapper
+      toolId="number-format"
+      title="Number Format"
+      description="Convert between different number formatting styles"
+      onLoadHistory={handleLoadHistory}
+    >
+      <NumberFormatInner
+        state={state}
+        setParam={setParam}
+        leftError={leftError}
+        rightError={rightError}
+        handleLeftChange={handleLeftChange}
+        handleRightChange={handleRightChange}
+      />
+    </ToolPageWrapper>
+  )
+}
+
+function NumberFormatInner({
+  state,
+  setParam,
+  leftError,
+  rightError,
+  handleLeftChange,
+  handleRightChange,
+}: {
+  state: z.infer<typeof paramsSchema>
+  setParam: (key: string, value: unknown, updateHistory?: boolean) => void
+  leftError: string | null
+  rightError: string | null
+  handleLeftChange: (value: string) => void
+  handleRightChange: (value: string) => void
+}) {
+  const { addHistoryEntry } = useToolHistoryContext()
+  const lastInputRef = React.useRef<string>("")
+
+  React.useEffect(() => {
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    if (!activeText || activeText === lastInputRef.current) return
+
+    const timer = setTimeout(() => {
+      lastInputRef.current = activeText
+      addHistoryEntry(
+        { leftText: state.leftText, rightText: state.rightText },
+        { leftFormat: state.leftFormat, rightFormat: state.rightFormat, activeSide: state.activeSide },
+        state.activeSide,
+        activeText.slice(0, 100),
+      )
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [state.leftText, state.rightText, state.activeSide, state.leftFormat, state.rightFormat, addHistoryEntry])
 
   const renderSidePanel = (side: "left" | "right") => {
     const isLeft = side === "left"
@@ -177,26 +233,19 @@ function NumberFormatContent() {
   }
 
   return (
-    <ToolPageWrapper
-      toolId="number-format"
-      title="Number Format"
-      description="Convert between different number formatting styles"
-      onLoadHistory={handleLoadHistory}
-    >
-      <div className="flex min-h-[400px] gap-4">
-        {renderSidePanel("left")}
-        <div className="flex items-center">
-          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
-        </div>
-        {renderSidePanel("right")}
+    <div className="flex min-h-[400px] gap-4">
+      {renderSidePanel("left")}
+      <div className="flex items-center">
+        <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
       </div>
-    </ToolPageWrapper>
+      {renderSidePanel("right")}
+    </div>
   )
 }
 
 export default function NumberFormatPage() {
   return (
-    <Suspense>
+    <Suspense fallback={null}>
       <NumberFormatContent />
     </Suspense>
   )

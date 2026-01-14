@@ -1,7 +1,4 @@
-// Base64 encoding/decoding utilities
-
-const BASE64_STANDARD = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
-const BASE64_URL_SAFE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+// Base64 encoding/decoding utilities using built-in btoa/atob
 
 export interface Base64Options {
   padding?: boolean
@@ -26,35 +23,29 @@ export function detectBase64Options(input: string): DetectedBase64Options {
   }
 }
 
-// Encode bytes to base64
 export function encodeBase64(bytes: Uint8Array, options: Base64Options = {}): string {
   const { padding = true, urlSafe = false, mimeFormat = false } = options
-  const alphabet = urlSafe ? BASE64_URL_SAFE : BASE64_STANDARD
 
-  let result = ""
-  let i = 0
-
-  while (i < bytes.length) {
-    const b1 = bytes[i++]
-    const b2 = i < bytes.length ? bytes[i++] : 0
-    const b3 = i < bytes.length ? bytes[i++] : 0
-
-    const triplet = (b1 << 16) | (b2 << 8) | b3
-
-    result += alphabet[(triplet >> 18) & 0x3f]
-    result += alphabet[(triplet >> 12) & 0x3f]
-
-    if (i > bytes.length + 1) {
-      result += padding ? "==" : ""
-    } else if (i > bytes.length) {
-      result += alphabet[(triplet >> 6) & 0x3f]
-      result += padding ? "=" : ""
-    } else {
-      result += alphabet[(triplet >> 6) & 0x3f]
-      result += alphabet[triplet & 0x3f]
-    }
+  // Convert Uint8Array to binary string
+  let binary = ""
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
   }
 
+  // Use built-in btoa
+  let result = btoa(binary)
+
+  // Handle URL-safe variant
+  if (urlSafe) {
+    result = result.replace(/\+/g, "-").replace(/\//g, "_")
+  }
+
+  // Handle padding
+  if (!padding) {
+    result = result.replace(/=+$/, "")
+  }
+
+  // Handle MIME format (76 char line breaks)
   if (mimeFormat && result.length > 0) {
     const lines: string[] = []
     for (let j = 0; j < result.length; j += 76) {
