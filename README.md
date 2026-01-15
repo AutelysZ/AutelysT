@@ -4,12 +4,15 @@
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)](https://typescriptlang.org/)
 
-A comprehensive web-based developer toolkit featuring encoding tools, identifier generators, time conversion, diff viewers, and more. Built with Next.js 16, React 19, and TypeScript.
+A comprehensive web-based developer toolkit featuring encoding tools, password generation, identifier generators, time conversion, diff viewers, and more. Built with Next.js 16, React 19, and TypeScript.
 
 ## Features
 
 ### Encoding Tools
 Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape with 100+ text encodings, file upload/download, and URL-safe modes.
+
+### Crypto Tools
+- **Password Generator** - Generate secure passwords with ASCII and base serialization options
 
 ### Identifier Tools
 Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, and BSON ObjectID with timestamp extraction.

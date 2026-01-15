@@ -47,7 +47,7 @@ export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   Identifier: ["uuid", "ulid", "ksuid", "objectid", "guid", "id", "unique", "generate"],
   Text: ["text", "string", "regex", "replace", "format", "case", "trim", "split", "join"],
   "Date & Time": ["date", "time", "timestamp", "timezone", "epoch", "unix", "calendar"],
-  Crypto: ["hash", "md5", "sha", "encrypt", "decrypt", "aes", "rsa", "hmac"],
+  Crypto: ["hash", "md5", "sha", "encrypt", "decrypt", "aes", "rsa", "hmac", "password"],
   Web: ["json", "xml", "html", "css", "url", "query", "jwt", "uuid"],
   Data: ["json", "diff", "compare", "schema", "text", "viewer", "generate"],
   Misc: [],

@@ -97,6 +97,21 @@ export const tools: Tool[] = [
       keywords: ["hex escape", "encoder", "decoder", "byte sequence"],
     },
   },
+  // Crypto Tools
+  {
+    id: "password-generator",
+    name: "Password Generator",
+    description: "Generate secure passwords with ASCII and base encoding serialization options",
+    category: "Crypto",
+    route: "/tools/password-generator",
+    keywords: ["password", "generator", "random", "secure", "ascii", "base64", "base58", "base45", "base32", "hex"],
+    seo: {
+      title: "Password Generator - AutelysT",
+      description:
+        "Free online password generator. Create strong passwords with Graphic ASCII, Base64, Hex, Base58, Base45, or Base32 serialization.",
+      keywords: ["password generator", "secure password", "random password", "base64", "hex", "base58"],
+    },
+  },
   // Identifier Tools
   {
     id: "uuid",

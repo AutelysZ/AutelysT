@@ -4,7 +4,7 @@ import * as React from "react"
 import { Suspense } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { Search, Binary, Hash, Key, Clock, Globe, Database } from "lucide-react"
+import { Search, Binary, Hash, Key, Clock, Globe, Database, Shield } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -65,6 +65,8 @@ function HomePage() {
         return <Globe className="h-4 w-4" />
       case "Data":
         return <Database className="h-4 w-4" />
+      case "Crypto":
+        return <Shield className="h-4 w-4" />
       default:
         return <Binary className="h-4 w-4" />
     }
@@ -79,8 +81,8 @@ function HomePage() {
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
           <p className="mx-auto mb-6 max-w-2xl text-balance text-muted-foreground">
-            Free online tools for encoding, decoding, ID generation, data comparison, and number conversion. Fast,
-            private, and works entirely in your browser.
+            Free online tools for encoding, decoding, password generation, ID creation, data comparison, and number
+            conversion. Fast, private, and works entirely in your browser.
           </p>
           {/* Search Input */}
           <div className="relative mx-auto max-w-xl">
