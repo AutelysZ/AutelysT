@@ -17,7 +17,16 @@ export interface Tool {
   icon?: string
 }
 
-export type ToolCategory = "Encoding" | "Numbers" | "Identifier" | "Text" | "Date & Time" | "Crypto" | "Web" | "Misc"
+export type ToolCategory =
+  | "Encoding"
+  | "Numbers"
+  | "Identifier"
+  | "Text"
+  | "Date & Time"
+  | "Crypto"
+  | "Web"
+  | "Data"
+  | "Misc"
 
 export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   Encoding: [
@@ -40,6 +49,7 @@ export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   "Date & Time": ["date", "time", "timestamp", "timezone", "epoch", "unix", "calendar"],
   Crypto: ["hash", "md5", "sha", "encrypt", "decrypt", "aes", "rsa", "hmac"],
   Web: ["json", "xml", "html", "css", "url", "query", "jwt", "uuid"],
+  Data: ["json", "diff", "compare", "schema", "text", "viewer", "generate"],
   Misc: [],
 }
 
@@ -52,6 +62,7 @@ export function categorizeByKeywords(keywords: string[]): ToolCategory {
     "Date & Time": 0,
     Crypto: 0,
     Web: 0,
+    Data: 0,
     Misc: 0,
   }
 

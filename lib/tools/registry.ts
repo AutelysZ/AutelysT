@@ -215,6 +215,72 @@ export const tools: Tool[] = [
       keywords: ["url encoder", "url decoder", "percent encoding", "uri encode", "query string", "url parser"],
     },
   },
+  // Data Tools
+  {
+    id: "json-diff",
+    name: "JSON Diff Viewer",
+    description: "Compare two JSON files or inputs and view differences with table and text views",
+    category: "Data",
+    route: "/tools/json-diff",
+    keywords: ["json", "diff", "compare", "viewer", "difference", "file"],
+    seo: {
+      title: "JSON Diff Viewer - AutelysT",
+      description: "Free online JSON diff viewer. Compare two JSON files with table and unified text views.",
+      keywords: ["json diff", "json compare", "diff viewer", "json comparison"],
+    },
+  },
+  {
+    id: "yaml-diff",
+    name: "YAML Diff Viewer",
+    description: "Compare two YAML files or inputs and view differences with table and text views",
+    category: "Data",
+    route: "/tools/yaml-diff",
+    keywords: ["yaml", "diff", "compare", "viewer", "difference", "file"],
+    seo: {
+      title: "YAML Diff Viewer - AutelysT",
+      description: "Free online YAML diff viewer. Compare two YAML files with table and unified text views.",
+      keywords: ["yaml diff", "yaml compare", "diff viewer", "yaml comparison"],
+    },
+  },
+  {
+    id: "json-schema",
+    name: "JSON Schema Generator",
+    description: "Generate JSON Schema from sample JSON data with automatic type inference",
+    category: "Data",
+    route: "/tools/json-schema",
+    keywords: ["json", "schema", "generate", "validate", "draft", "inference"],
+    seo: {
+      title: "JSON Schema Generator - AutelysT",
+      description: "Free online JSON Schema generator. Generate JSON Schema from sample data with type inference.",
+      keywords: ["json schema", "schema generator", "json validation", "json schema draft"],
+    },
+  },
+  {
+    id: "text-diff",
+    name: "Text Diff Viewer",
+    description: "Compare two text files with GitHub-style unified diff, character highlighting, and fullscreen mode",
+    category: "Data",
+    route: "/tools/text-diff",
+    keywords: ["text", "diff", "compare", "viewer", "difference", "file", "line", "unified"],
+    seo: {
+      title: "Text Diff Viewer - AutelysT",
+      description: "Free online text diff viewer. Compare text files with GitHub-style unified diff view.",
+      keywords: ["text diff", "text compare", "diff viewer", "file comparison", "unified diff"],
+    },
+  },
+  {
+    id: "format-converter",
+    name: "Format Converter",
+    description: "Convert between JSON, YAML, and TOML formats with auto-detection",
+    category: "Data",
+    route: "/tools/format-converter",
+    keywords: ["json", "yaml", "toml", "convert", "format", "transform"],
+    seo: {
+      title: "Format Converter - AutelysT",
+      description: "Free online format converter. Convert between JSON, YAML, and TOML formats instantly.",
+      keywords: ["json to yaml", "yaml to json", "toml converter", "format converter"],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
