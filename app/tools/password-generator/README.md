@@ -1,0 +1,30 @@
+# Password Generator
+
+Generate secure passwords with multiple serialization modes and length presets.
+
+## Features
+- Graphic ASCII and base encodings
+- Length presets and custom input
+- One-click regenerate and copy
+
+## Parameters
+- Serialization mode
+- Base64 options (No Padding, URL Safe)
+- Base32 No Padding
+- Case (lower/upper)
+- Graphic ASCII options (symbols + letter/digit toggles)
+- Length type (bytes/chars) and length preset/custom
+
+## Usage
+- Adjust parameters to auto-generate
+- Click refresh to regenerate
+- Save and copy to record in history
+
+## URL State
+- Parameters sync to the URL query (label and output do not)
+
+## History
+- Opening the page creates a history entry
+- Parameter changes update the latest entry
+- Copy action updates the latest entry, then creates a new blank entry for future edits
+- History list shows time, label, and password only (click does not restore state)

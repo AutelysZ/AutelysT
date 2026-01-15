@@ -36,10 +36,12 @@ export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
   schema: ZodObject<T>
   defaults: z.infer<ZodObject<T>>
   debounceMs?: number
+  restoreFromHistory?: boolean
+  initialSearch?: string
 }
 
 export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options: UseUrlSyncedStateOptions<T>) {
-  const { schema, defaults, debounceMs = 300 } = options
+  const { schema, defaults, debounceMs = 300, restoreFromHistory = true, initialSearch } = options
   const pathname = usePathname()
   const searchString = useSearchParamsString()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -47,6 +49,10 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const lastUrlRef = useRef<string>("")
   const hasRestoredFromHistoryRef = useRef(false)
   const isMountedRef = useRef(true)
+  const pendingImmediateRef = useRef(false)
+  const pendingStateRef = useRef<z.infer<ZodObject<T>> | null>(null)
+  const skipNextUrlUpdateRef = useRef(false)
+  const normalizedInitialSearch = initialSearch ? (initialSearch.startsWith("?") ? initialSearch : `?${initialSearch}`) : ""
 
   // Parse URL params
   const parseUrlParams = useCallback(
@@ -83,6 +89,9 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
       lastUrlRef.current = window.location.search
       return parseUrlParams(window.location.search)
     }
+    if (normalizedInitialSearch) {
+      return parseUrlParams(normalizedInitialSearch)
+    }
     return defaults
   })
 
@@ -94,6 +103,10 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   }, [])
 
   useEffect(() => {
+    if (!restoreFromHistory) {
+      hasRestoredFromHistoryRef.current = true
+      return
+    }
     if (hasRestoredFromHistoryRef.current) return
 
     // Check if URL has any meaningful params (excluding defaults)
@@ -127,6 +140,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
 
           try {
             const parsed = schema.parse(restored)
+            skipNextUrlUpdateRef.current = true
             setStateInternal(parsed)
           } catch {
             // Ignore parse errors
@@ -136,7 +150,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     } else {
       hasRestoredFromHistoryRef.current = true
     }
-  }, [toolId, defaults, schema])
+  }, [toolId, defaults, schema, restoreFromHistory])
 
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed
@@ -146,6 +160,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     }
 
     lastUrlRef.current = searchString
+    skipNextUrlUpdateRef.current = true
     setStateInternal(parseUrlParams(searchString))
   }, [searchString, parseUrlParams])
 
@@ -170,28 +185,56 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     [pathname, defaults],
   )
 
+  useEffect(() => {
+    if (skipNextUrlUpdateRef.current) {
+      skipNextUrlUpdateRef.current = false
+      pendingStateRef.current = null
+      pendingImmediateRef.current = false
+      return
+    }
+
+    if (!pendingStateRef.current) return
+
+    const nextState = pendingStateRef.current
+    const immediate = pendingImmediateRef.current
+    pendingStateRef.current = null
+    pendingImmediateRef.current = false
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current)
+    }
+
+    if (immediate) {
+      updateUrl(nextState)
+    } else {
+      debounceRef.current = setTimeout(() => {
+        updateUrl(nextState)
+      }, debounceMs)
+    }
+  }, [state, updateUrl, debounceMs])
+
+  const setStateSilently = useCallback(
+    (
+      updater: z.infer<ZodObject<T>> | ((prev: z.infer<ZodObject<T>>) => z.infer<ZodObject<T>>),
+    ) => {
+      skipNextUrlUpdateRef.current = true
+      setStateInternal((prev) => (typeof updater === "function" ? updater(prev) : updater))
+    },
+    [],
+  )
+
   // Set state with debounced URL update
   const setState = useCallback(
     (updater: z.infer<ZodObject<T>> | ((prev: z.infer<ZodObject<T>>) => z.infer<ZodObject<T>>), immediate = false) => {
       setStateInternal((prev) => {
         const newState = typeof updater === "function" ? updater(prev) : updater
-
-        if (debounceRef.current) {
-          clearTimeout(debounceRef.current)
-        }
-
-        if (immediate) {
-          updateUrl(newState)
-        } else {
-          debounceRef.current = setTimeout(() => {
-            updateUrl(newState)
-          }, debounceMs)
-        }
+        pendingImmediateRef.current = immediate
+        pendingStateRef.current = newState
 
         return newState
       })
     },
-    [updateUrl, debounceMs],
+    [],
   )
 
   // Set individual param
@@ -216,5 +259,6 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     setState,
     setParam,
     resetToDefaults: () => setState(defaults, true),
+    setStateSilently,
   }
 }

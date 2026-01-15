@@ -5,12 +5,12 @@ import { Suspense } from "react"
 import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Slider } from "@/components/ui/slider"
 import { Check, Copy, RefreshCw } from "lucide-react"
 import {
   DEFAULT_SYMBOLS,
@@ -20,7 +20,6 @@ import {
   type CaseMode,
   type LengthType,
 } from "@/lib/crypto/password-generator"
-import type { HistoryEntry } from "@/lib/history/db"
 
 const paramsSchema = z.object({
   serialization: z.enum(["graphic-ascii", "base64", "hex", "base58", "base45", "base32"]).default("graphic-ascii"),
@@ -56,16 +55,54 @@ export default function PasswordGeneratorPage() {
 }
 
 function PasswordGeneratorContent() {
-  const { state, setParam, setState } = useUrlSyncedState("password-generator", {
+  const searchParams = useSearchParams()
+  const searchParamString = searchParams.toString()
+  const { state, setParam, setStateSilently } = useUrlSyncedState("password-generator", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
+    restoreFromHistory: false,
+    initialSearch: searchParamString,
   })
 
   const [label, setLabel] = React.useState("")
   const [result, setResult] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
-  const skipNextGenerateRef = React.useRef(false)
-  const didRestoreParamsRef = React.useRef(false)
+  const hasUrlParams = React.useMemo(
+    () => Array.from(searchParams.keys()).some((key) => key in paramsSchema.shape),
+    [searchParams],
+  )
+  const paramsForHistory = React.useMemo(
+    () => ({
+      serialization: state.serialization,
+      base64NoPadding: state.base64NoPadding,
+      base64UrlSafe: state.base64UrlSafe,
+      base32NoPadding: state.base32NoPadding,
+      caseMode: state.caseMode,
+      symbols: state.symbols,
+      includeSymbols: state.includeSymbols,
+      includeUpper: state.includeUpper,
+      includeLower: state.includeLower,
+      includeNumbers: state.includeNumbers,
+      lengthType: state.lengthType,
+      lengthPreset: state.lengthPreset,
+      lengthValue: state.lengthValue,
+    }),
+    [
+      state.serialization,
+      state.base64NoPadding,
+      state.base64UrlSafe,
+      state.base32NoPadding,
+      state.caseMode,
+      state.symbols,
+      state.includeSymbols,
+      state.includeUpper,
+      state.includeLower,
+      state.includeNumbers,
+      state.lengthType,
+      state.lengthPreset,
+      state.lengthValue,
+    ],
+  )
 
   const generationOptions = React.useMemo<PasswordGeneratorOptions>(
     () => ({
@@ -105,10 +142,7 @@ function PasswordGeneratorContent() {
   }, [generationOptions])
 
   React.useEffect(() => {
-    if (skipNextGenerateRef.current) {
-      skipNextGenerateRef.current = false
-      return
-    }
+    if (typeof window === "undefined") return
     generate()
   }, [generate])
 
@@ -120,144 +154,25 @@ function PasswordGeneratorContent() {
     }
   }, [state.lengthPreset, state.lengthValue, setParam])
 
-  React.useEffect(() => {
-    if (typeof window === "undefined") return
-
-    const params = {
-      serialization: state.serialization,
-      base64NoPadding: state.base64NoPadding,
-      base64UrlSafe: state.base64UrlSafe,
-      base32NoPadding: state.base32NoPadding,
-      caseMode: state.caseMode,
-      symbols: state.symbols,
-      includeSymbols: state.includeSymbols,
-      includeUpper: state.includeUpper,
-      includeLower: state.includeLower,
-      includeNumbers: state.includeNumbers,
-      lengthType: state.lengthType,
-      lengthPreset: state.lengthPreset,
-      lengthValue: state.lengthValue,
-    }
-
-    sessionStorage.setItem("password-generator:params", JSON.stringify(params))
-  }, [
-    state.serialization,
-    state.base64NoPadding,
-    state.base64UrlSafe,
-    state.base32NoPadding,
-    state.caseMode,
-    state.symbols,
-    state.includeSymbols,
-    state.includeUpper,
-    state.includeLower,
-    state.includeNumbers,
-    state.lengthType,
-    state.lengthPreset,
-    state.lengthValue,
-  ])
-
-  React.useEffect(() => {
-    if (typeof window === "undefined") return
-    if (didRestoreParamsRef.current) return
-
-    const hasUrlParams = Array.from(new URLSearchParams(window.location.search).keys()).some(
-      (key) => key in paramsSchema.shape,
-    )
-    if (hasUrlParams) {
-      didRestoreParamsRef.current = true
-      return
-    }
-
-    const stored = sessionStorage.getItem("password-generator:params")
-    if (!stored) {
-      didRestoreParamsRef.current = true
-      return
-    }
-
-    const defaults = paramsSchema.parse({})
-    const isDefault = Object.keys(defaults).every((key) => state[key as keyof typeof defaults] === defaults[key])
-    if (!isDefault) {
-      didRestoreParamsRef.current = true
-      return
-    }
-
-    let parsedJson: unknown
-    try {
-      parsedJson = JSON.parse(stored)
-    } catch {
-      didRestoreParamsRef.current = true
-      return
-    }
-
-    const parsed = paramsSchema.safeParse(parsedJson)
-    if (!parsed.success) {
-      didRestoreParamsRef.current = true
-      return
-    }
-
-    setState(parsed.data, true)
-    didRestoreParamsRef.current = true
-  }, [state, setState])
-
-  const handleLoadHistory = React.useCallback(
-    (entry: HistoryEntry) => {
-      skipNextGenerateRef.current = true
-      setError(null)
-      if (entry.inputs.label !== undefined) setLabel(entry.inputs.label)
-      if (entry.inputs.password !== undefined) setResult(entry.inputs.password)
-
-      if (entry.params.serialization) setParam("serialization", entry.params.serialization as string, true)
-      if (entry.params.base64NoPadding !== undefined)
-        setParam("base64NoPadding", entry.params.base64NoPadding as boolean, true)
-      if (entry.params.base64UrlSafe !== undefined)
-        setParam("base64UrlSafe", entry.params.base64UrlSafe as boolean, true)
-      if (entry.params.base32NoPadding !== undefined)
-        setParam("base32NoPadding", entry.params.base32NoPadding as boolean, true)
-      if (entry.params.caseMode) setParam("caseMode", entry.params.caseMode as string, true)
-      if (entry.params.symbols) setParam("symbols", entry.params.symbols as string, true)
-      if (entry.params.includeSymbols !== undefined)
-        setParam("includeSymbols", entry.params.includeSymbols as boolean, true)
-      if (entry.params.includeUpper !== undefined) setParam("includeUpper", entry.params.includeUpper as boolean, true)
-      if (entry.params.includeLower !== undefined) setParam("includeLower", entry.params.includeLower as boolean, true)
-      if (entry.params.includeNumbers !== undefined)
-        setParam("includeNumbers", entry.params.includeNumbers as boolean, true)
-      if (entry.params.lengthType) setParam("lengthType", entry.params.lengthType as string, true)
-      if (entry.params.lengthPreset) setParam("lengthPreset", entry.params.lengthPreset as string, true)
-      if (entry.params.lengthValue !== undefined) setParam("lengthValue", entry.params.lengthValue as number, true)
-    },
-    [setParam],
-  )
-
   return (
     <ToolPageWrapper
       toolId="password-generator"
       title="Password Generator"
       description="Generate secure passwords with multiple serialization modes and length presets"
-      onLoadHistory={handleLoadHistory}
+      onLoadHistory={() => {}}
+      historyVariant="password-generator"
     >
       <PasswordGeneratorInner
         state={state}
         setParam={setParam}
+        setStateSilently={setStateSilently}
         label={label}
         setLabel={setLabel}
         result={result}
         error={error}
         onRegenerate={generate}
-        paramsForHistory={{
-          serialization: state.serialization,
-          base64NoPadding: state.base64NoPadding,
-          base64UrlSafe: state.base64UrlSafe,
-          base32NoPadding: state.base32NoPadding,
-          caseMode: state.caseMode,
-          symbols: state.symbols,
-          includeSymbols: state.includeSymbols,
-          includeUpper: state.includeUpper,
-          includeLower: state.includeLower,
-          includeNumbers: state.includeNumbers,
-          lengthType: state.lengthType,
-          lengthPreset: state.lengthPreset,
-          lengthValue: state.lengthValue,
-        }}
+        hasUrlParams={hasUrlParams}
+        paramsForHistory={paramsForHistory}
       />
     </ToolPageWrapper>
   )
@@ -266,24 +181,31 @@ function PasswordGeneratorContent() {
 function PasswordGeneratorInner({
   state,
   setParam,
+  setStateSilently,
   label,
   setLabel,
   result,
   error,
   onRegenerate,
+  hasUrlParams,
   paramsForHistory,
 }: {
   state: z.infer<typeof paramsSchema>
   setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setStateSilently: (
+    updater: z.infer<typeof paramsSchema> | ((prev: z.infer<typeof paramsSchema>) => z.infer<typeof paramsSchema>),
+  ) => void
   label: string
   setLabel: (value: string) => void
   result: string
   error: string | null
   onRegenerate: () => void
+  hasUrlParams: boolean
   paramsForHistory: Record<string, unknown>
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { entries, loading, addHistoryEntry, updateHistoryParams, updateLatestEntry } = useToolHistoryContext()
   const [copied, setCopied] = React.useState(false)
+  const historyInitializedRef = React.useRef(false)
 
   const handleCopy = async () => {
     if (!result || error) return
@@ -292,18 +214,70 @@ function PasswordGeneratorInner({
     setTimeout(() => setCopied(false), 2000)
 
     const preview = label ? `${label}: ${result}` : result
-    addHistoryEntry({ label, password: result }, paramsForHistory, "left", preview.slice(0, 100))
+    if (entries.length === 0) {
+      const saved = await addHistoryEntry({ label, password: result }, paramsForHistory, "left", preview.slice(0, 100))
+      if (saved) {
+        await addHistoryEntry({}, paramsForHistory)
+      }
+      return
+    }
+
+    await updateLatestEntry({ inputs: { label, password: result }, preview: preview.slice(0, 100) })
+    await addHistoryEntry({}, paramsForHistory)
   }
 
+  React.useEffect(() => {
+    if (loading || historyInitializedRef.current) return
+
+    if (entries.length === 0) {
+      addHistoryEntry({}, paramsForHistory)
+      historyInitializedRef.current = true
+      return
+    }
+
+    if (hasUrlParams) {
+      updateHistoryParams(paramsForHistory)
+      historyInitializedRef.current = true
+      return
+    }
+
+    const defaults = paramsSchema.parse({})
+    const latest = entries[0]
+    const merged = { ...defaults, ...latest.params }
+    const parsed = paramsSchema.safeParse(merged)
+    if (parsed.success) {
+      setStateSilently(parsed.data)
+      const hasSavedValue = Boolean(latest.inputs?.label || latest.inputs?.password)
+      if (hasSavedValue) {
+        addHistoryEntry({}, parsed.data)
+      }
+    }
+
+    historyInitializedRef.current = true
+  }, [
+    addHistoryEntry,
+    entries,
+    hasUrlParams,
+    loading,
+    paramsForHistory,
+    setStateSilently,
+    updateHistoryParams,
+  ])
+
+  React.useEffect(() => {
+    if (!historyInitializedRef.current) return
+    updateHistoryParams(paramsForHistory)
+  }, [paramsForHistory, updateHistoryParams])
+
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-220px)] w-full max-w-5xl flex-col justify-center gap-4 py-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto flex min-h-[calc(100vh-220px)] w-full max-w-5xl flex-col justify-center gap-6 py-6">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-center justify-start">
           <Label className="w-28 text-sm font-medium">Serialization</Label>
           <RadioGroup
             value={state.serialization}
             onValueChange={(value) => setParam("serialization", value, true)}
-            className="flex flex-wrap gap-4"
+            className="flex flex-wrap"
           >
             {[
               { value: "graphic-ascii", label: "Graphic ASCII" },
@@ -313,7 +287,7 @@ function PasswordGeneratorInner({
               { value: "base45", label: "Base45" },
               { value: "base32", label: "Base32" },
             ].map((item) => (
-              <div key={item.value} className="flex items-center gap-2">
+              <div key={item.value} className="mr-5 flex items-center gap-2">
                 <RadioGroupItem id={`serialization-${item.value}`} value={item.value} />
                 <Label htmlFor={`serialization-${item.value}`} className="text-sm cursor-pointer">
                   {item.label}
@@ -324,8 +298,8 @@ function PasswordGeneratorInner({
         </div>
 
         {state.serialization === "base64" && (
-          <div className="flex flex-wrap items-center gap-4">
-            <Label className="w-28 text-sm font-medium">Base64</Label>
+          <div className="flex flex-wrap items-center justify-start">
+            <div className="w-28 shrink-0" />
             <div className="flex items-center gap-2">
               <Checkbox
                 id="base64NoPadding"
@@ -336,7 +310,7 @@ function PasswordGeneratorInner({
                 No Padding
               </Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="ml-5 flex items-center gap-2">
               <Checkbox
                 id="base64UrlSafe"
                 checked={state.base64UrlSafe}
@@ -350,20 +324,20 @@ function PasswordGeneratorInner({
         )}
 
         {["hex", "base45", "base32"].includes(state.serialization) && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Label className="w-28 text-sm font-medium">Case</Label>
+          <div className="flex flex-wrap items-center justify-start">
+            <div className="w-28 shrink-0" />
             <RadioGroup
               value={state.caseMode}
               onValueChange={(value) => setParam("caseMode", value, true)}
-              className="flex flex-wrap gap-4"
+              className="flex flex-wrap"
             >
-              <div className="flex items-center gap-2">
+              <div className="mr-5 flex items-center gap-2">
                 <RadioGroupItem id="case-lower" value="lower" />
                 <Label htmlFor="case-lower" className="text-sm cursor-pointer">
                   Lower case
                 </Label>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="mr-5 flex items-center gap-2">
                 <RadioGroupItem id="case-upper" value="upper" />
                 <Label htmlFor="case-upper" className="text-sm cursor-pointer">
                   Upper case
@@ -371,7 +345,7 @@ function PasswordGeneratorInner({
               </div>
             </RadioGroup>
             {state.serialization === "base32" && (
-              <div className="flex items-center gap-2">
+              <div className="mr-5 flex items-center gap-2">
                 <Checkbox
                   id="base32NoPadding"
                   checked={state.base32NoPadding}
@@ -386,9 +360,9 @@ function PasswordGeneratorInner({
         )}
 
         {state.serialization === "graphic-ascii" && (
-          <div className="flex flex-wrap items-center gap-4">
-            <Label className="w-28 text-sm font-medium">Graphic</Label>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-start">
+            <div className="w-28 shrink-0" />
+            <div className="mr-5 flex items-center gap-2">
               <Checkbox
                 id="includeUpper"
                 checked={state.includeUpper}
@@ -398,7 +372,7 @@ function PasswordGeneratorInner({
                 Upper letters
               </Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="mr-5 flex items-center gap-2">
               <Checkbox
                 id="includeLower"
                 checked={state.includeLower}
@@ -408,7 +382,7 @@ function PasswordGeneratorInner({
                 Lower letters
               </Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="mr-5 flex items-center gap-2">
               <Checkbox
                 id="includeNumbers"
                 checked={state.includeNumbers}
@@ -418,7 +392,7 @@ function PasswordGeneratorInner({
                 Numbers
               </Label>
             </div>
-            <div className="flex items-center gap-2 whitespace-nowrap">
+            <div className="mr-5 flex items-center gap-2 whitespace-nowrap">
               <Checkbox
                 id="includeSymbols"
                 checked={state.includeSymbols}
@@ -427,13 +401,13 @@ function PasswordGeneratorInner({
               <Label htmlFor="includeSymbols" className="text-sm cursor-pointer">
                 Symbols
               </Label>
-              <div className="flex items-center gap-2">
+              <div className="relative flex items-center">
                 <Input
                   id="symbols"
                   value={state.symbols}
                   onChange={(e) => setParam("symbols", e.target.value)}
                   disabled={!state.includeSymbols}
-                  className="h-8 w-56 font-mono"
+                  className="h-9 w-[calc(36ch+5em)] pr-16 font-mono"
                 />
                 <Button
                   type="button"
@@ -441,7 +415,7 @@ function PasswordGeneratorInner({
                   size="sm"
                   onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
                   disabled={!state.includeSymbols}
-                  className="h-8 px-2 text-xs"
+                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
                 >
                   Reset
                 </Button>
@@ -450,74 +424,69 @@ function PasswordGeneratorInner({
           </div>
         )}
 
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-nowrap items-center gap-4 overflow-x-auto">
-            <Label className="w-28 text-sm font-medium">Length Type</Label>
-            <RadioGroup
-              value={state.lengthType}
-              onValueChange={(value) => setParam("lengthType", value, true)}
-              className="flex flex-nowrap gap-4"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem id="length-bytes" value="bytes" />
-                <Label htmlFor="length-bytes" className="text-sm cursor-pointer">
-                  Bytes
+        <div className="flex flex-wrap items-center justify-start">
+          <Label className="w-28 text-sm font-medium">Length Type</Label>
+          <RadioGroup
+            value={state.lengthType}
+            onValueChange={(value) => setParam("lengthType", value, true)}
+            className="flex flex-wrap"
+          >
+            <div className="mr-5 flex items-center gap-2">
+              <RadioGroupItem id="length-bytes" value="bytes" />
+              <Label htmlFor="length-bytes" className="text-sm cursor-pointer">
+                Bytes
+              </Label>
+            </div>
+            <div className="mr-5 flex items-center gap-2">
+              <RadioGroupItem id="length-chars" value="chars" />
+              <Label htmlFor="length-chars" className="text-sm cursor-pointer">
+                Chars
+              </Label>
+            </div>
+          </RadioGroup>
+        </div>
+        <div className="flex flex-wrap items-center justify-start">
+          <Label className="w-28 text-sm font-medium">Length</Label>
+          <RadioGroup
+            value={state.lengthPreset}
+            onValueChange={(value) => {
+              setParam("lengthPreset", value, true)
+              if (value !== "custom") {
+                setParam("lengthValue", Number(value), true)
+              }
+            }}
+            className="flex flex-wrap"
+          >
+            {lengthPresets.map((preset) => (
+              <div key={preset.value} className="mr-4 flex items-center gap-2">
+                <RadioGroupItem id={`length-${preset.value}`} value={preset.value} />
+                <Label htmlFor={`length-${preset.value}`} className="text-sm cursor-pointer">
+                  {preset.label}
                 </Label>
               </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem id="length-chars" value="chars" />
-                <Label htmlFor="length-chars" className="text-sm cursor-pointer">
-                  Chars
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
-          <div className="flex flex-nowrap items-center gap-4 overflow-x-auto">
-            <Label className="w-28 text-sm font-medium">Length</Label>
-            <RadioGroup
-              value={state.lengthPreset}
-              onValueChange={(value) => {
-                setParam("lengthPreset", value, true)
-                if (value !== "custom") {
-                  setParam("lengthValue", Number(value), true)
-                }
-              }}
-              className="flex flex-nowrap gap-4"
-            >
-              {lengthPresets.map((preset) => (
-                <div key={preset.value} className="flex items-center gap-2">
-                  <RadioGroupItem id={`length-${preset.value}`} value={preset.value} />
-                  <Label htmlFor={`length-${preset.value}`} className="text-sm cursor-pointer">
-                    {preset.label}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-            {state.lengthPreset === "custom" && (
-              <div className="flex items-center gap-3 flex-nowrap">
-                <Slider
-                  value={[state.lengthValue]}
-                  min={1}
-                  max={1024}
-                  step={1}
-                  onValueChange={(value) => {
-                    const nextValue = value[0] ?? 1
-                    setParam("lengthValue", nextValue)
-                    if (state.lengthPreset !== "custom") {
-                      setParam("lengthPreset", "custom", true)
-                    }
-                  }}
-                  className="w-48 shrink-0"
-                />
-                <span className="w-14 text-right text-sm text-muted-foreground">{state.lengthValue}</span>
-              </div>
-            )}
-          </div>
+            ))}
+          </RadioGroup>
+          {state.lengthPreset === "custom" && (
+            <div className="mr-4 flex items-center gap-2 flex-nowrap">
+              <Input
+                type="number"
+                min={1}
+                max={1024}
+                value={state.lengthValue}
+                onChange={(e) => {
+                  const nextValue = Math.max(1, Math.min(1024, Number(e.target.value) || 1))
+                  setParam("lengthValue", nextValue, true)
+                }}
+                className="h-9 w-20"
+              />
+              <span className="text-sm text-muted-foreground">1-1024</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-col items-center justify-center gap-3 border-y border-border py-4">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col items-center justify-center gap-4 border-y border-border py-5">
+        <div className="flex items-center gap-3">
           <div className="max-w-[80ch] font-mono text-lg font-semibold tracking-tight break-all">
             {result || "-"}
           </div>
@@ -525,26 +494,28 @@ function PasswordGeneratorInner({
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <Input
-          id="label"
-          value={label}
-          onChange={(e) => setLabel(e.target.value)}
-          placeholder="Optional label for history"
-          className="h-9 w-[40ch]"
-        />
-        <Button onClick={handleCopy} disabled={!result || !!error}>
-          {copied ? (
-            <>
-              <Check className="h-4 w-4" />
-              Saved and Copied
-            </>
-          ) : (
-            <>
-              <Copy className="h-4 w-4" />
-              Save and Copy
-            </>
-          )}
-        </Button>
+        <div className="flex items-center gap-3">
+          <Input
+            id="label"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder="Optional label for history"
+            className="h-9 w-[20ch]"
+          />
+          <Button onClick={handleCopy} disabled={!result || !!error}>
+            {copied ? (
+              <>
+                <Check className="h-4 w-4" />
+                Saved and Copied
+              </>
+            ) : (
+              <>
+                <Copy className="h-4 w-4" />
+                Save and Copy
+              </>
+            )}
+          </Button>
+        </div>
       </div>
       {error && <p className="text-xs text-destructive text-center">{error}</p>}
     </div>

@@ -7,6 +7,8 @@ import type { HistoryEntry } from "@/lib/history/db"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface ToolHistoryContextValue {
+  entries: HistoryEntry[]
+  loading: boolean
   addHistoryEntry: (
     inputs: Record<string, string>,
     params: Record<string, unknown>,
@@ -14,6 +16,7 @@ interface ToolHistoryContextValue {
     preview?: string,
   ) => Promise<HistoryEntry | null>
   updateHistoryParams: (params: Record<string, unknown>) => Promise<void>
+  updateLatestEntry: (updates: { inputs?: Record<string, string>; params?: Record<string, unknown>; preview?: string }) => Promise<void>
 }
 
 const ToolHistoryContext = React.createContext<ToolHistoryContextValue | null>(null)
@@ -31,6 +34,7 @@ interface ToolPageWrapperProps {
   children: React.ReactNode
   seoContent?: React.ReactNode
   onLoadHistory?: (entry: HistoryEntry) => void
+  historyVariant?: "default" | "password-generator"
 }
 
 export function ToolPageWrapper({
@@ -40,8 +44,10 @@ export function ToolPageWrapper({
   children,
   seoContent,
   onLoadHistory,
+  historyVariant = "default",
 }: ToolPageWrapperProps) {
-  const { entries, loading, addEntry, updateLatestParams, deleteEntry, clearHistory } = useToolHistory(toolId)
+  const { entries, loading, addEntry, updateLatestParams, updateLatestEntry, deleteEntry, clearHistory } =
+    useToolHistory(toolId)
 
   const { recordToolUse } = useRecentTools()
 
@@ -59,10 +65,13 @@ export function ToolPageWrapper({
 
   const contextValue = React.useMemo(
     () => ({
+      entries,
+      loading,
       addHistoryEntry: addEntry,
       updateHistoryParams: updateLatestParams,
+      updateLatestEntry,
     }),
-    [addEntry, updateLatestParams],
+    [entries, loading, addEntry, updateLatestParams, updateLatestEntry],
   )
 
   return (
@@ -76,6 +85,7 @@ export function ToolPageWrapper({
           onHistorySelect={handleHistorySelect}
           onHistoryDelete={deleteEntry}
           onHistoryClear={clearHistory}
+          historyVariant={historyVariant}
         />
         <ScrollArea className="flex-1">
           <div className="p-6">

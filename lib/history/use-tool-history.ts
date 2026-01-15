@@ -73,9 +73,47 @@ export function useToolHistory(toolId: string) {
       if (entries.length === 0) return
 
       const latest = entries[0]
+      const sameParams =
+        Object.keys(latest.params).length === Object.keys(params).length &&
+        Object.entries(params).every(([key, value]) => latest.params[key] === value)
+      if (sameParams) return
       const updated: HistoryEntry = {
         ...latest,
         params,
+        updatedAt: Date.now(),
+      }
+
+      try {
+        const db = await getDB()
+        await db.put("history", updated)
+        setEntries((prev) => [updated, ...prev.slice(1)])
+      } catch (error) {
+        console.error("Failed to update history entry:", error)
+      }
+    },
+    [entries],
+  )
+
+  const updateLatestEntry = useCallback(
+    async (updates: { inputs?: Record<string, string>; params?: Record<string, unknown>; preview?: string }) => {
+      if (entries.length === 0) return
+
+      const latest = entries[0]
+      const nextInputs = updates.inputs ? { ...latest.inputs, ...updates.inputs } : latest.inputs
+      const nextParams = updates.params ?? latest.params
+      const nextPreview = updates.preview ?? latest.preview
+      const sameInputs =
+        Object.keys(nextInputs).length === Object.keys(latest.inputs).length &&
+        Object.entries(nextInputs).every(([key, value]) => latest.inputs[key] === value)
+      const sameParams =
+        Object.keys(nextParams).length === Object.keys(latest.params).length &&
+        Object.entries(nextParams).every(([key, value]) => latest.params[key] === value)
+      if (sameInputs && sameParams && nextPreview === latest.preview) return
+      const updated: HistoryEntry = {
+        ...latest,
+        inputs: nextInputs,
+        params: nextParams,
+        preview: nextPreview,
         updatedAt: Date.now(),
       }
 
@@ -131,6 +169,7 @@ export function useToolHistory(toolId: string) {
     loading,
     addEntry,
     updateLatestParams,
+    updateLatestEntry,
     deleteEntry,
     clearHistory,
   }

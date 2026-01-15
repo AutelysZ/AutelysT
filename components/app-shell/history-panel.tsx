@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Clock, Trash2, AlertTriangle, X } from "lucide-react"
+import { Clock, Trash2, AlertTriangle, X, Copy, Check } from "lucide-react"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -27,11 +27,13 @@ interface HistoryPanelProps {
   onDelete: (id: string) => void
   onClear: (scope: "tool" | "all") => void
   toolName: string
+  variant?: "default" | "password-generator"
 }
 
-export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, toolName }: HistoryPanelProps) {
+export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, toolName, variant = "default" }: HistoryPanelProps) {
   const [open, setOpen] = React.useState(false)
   const [clearScope, setClearScope] = React.useState<"tool" | "all">("tool")
+  const [copiedEntryId, setCopiedEntryId] = React.useState<string | null>(null)
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -116,48 +118,93 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
               <p className="text-xs">Your interactions will appear here</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="group relative rounded-lg border border-border p-3 transition-colors hover:bg-accent/50"
-                >
-                  <button
-                    onClick={() => {
-                      onSelect(entry)
-                      setOpen(false)
-                    }}
-                    className="w-full text-left"
-                  >
-                    <div className="mb-1 text-xs text-muted-foreground">
-                      {format(entry.createdAt, "MMM d, yyyy HH:mm")}
-                    </div>
-                    {entry.preview && <div className="line-clamp-2 text-sm">{entry.preview}</div>}
-                    {Object.keys(entry.params).length > 0 && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {Object.entries(entry.params)
-                          .slice(0, 3)
-                          .map(([key, value]) => (
-                            <span
-                              key={key}
-                              className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
-                            >
-                              {key}: {String(value)}
-                            </span>
-                          ))}
+            <div className="space-y-2 px-2 pb-4">
+              {entries.map((entry) => {
+                if (variant === "password-generator") {
+                  const label = entry.inputs?.label?.trim() || "Untitled"
+                  const password = entry.inputs?.password || ""
+                  if (!password) {
+                    return null
+                  }
+                  return (
+                    <div
+                      key={entry.id}
+                      className="group relative rounded-lg border border-border p-3 transition-colors hover:bg-accent/50"
+                    >
+                      <div className="mb-1 text-xs text-muted-foreground">
+                        {format(entry.createdAt, "MMM d, yyyy HH:mm")}
                       </div>
-                    )}
-                  </button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => onDelete(entry.id)}
+                      <div className="text-sm font-medium">{label}</div>
+                      <div className="mt-1 text-sm font-mono break-all">{password}</div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-8 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={async () => {
+                          if (!password) return
+                          await navigator.clipboard.writeText(password)
+                          setCopiedEntryId(entry.id)
+                          setTimeout(() => setCopiedEntryId(null), 2000)
+                        }}
+                        aria-label="Copy password"
+                      >
+                        {copiedEntryId === entry.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                        onClick={() => onDelete(entry.id)}
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 className="h-3 w-3 text-destructive" />
+                      </Button>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="group relative rounded-lg border border-border p-3 transition-colors hover:bg-accent/50"
                   >
-                    <Trash2 className="h-3 w-3 text-destructive" />
-                  </Button>
-                </div>
-              ))}
+                    <button
+                      onClick={() => {
+                        onSelect(entry)
+                        setOpen(false)
+                      }}
+                      className="w-full text-left"
+                    >
+                      <div className="mb-1 text-xs text-muted-foreground">
+                        {format(entry.createdAt, "MMM d, yyyy HH:mm")}
+                      </div>
+                      {entry.preview && <div className="line-clamp-2 text-sm">{entry.preview}</div>}
+                      {Object.keys(entry.params).length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {Object.entries(entry.params)
+                            .slice(0, 3)
+                            .map(([key, value]) => (
+                              <span
+                                key={key}
+                                className="rounded bg-secondary px-1.5 py-0.5 text-xs text-secondary-foreground"
+                              >
+                                {key}: {String(value)}
+                              </span>
+                            ))}
+                        </div>
+                      )}
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-1 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => onDelete(entry.id)}
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                )
+              })}
             </div>
           )}
         </ScrollArea>

@@ -11,6 +11,7 @@ interface ToolHeaderProps {
   onHistorySelect: (entry: HistoryEntry) => void
   onHistoryDelete: (id: string) => void
   onHistoryClear: (scope: "tool" | "all") => void
+  historyVariant?: "default" | "password-generator"
 }
 
 export function ToolHeader({
@@ -21,6 +22,7 @@ export function ToolHeader({
   onHistorySelect,
   onHistoryDelete,
   onHistoryClear,
+  historyVariant = "default",
 }: ToolHeaderProps) {
   return (
     <header className="flex items-center justify-between border-b border-border px-6 py-4">
@@ -35,6 +37,7 @@ export function ToolHeader({
         onDelete={onHistoryDelete}
         onClear={onHistoryClear}
         toolName={title}
+        variant={historyVariant}
       />
     </header>
   )
