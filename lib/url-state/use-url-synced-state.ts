@@ -37,11 +37,26 @@ export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
   defaults: z.infer<ZodObject<T>>
   debounceMs?: number
   restoreFromHistory?: boolean
+  syncOnHistoryRestore?: boolean
+  shouldSyncParam?: (
+    key: keyof z.infer<ZodObject<T>>,
+    value: z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>],
+  ) => boolean
+  restoreMissingKeys?: (key: keyof z.infer<ZodObject<T>>) => boolean
   initialSearch?: string
 }
 
 export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options: UseUrlSyncedStateOptions<T>) {
-  const { schema, defaults, debounceMs = 300, restoreFromHistory = true, initialSearch } = options
+  const {
+    schema,
+    defaults,
+    debounceMs = 300,
+    restoreFromHistory = true,
+    syncOnHistoryRestore = false,
+    shouldSyncParam,
+    restoreMissingKeys,
+    initialSearch,
+  } = options
   const pathname = usePathname()
   const searchString = useSearchParamsString()
   const debounceRef = useRef<NodeJS.Timeout | null>(null)
@@ -102,6 +117,29 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     }
   }, [])
 
+  const updateUrl = useCallback(
+    (newState: z.infer<ZodObject<T>>) => {
+      const params = new URLSearchParams()
+
+      for (const [key, value] of Object.entries(newState)) {
+        if (shouldSyncParam && !shouldSyncParam(key as keyof z.infer<ZodObject<T>>, value)) {
+          continue
+        }
+        if (value !== defaults[key as keyof typeof defaults] && value !== null && value !== undefined) {
+          params.set(key, String(value))
+        }
+      }
+
+      const queryString = params.toString()
+      const newUrl = queryString ? `${pathname}?${queryString}` : pathname
+
+      isUpdatingUrlRef.current = true
+      lastUrlRef.current = queryString ? `?${queryString}` : ""
+      window.history.replaceState({}, "", newUrl)
+    },
+    [pathname, defaults, shouldSyncParam],
+  )
+
   useEffect(() => {
     if (!restoreFromHistory) {
       hasRestoredFromHistoryRef.current = true
@@ -140,17 +178,50 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
 
           try {
             const parsed = schema.parse(restored)
-            skipNextUrlUpdateRef.current = true
-            setStateInternal(parsed)
+            if (syncOnHistoryRestore) {
+              setStateInternal(parsed)
+              updateUrl(parsed)
+            } else {
+              skipNextUrlUpdateRef.current = true
+              setStateInternal(parsed)
+            }
           } catch {
             // Ignore parse errors
           }
         }
       })
+    } else if (restoreMissingKeys) {
+      hasRestoredFromHistoryRef.current = true
+      getLatestHistoryEntry(toolId).then((entry) => {
+        if (!isMountedRef.current) return
+        if (!entry) return
+
+        const restored: Record<string, unknown> = parseUrlParams(window.location.search)
+        let hasMissing = false
+
+        for (const key of Object.keys(defaults)) {
+          if (!restoreMissingKeys(key as keyof z.infer<ZodObject<T>>)) continue
+          if (!currentParams.has(key)) {
+            hasMissing = true
+            if (entry.inputs && key in entry.inputs) restored[key] = entry.inputs[key]
+            if (entry.params && key in entry.params) restored[key] = entry.params[key]
+          }
+        }
+
+        if (!hasMissing) return
+
+        try {
+          const parsed = schema.parse(restored)
+          skipNextUrlUpdateRef.current = true
+          setStateInternal(parsed)
+        } catch {
+          // Ignore parse errors
+        }
+      })
     } else {
       hasRestoredFromHistoryRef.current = true
     }
-  }, [toolId, defaults, schema, restoreFromHistory])
+  }, [toolId, defaults, schema, restoreFromHistory, syncOnHistoryRestore, restoreMissingKeys, updateUrl, parseUrlParams])
 
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed
@@ -163,27 +234,6 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     skipNextUrlUpdateRef.current = true
     setStateInternal(parseUrlParams(searchString))
   }, [searchString, parseUrlParams])
-
-  // Update URL when state changes
-  const updateUrl = useCallback(
-    (newState: z.infer<ZodObject<T>>) => {
-      const params = new URLSearchParams()
-
-      for (const [key, value] of Object.entries(newState)) {
-        if (value !== defaults[key as keyof typeof defaults] && value !== null && value !== undefined) {
-          params.set(key, String(value))
-        }
-      }
-
-      const queryString = params.toString()
-      const newUrl = queryString ? `${pathname}?${queryString}` : pathname
-
-      isUpdatingUrlRef.current = true
-      lastUrlRef.current = queryString ? `?${queryString}` : ""
-      window.history.replaceState({}, "", newUrl)
-    },
-    [pathname, defaults],
-  )
 
   useEffect(() => {
     if (skipNextUrlUpdateRef.current) {

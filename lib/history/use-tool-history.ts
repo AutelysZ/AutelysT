@@ -38,6 +38,7 @@ export function useToolHistory(toolId: string) {
       params: Record<string, unknown>,
       inputSide?: "left" | "right",
       preview?: string,
+      files?: HistoryEntry["files"],
     ) => {
       const entry: HistoryEntry = {
         id: generateId(),
@@ -47,6 +48,7 @@ export function useToolHistory(toolId: string) {
         inputSide,
         inputs,
         params,
+        files,
         preview,
       }
 
@@ -95,12 +97,18 @@ export function useToolHistory(toolId: string) {
   )
 
   const updateLatestEntry = useCallback(
-    async (updates: { inputs?: Record<string, string>; params?: Record<string, unknown>; preview?: string }) => {
+    async (updates: {
+      inputs?: Record<string, string>
+      params?: Record<string, unknown>
+      files?: HistoryEntry["files"]
+      preview?: string
+    }) => {
       if (entries.length === 0) return
 
       const latest = entries[0]
       const nextInputs = updates.inputs ? { ...latest.inputs, ...updates.inputs } : latest.inputs
       const nextParams = updates.params ?? latest.params
+      const nextFiles = updates.files ? { ...(latest.files ?? {}), ...updates.files } : latest.files
       const nextPreview = updates.preview ?? latest.preview
       const sameInputs =
         Object.keys(nextInputs).length === Object.keys(latest.inputs).length &&
@@ -108,11 +116,15 @@ export function useToolHistory(toolId: string) {
       const sameParams =
         Object.keys(nextParams).length === Object.keys(latest.params).length &&
         Object.entries(nextParams).every(([key, value]) => latest.params[key] === value)
-      if (sameInputs && sameParams && nextPreview === latest.preview) return
+      const sameFiles =
+        Object.keys(nextFiles ?? {}).length === Object.keys(latest.files ?? {}).length &&
+        Object.entries(nextFiles ?? {}).every(([key, value]) => (latest.files ?? {})[key] === value)
+      if (sameInputs && sameParams && sameFiles && nextPreview === latest.preview) return
       const updated: HistoryEntry = {
         ...latest,
         inputs: nextInputs,
         params: nextParams,
+        files: nextFiles,
         preview: nextPreview,
         updatedAt: Date.now(),
       }

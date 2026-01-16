@@ -114,7 +114,7 @@ function URLEncodeInner({
   }, [state.encoded])
 
   return (
-    <div className="flex h-full gap-4">
+    <div className="flex h-full flex-col gap-4 md:flex-row">
       {/* Left Column - Encoded */}
       <URLColumn
         label="URL Encoded"
@@ -126,7 +126,7 @@ function URLEncodeInner({
       />
 
       {/* Divider */}
-      <div className="flex shrink-0 items-center justify-center">
+      <div className="hidden shrink-0 items-center justify-center md:flex">
         <Link2 className="h-5 w-5 text-muted-foreground" />
       </div>
 
@@ -169,7 +169,7 @@ function URLColumn({
   const isValidURL = parsedURL !== null
 
   return (
-    <div className="flex w-0 flex-1 flex-col gap-3">
+    <div className="flex w-full flex-1 flex-col gap-3 md:w-0">
       {/* Row 1: Input Box */}
       <div className="shrink-0">
         <div className="mb-1 flex items-center justify-between">
@@ -199,7 +199,7 @@ function URLColumn({
           onChange={(e) => onChange(e.target.value)}
           placeholder={`Enter ${label.toLowerCase()}...`}
           className={cn(
-            "max-h-[400px] min-h-[120px] overflow-auto break-all font-mono text-sm",
+            "max-h-[400px] min-h-[120px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
             isActive && "ring-1 ring-primary",
           )}
           style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}

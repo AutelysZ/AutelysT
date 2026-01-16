@@ -82,22 +82,45 @@ function addCharacterDiff(lines: TextDiffLine[]): TextDiffLine[] {
   while (i < lines.length) {
     const line = lines[i]
 
-    // Look for adjacent removed + added pairs (modified lines)
-    if (line.type === "removed" && i + 1 < lines.length && lines[i + 1].type === "added") {
-      const removed = line
-      const added = lines[i + 1]
+    // Look for removed blocks followed by added blocks to compute char-level changes.
+    if (line.type === "removed") {
+      const removedBlock: TextDiffLine[] = []
+      while (i < lines.length && lines[i].type === "removed") {
+        removedBlock.push(lines[i])
+        i++
+      }
 
-      // Compute character-level diff
-      removed.charDiff = computeCharDiff(removed.content, added.content, "removed")
-      added.charDiff = computeCharDiff(removed.content, added.content, "added")
+      const addedBlock: TextDiffLine[] = []
+      let j = i
+      while (j < lines.length && lines[j].type === "added") {
+        addedBlock.push(lines[j])
+        j++
+      }
 
-      result.push(removed)
-      result.push(added)
-      i += 2
-    } else {
-      result.push(line)
-      i++
+      if (addedBlock.length > 0) {
+        const pairCount = Math.min(removedBlock.length, addedBlock.length)
+        for (let k = 0; k < pairCount; k++) {
+          removedBlock[k].charDiff = computeCharDiff(removedBlock[k].content, addedBlock[k].content, "removed")
+          addedBlock[k].charDiff = computeCharDiff(removedBlock[k].content, addedBlock[k].content, "added")
+        }
+        for (const removedLine of removedBlock) {
+          result.push(removedLine)
+        }
+        for (const addedLine of addedBlock) {
+          result.push(addedLine)
+        }
+        i = j
+        continue
+      }
+
+      for (const removedLine of removedBlock) {
+        result.push(removedLine)
+      }
+      continue
     }
+
+    result.push(line)
+    i++
   }
 
   return result

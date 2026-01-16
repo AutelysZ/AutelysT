@@ -37,11 +37,17 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <Button variant="outline" size="sm" className="gap-2 bg-transparent" onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        size="sm"
+        className="gap-2 bg-transparent px-2 md:px-3"
+        onClick={() => setOpen(true)}
+        aria-label="History"
+      >
         <Clock className="h-4 w-4" />
-        History
+        <span className="hidden md:inline">History</span>
       </Button>
-      <SheetContent side="right" className="w-96 [&>button]:hidden">
+      <SheetContent side="right" className="w-full sm:w-96 [&>button]:hidden">
         <SheetHeader className="flex flex-row items-center justify-between gap-2 pr-1">
           <SheetTitle className="flex-1">History</SheetTitle>
           <div className="flex items-center gap-1">

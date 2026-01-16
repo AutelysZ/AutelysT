@@ -232,29 +232,16 @@ export const tools: Tool[] = [
   },
   // Data Tools
   {
-    id: "json-diff",
-    name: "JSON Diff Viewer",
-    description: "Compare two JSON files or inputs and view differences with table and text views",
+    id: "diff-viewer",
+    name: "Diff Viewer",
+    description: "Compare text, JSON, YAML, or TOML with table and unified text views",
     category: "Data",
-    route: "/tools/json-diff",
-    keywords: ["json", "diff", "compare", "viewer", "difference", "file"],
+    route: "/tools/diff-viewer",
+    keywords: ["diff", "compare", "viewer", "text", "json", "yaml", "toml", "unified", "table"],
     seo: {
-      title: "JSON Diff Viewer - AutelysT",
-      description: "Free online JSON diff viewer. Compare two JSON files with table and unified text views.",
-      keywords: ["json diff", "json compare", "diff viewer", "json comparison"],
-    },
-  },
-  {
-    id: "yaml-diff",
-    name: "YAML Diff Viewer",
-    description: "Compare two YAML files or inputs and view differences with table and text views",
-    category: "Data",
-    route: "/tools/yaml-diff",
-    keywords: ["yaml", "diff", "compare", "viewer", "difference", "file"],
-    seo: {
-      title: "YAML Diff Viewer - AutelysT",
-      description: "Free online YAML diff viewer. Compare two YAML files with table and unified text views.",
-      keywords: ["yaml diff", "yaml compare", "diff viewer", "yaml comparison"],
+      title: "Diff Viewer - AutelysT",
+      description: "Free online diff viewer for text, JSON, YAML, and TOML with table and unified text views.",
+      keywords: ["diff viewer", "text diff", "json diff", "yaml diff", "toml diff"],
     },
   },
   {
@@ -268,19 +255,6 @@ export const tools: Tool[] = [
       title: "JSON Schema Generator - AutelysT",
       description: "Free online JSON Schema generator. Generate JSON Schema from sample data with type inference.",
       keywords: ["json schema", "schema generator", "json validation", "json schema draft"],
-    },
-  },
-  {
-    id: "text-diff",
-    name: "Text Diff Viewer",
-    description: "Compare two text files with GitHub-style unified diff, character highlighting, and fullscreen mode",
-    category: "Data",
-    route: "/tools/text-diff",
-    keywords: ["text", "diff", "compare", "viewer", "difference", "file", "line", "unified"],
-    seo: {
-      title: "Text Diff Viewer - AutelysT",
-      description: "Free online text diff viewer. Compare text files with GitHub-style unified diff view.",
-      keywords: ["text diff", "text compare", "diff viewer", "file comparison", "unified diff"],
     },
   },
   {

@@ -3,6 +3,7 @@
 Generate JSON Schema from sample JSON data.
 
 ## Features
+- Responsive layout on mobile
 - Type inference from sample inputs
 - Error reporting for invalid JSON
 

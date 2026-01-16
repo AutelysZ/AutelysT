@@ -3,6 +3,7 @@
 Generate and parse ULIDs (Universally Unique Lexicographically Sortable Identifiers).
 
 ## Features
+- Responsive layout on mobile
 - Generate ULIDs
 - Parse to extract timestamp and randomness
 

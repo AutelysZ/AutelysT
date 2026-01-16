@@ -3,6 +3,7 @@
 Generate and parse KSUIDs (K-Sortable Unique Identifiers).
 
 ## Features
+- Responsive layout on mobile
 - Generate KSUIDs
 - Parse to extract timestamp and payload
 

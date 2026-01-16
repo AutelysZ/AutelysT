@@ -183,7 +183,7 @@ function RadixContent() {
               <RadioGroup
                 value={radix}
                 onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}
-                className="grid grid-cols-3 gap-2"
+                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
               >
                 {RADIX_OPTIONS.map((opt) => (
                   <div key={opt.value} className="flex items-center gap-1.5">

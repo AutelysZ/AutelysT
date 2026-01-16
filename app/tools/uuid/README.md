@@ -3,6 +3,7 @@
 Generate and parse UUIDs (v1, v4, v6, v7).
 
 ## Features
+- Responsive layout on mobile
 - Generate multiple UUIDs
 - Parse a single UUID to extract fields
 

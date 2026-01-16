@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Check, Copy, RefreshCw } from "lucide-react"
 import {
   DEFAULT_SYMBOLS,
@@ -44,6 +45,15 @@ const lengthPresets = [
   { value: "12", label: "12 (96 bit)" },
   { value: "8", label: "8 (64 bit)" },
   { value: "custom", label: "Custom" },
+]
+
+const serializationOptions = [
+  { value: "graphic-ascii", label: "Graphic ASCII" },
+  { value: "base64", label: "Base64" },
+  { value: "hex", label: "Hex" },
+  { value: "base58", label: "Base58" },
+  { value: "base45", label: "Base45" },
+  { value: "base32", label: "Base32" },
 ]
 
 export default function PasswordGeneratorPage() {
@@ -270,23 +280,30 @@ function PasswordGeneratorInner({
   }, [paramsForHistory, updateHistoryParams])
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-220px)] w-full max-w-5xl flex-col justify-center gap-6 py-6">
+    <div className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-5xl flex-col justify-start gap-6 py-6 lg:min-h-[calc(100vh-220px)] lg:justify-center">
       <div className="flex flex-col gap-5">
-        <div className="flex flex-wrap items-center justify-start">
+        <div className="flex flex-nowrap items-center gap-3">
           <Label className="w-28 text-sm font-medium">Serialization</Label>
+          <div className="min-w-0 flex-1 lg:hidden">
+            <Select value={state.serialization} onValueChange={(value) => setParam("serialization", value, true)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {serializationOptions.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <RadioGroup
             value={state.serialization}
             onValueChange={(value) => setParam("serialization", value, true)}
-            className="flex flex-wrap"
+            className="hidden flex-nowrap lg:flex"
           >
-            {[
-              { value: "graphic-ascii", label: "Graphic ASCII" },
-              { value: "base64", label: "Base64" },
-              { value: "hex", label: "Hex" },
-              { value: "base58", label: "Base58" },
-              { value: "base45", label: "Base45" },
-              { value: "base32", label: "Base32" },
-            ].map((item) => (
+            {serializationOptions.map((item) => (
               <div key={item.value} className="mr-5 flex items-center gap-2">
                 <RadioGroupItem id={`serialization-${item.value}`} value={item.value} />
                 <Label htmlFor={`serialization-${item.value}`} className="text-sm cursor-pointer">
@@ -298,7 +315,7 @@ function PasswordGeneratorInner({
         </div>
 
         {state.serialization === "base64" && (
-          <div className="flex flex-wrap items-center justify-start">
+          <div className="flex flex-nowrap items-center gap-3">
             <div className="w-28 shrink-0" />
             <div className="flex items-center gap-2">
               <Checkbox
@@ -324,12 +341,12 @@ function PasswordGeneratorInner({
         )}
 
         {["hex", "base45", "base32"].includes(state.serialization) && (
-          <div className="flex flex-wrap items-center justify-start">
+          <div className="flex flex-nowrap items-center gap-3">
             <div className="w-28 shrink-0" />
             <RadioGroup
               value={state.caseMode}
               onValueChange={(value) => setParam("caseMode", value, true)}
-              className="flex flex-wrap"
+              className="flex flex-nowrap"
             >
               <div className="mr-5 flex items-center gap-2">
                 <RadioGroupItem id="case-lower" value="lower" />
@@ -360,76 +377,156 @@ function PasswordGeneratorInner({
         )}
 
         {state.serialization === "graphic-ascii" && (
-          <div className="flex flex-wrap items-center justify-start">
-            <div className="w-28 shrink-0" />
-            <div className="mr-5 flex items-center gap-2">
-              <Checkbox
-                id="includeUpper"
-                checked={state.includeUpper}
-                onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
-              />
-              <Label htmlFor="includeUpper" className="text-sm cursor-pointer">
-                Upper letters
-              </Label>
-            </div>
-            <div className="mr-5 flex items-center gap-2">
-              <Checkbox
-                id="includeLower"
-                checked={state.includeLower}
-                onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
-              />
-              <Label htmlFor="includeLower" className="text-sm cursor-pointer">
-                Lower letters
-              </Label>
-            </div>
-            <div className="mr-5 flex items-center gap-2">
-              <Checkbox
-                id="includeNumbers"
-                checked={state.includeNumbers}
-                onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
-              />
-              <Label htmlFor="includeNumbers" className="text-sm cursor-pointer">
-                Numbers
-              </Label>
-            </div>
-            <div className="mr-5 flex items-center gap-2 whitespace-nowrap">
-              <Checkbox
-                id="includeSymbols"
-                checked={state.includeSymbols}
-                onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
-              />
-              <Label htmlFor="includeSymbols" className="text-sm cursor-pointer">
-                Symbols
-              </Label>
-              <div className="relative flex items-center">
-                <Input
-                  id="symbols"
-                  value={state.symbols}
-                  onChange={(e) => setParam("symbols", e.target.value)}
-                  disabled={!state.includeSymbols}
-                  className="h-9 w-[calc(36ch+5em)] pr-16 font-mono"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
-                  disabled={!state.includeSymbols}
-                  className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
-                >
-                  Reset
-                </Button>
+          <>
+            <div className="flex flex-col gap-2 lg:hidden">
+              <div className="flex items-center gap-3">
+                <div className="w-28 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="includeUpper"
+                    checked={state.includeUpper}
+                    onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
+                  />
+                  <Label htmlFor="includeUpper" className="text-sm cursor-pointer">
+                    Upper letters
+                  </Label>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-28 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="includeLower"
+                    checked={state.includeLower}
+                    onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
+                  />
+                  <Label htmlFor="includeLower" className="text-sm cursor-pointer">
+                    Lower letters
+                  </Label>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-28 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="includeNumbers"
+                    checked={state.includeNumbers}
+                    onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
+                  />
+                  <Label htmlFor="includeNumbers" className="text-sm cursor-pointer">
+                    Numbers
+                  </Label>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-28 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="includeSymbols"
+                    checked={state.includeSymbols}
+                    onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
+                  />
+                  <Label htmlFor="includeSymbols" className="text-sm cursor-pointer">
+                    Symbols
+                  </Label>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-28 shrink-0" />
+                <div className="relative flex min-w-0 flex-1 items-center">
+                  <Input
+                    id="symbols"
+                    value={state.symbols}
+                    onChange={(e) => setParam("symbols", e.target.value)}
+                    disabled={!state.includeSymbols}
+                    className="h-9 w-full min-w-0 pr-16 font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
+                    disabled={!state.includeSymbols}
+                    className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+                  >
+                    Reset
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+            <div className="hidden items-center gap-3 lg:flex">
+              <div className="w-28 shrink-0" />
+              <div className="mr-5 flex items-center gap-2">
+                <Checkbox
+                  id="includeUpper-lg"
+                  checked={state.includeUpper}
+                  onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
+                />
+                <Label htmlFor="includeUpper-lg" className="text-sm cursor-pointer">
+                  Upper letters
+                </Label>
+              </div>
+              <div className="mr-5 flex items-center gap-2">
+                <Checkbox
+                  id="includeLower-lg"
+                  checked={state.includeLower}
+                  onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
+                />
+                <Label htmlFor="includeLower-lg" className="text-sm cursor-pointer">
+                  Lower letters
+                </Label>
+              </div>
+              <div className="mr-5 flex items-center gap-2">
+                <Checkbox
+                  id="includeNumbers-lg"
+                  checked={state.includeNumbers}
+                  onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
+                />
+                <Label htmlFor="includeNumbers-lg" className="text-sm cursor-pointer">
+                  Numbers
+                </Label>
+              </div>
+              <div className="mr-5 flex min-w-0 flex-nowrap items-center gap-2 whitespace-nowrap">
+                <Checkbox
+                  id="includeSymbols-lg"
+                  checked={state.includeSymbols}
+                  onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
+                />
+                <Label htmlFor="includeSymbols-lg" className="text-sm cursor-pointer">
+                  Symbols
+                </Label>
+              </div>
+              <div className="mr-5 flex min-w-0 items-center">
+                <div className="relative flex min-w-0 flex-1 items-center">
+                  <Input
+                    id="symbols-lg"
+                    value={state.symbols}
+                    onChange={(e) => setParam("symbols", e.target.value)}
+                    disabled={!state.includeSymbols}
+                    className="h-9 w-full min-w-0 pr-16 font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
+                    disabled={!state.includeSymbols}
+                    className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </>
         )}
 
-        <div className="flex flex-wrap items-center justify-start">
+        <div className="flex flex-nowrap items-center gap-3">
           <Label className="w-28 text-sm font-medium">Length Type</Label>
           <RadioGroup
             value={state.lengthType}
             onValueChange={(value) => setParam("lengthType", value, true)}
-            className="flex flex-wrap"
+            className="flex flex-nowrap"
           >
             <div className="mr-5 flex items-center gap-2">
               <RadioGroupItem id="length-bytes" value="bytes" />
@@ -445,8 +542,30 @@ function PasswordGeneratorInner({
             </div>
           </RadioGroup>
         </div>
-        <div className="flex flex-wrap items-center justify-start">
+        <div className="flex flex-nowrap items-center gap-3">
           <Label className="w-28 text-sm font-medium">Length</Label>
+          <div className="min-w-0 flex-1 lg:hidden">
+            <Select
+              value={state.lengthPreset}
+              onValueChange={(value) => {
+                setParam("lengthPreset", value, true)
+                if (value !== "custom") {
+                  setParam("lengthValue", Number(value), true)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {lengthPresets.map((preset) => (
+                  <SelectItem key={preset.value} value={preset.value}>
+                    {preset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <RadioGroup
             value={state.lengthPreset}
             onValueChange={(value) => {
@@ -455,7 +574,7 @@ function PasswordGeneratorInner({
                 setParam("lengthValue", Number(value), true)
               }
             }}
-            className="flex flex-wrap"
+            className="hidden flex-nowrap lg:flex"
           >
             {lengthPresets.map((preset) => (
               <div key={preset.value} className="mr-4 flex items-center gap-2">
@@ -477,7 +596,7 @@ function PasswordGeneratorInner({
                   const nextValue = Math.max(1, Math.min(1024, Number(e.target.value) || 1))
                   setParam("lengthValue", nextValue, true)
                 }}
-                className="h-9 w-20"
+                className="h-9 w-20 lg:w-20"
               />
               <span className="text-sm text-muted-foreground">1-1024</span>
             </div>
@@ -487,20 +606,28 @@ function PasswordGeneratorInner({
 
       <div className="flex flex-col items-center justify-center gap-4 border-y border-border py-5">
         <div className="flex items-center gap-3">
-          <div className="max-w-[80ch] font-mono text-lg font-semibold tracking-tight break-all">
+          <div
+            className="max-w-[80ch] font-mono text-lg font-semibold tracking-tight break-all"
+            style={{
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 3,
+              overflow: "hidden",
+            }}
+          >
             {result || "-"}
           </div>
           <Button variant="ghost" size="icon" onClick={onRegenerate} aria-label="Regenerate password">
             <RefreshCw className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-center">
           <Input
             id="label"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Optional label for history"
-            className="h-9 w-[20ch]"
+            className="h-9 w-full lg:w-[20ch]"
           />
           <Button onClick={handleCopy} disabled={!result || !!error}>
             {copied ? (

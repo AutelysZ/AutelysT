@@ -151,9 +151,9 @@ function JSONSchemaInner({
   }
 
   return (
-    <div className="flex gap-4">
+    <div className="flex flex-col gap-4 md:flex-row">
       {/* Left - Input */}
-      <div className="flex w-0 flex-1 flex-col gap-2">
+      <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">JSON Input {fileName && `(${fileName})`}</Label>
           <div className="flex items-center gap-2">
@@ -192,7 +192,10 @@ function JSONSchemaInner({
             setFileName(null)
           }}
           placeholder="Paste JSON here to generate schema..."
-          className={cn("max-h-[500px] min-h-[400px] overflow-auto font-mono text-sm", error && "border-destructive")}
+          className={cn(
+            "max-h-[500px] min-h-[400px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
+            error && "border-destructive",
+          )}
         />
         {error && (
           <Alert variant="destructive" className="py-2">
@@ -203,7 +206,7 @@ function JSONSchemaInner({
       </div>
 
       {/* Right - Schema Output */}
-      <div className="flex w-0 flex-1 flex-col gap-2">
+      <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
         <div className="flex items-center justify-between">
           <Label className="text-sm font-medium">Generated Schema</Label>
           <div className="flex gap-1">
@@ -242,7 +245,7 @@ function JSONSchemaInner({
           value={schemaString}
           readOnly
           placeholder="Generated schema will appear here..."
-          className="max-h-[500px] min-h-[400px] overflow-auto font-mono text-sm"
+          className="max-h-[500px] min-h-[400px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm"
         />
       </div>
     </div>

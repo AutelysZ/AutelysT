@@ -6,6 +6,7 @@ Convert numbers between different bases (radixes).
 - Dual-pane conversion
 - Supports common bases and custom radix
 - Base60 formatting support
+- Responsive layout on small screens
 
 ## Parameters
 - Radix per side (10/16/8/2/60/custom)

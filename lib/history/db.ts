@@ -10,6 +10,12 @@ export interface HistoryEntry {
   inputSide?: "left" | "right"
   inputs: Record<string, string>
   params: Record<string, unknown>
+  files?: {
+    left?: Blob
+    right?: Blob
+    leftName?: string
+    rightName?: string
+  }
   preview?: string
 }
 

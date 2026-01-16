@@ -208,7 +208,7 @@ function TimezoneInner({
 
   return (
     <div className="flex h-full flex-col gap-4">
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         {/* Left Column */}
         <TimezonePaneColumn
           side="left"
@@ -224,7 +224,7 @@ function TimezoneInner({
         />
 
         {/* Divider */}
-        <div className="flex shrink-0 items-center justify-center">
+        <div className="hidden shrink-0 items-center justify-center md:flex">
           <Clock className="h-5 w-5 text-muted-foreground" />
         </div>
 
@@ -298,7 +298,7 @@ function TimezonePaneColumn({
   }, [date, timezone])
 
   return (
-    <div className="flex w-0 flex-1 flex-col gap-3">
+    <div className="flex w-full flex-1 flex-col gap-3 md:w-0">
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         <SearchableSelect
           value={timezone}

@@ -14,9 +14,15 @@ interface ToolHistoryContextValue {
     params: Record<string, unknown>,
     inputSide?: "left" | "right",
     preview?: string,
+    files?: HistoryEntry["files"],
   ) => Promise<HistoryEntry | null>
   updateHistoryParams: (params: Record<string, unknown>) => Promise<void>
-  updateLatestEntry: (updates: { inputs?: Record<string, string>; params?: Record<string, unknown>; preview?: string }) => Promise<void>
+  updateLatestEntry: (updates: {
+    inputs?: Record<string, string>
+    params?: Record<string, unknown>
+    files?: HistoryEntry["files"]
+    preview?: string
+  }) => Promise<void>
 }
 
 const ToolHistoryContext = React.createContext<ToolHistoryContextValue | null>(null)
@@ -78,6 +84,7 @@ export function ToolPageWrapper({
     <ToolHistoryContext.Provider value={contextValue}>
       <div className="flex h-full flex-col">
         <ToolHeader
+          toolId={toolId}
           title={title}
           description={description}
           historyEntries={entries}
@@ -88,7 +95,7 @@ export function ToolPageWrapper({
           historyVariant={historyVariant}
         />
         <ScrollArea className="flex-1">
-          <div className="p-6">
+          <div className="p-4 sm:p-6 w-screen sm:w-auto">
             {children}
 
             {/* SEO Content */}

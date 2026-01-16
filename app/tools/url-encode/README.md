@@ -3,6 +3,7 @@
 Encode and decode URLs with detailed parsing.
 
 ## Features
+- Responsive layout on mobile
 - Dual-pane encode/decode
 - URL component breakdown
 - Search and hash param parsing

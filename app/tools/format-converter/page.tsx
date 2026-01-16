@@ -205,9 +205,9 @@ function FormatConverterInner({
       </div>
 
       {/* Input/Output Section */}
-      <div className="flex gap-4">
+      <div className="flex flex-col gap-4 md:flex-row">
         {/* Input */}
-        <div className="flex w-0 flex-1 flex-col gap-2">
+        <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">
               Input ({inputFormat.toUpperCase()}) {fileName && `(${fileName})`}
@@ -238,7 +238,10 @@ function FormatConverterInner({
               setFileName(null)
             }}
             placeholder={`Paste ${inputFormat.toUpperCase()} here...`}
-            className={cn("max-h-[400px] min-h-[300px] overflow-auto font-mono text-sm", error && "border-destructive")}
+            className={cn(
+              "max-h-[400px] min-h-[300px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
+              error && "border-destructive",
+            )}
           />
           {error && (
             <Alert variant="destructive" className="py-2">
@@ -249,7 +252,7 @@ function FormatConverterInner({
         </div>
 
         {/* Output */}
-        <div className="flex w-0 flex-1 flex-col gap-2">
+        <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">Output ({outputFormat.toUpperCase()})</Label>
             <div className="flex gap-1">
@@ -279,7 +282,7 @@ function FormatConverterInner({
             value={output}
             readOnly
             placeholder="Converted output will appear here..."
-            className="max-h-[400px] min-h-[300px] overflow-auto font-mono text-sm"
+            className="max-h-[400px] min-h-[300px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm"
           />
         </div>
       </div>

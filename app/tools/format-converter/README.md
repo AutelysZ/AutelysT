@@ -3,6 +3,7 @@
 Convert between JSON, YAML, and TOML with auto-detection.
 
 ## Features
+- Responsive layout on mobile
 - Dual-pane conversion
 - Auto-detect input format
 - Error reporting

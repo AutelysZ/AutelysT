@@ -196,8 +196,8 @@ function ObjectIdInner({
         </CardContent>
       </Card>
 
-      <div className="flex min-h-0 flex-1 gap-4">
-        <div className="flex w-0 flex-1 flex-col gap-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+        <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">ObjectIDs</Label>
             <div className="flex items-center gap-1">
@@ -238,16 +238,15 @@ function ObjectIdInner({
             onChange={(e) => handleContentChange(e.target.value)}
             placeholder="Generated ObjectIDs will appear here, or paste an ObjectID to parse..."
             className={cn(
-              "min-h-[300px] max-h-[400px] resize-none overflow-auto font-mono text-sm break-all",
+              "min-h-[300px] max-h-[400px] resize-none overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
               parseError && "border-destructive",
             )}
-            style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
           />
 
           {parseError && <p className="text-xs text-destructive">{parseError}</p>}
         </div>
 
-        <div className="flex w-0 flex-1 flex-col gap-2">
+        <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <Label className="text-sm font-medium">Parsed Information</Label>
 
           {parsedInfo ? (

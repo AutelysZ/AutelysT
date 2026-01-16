@@ -13,7 +13,12 @@ import { tools, getToolsGroupedByCategory } from "@/lib/tools/registry"
 import { useFavorites } from "@/lib/history/use-favorites"
 import { ThemeToggle } from "@/components/theme-toggle"
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string
+  onNavigate?: () => void
+}
+
+export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname()
   const [searchQuery, setSearchQuery] = React.useState("")
   const groupedTools = React.useMemo(() => getToolsGroupedByCategory(), [])
@@ -47,8 +52,12 @@ export function Sidebar() {
     }))
   }
 
+  const handleNavigate = React.useCallback(() => {
+    onNavigate?.()
+  }, [onNavigate])
+
   return (
-    <aside className="flex h-full min-h-0 w-64 flex-col overflow-hidden border-r border-border bg-sidebar">
+    <aside className={cn("flex h-full min-h-0 w-64 flex-col overflow-hidden border-r border-border bg-sidebar", className)}>
       <div className="shrink-0 flex items-center justify-between border-b border-border p-4">
         <Link href="/" className="flex items-center gap-2">
           <img src="/images/autelys.png" alt="AutelysT" className="h-8 w-8" />
@@ -87,6 +96,7 @@ export function Sidebar() {
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                 )}
+                onClick={handleNavigate}
               >
                 {tool.name}
               </Link>
@@ -116,6 +126,7 @@ export function Sidebar() {
                                 ? "bg-sidebar-accent text-sidebar-accent-foreground"
                                 : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                             )}
+                            onClick={handleNavigate}
                           >
                             {tool.name}
                           </Link>
@@ -170,6 +181,7 @@ export function Sidebar() {
                             ? "bg-sidebar-accent text-sidebar-accent-foreground"
                             : "text-sidebar-foreground hover:bg-sidebar-accent/50",
                         )}
+                        onClick={handleNavigate}
                       >
                         {tool.name}
                       </Link>

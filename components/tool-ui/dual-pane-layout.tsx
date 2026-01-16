@@ -71,7 +71,7 @@ function Pane({
   )
 
   return (
-    <div className="flex w-0 flex-1 flex-col">
+    <div className="flex w-full flex-1 flex-col md:w-0">
       <div className="mb-2 flex items-center justify-between">
         <span className={cn("text-sm font-medium", isActive && "text-primary")}>{label}</span>
         <div className="flex items-center gap-1">
@@ -233,7 +233,7 @@ export function DualPaneLayout({
       {children && <div className="shrink-0">{children}</div>}
 
       {/* Panes */}
-      <div className="flex min-h-0 flex-1 gap-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         <Pane
           label={leftLabel}
           value={leftValue}
@@ -247,8 +247,8 @@ export function DualPaneLayout({
           onClearFile={onClearLeftFile}
         />
 
-        <div className="flex shrink-0 items-center">
-          <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+        <div className="flex shrink-0 items-center justify-center text-muted-foreground md:rotate-0 rotate-90">
+          <ArrowLeftRight className="h-5 w-5" />
         </div>
 
         <Pane

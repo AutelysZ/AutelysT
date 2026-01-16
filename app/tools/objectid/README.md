@@ -3,6 +3,7 @@
 Generate and parse MongoDB BSON ObjectIDs.
 
 ## Features
+- Responsive layout on mobile
 - Generate ObjectIDs
 - Parse to extract timestamp and components
 

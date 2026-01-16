@@ -77,7 +77,7 @@ function HomePage() {
   return (
     <div className="flex flex-1 flex-col overflow-auto">
       {/* Hero Section */}
-      <section className="shrink-0 border-b border-border bg-gradient-to-b from-background to-muted/30 px-6 py-10">
+      <section className="shrink-0 border-b border-border bg-gradient-to-b from-background to-muted/30 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
           <p className="mx-auto mb-6 max-w-2xl text-balance text-muted-foreground">
@@ -100,7 +100,7 @@ function HomePage() {
       </section>
 
       {/* Content */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         {isSearching ? (
           /* Search Results */
           <div className="mx-auto max-w-5xl">
