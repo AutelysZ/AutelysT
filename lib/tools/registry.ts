@@ -112,6 +112,19 @@ export const tools: Tool[] = [
       keywords: ["password generator", "secure password", "random password", "base64", "hex", "base58"],
     },
   },
+  {
+    id: "jwt",
+    name: "JWT",
+    description: "Parse, edit, and generate JSON Web Tokens with signature validation",
+    category: "Crypto",
+    route: "/tools/jwt",
+    keywords: ["jwt", "json web token", "token", "claims", "signature", "hmac"],
+    seo: {
+      title: "JWT Parser/Generator - AutelysT",
+      description: "Free online JWT parser and generator with claims editor and signature validation.",
+      keywords: ["jwt", "json web token", "jwt parser", "jwt generator", "claims"],
+    },
+  },
   // Identifier Tools
   {
     id: "uuid",

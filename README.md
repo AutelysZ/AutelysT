@@ -13,6 +13,7 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape with 100+ text encodings
 
 ### Crypto Tools
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
+- **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
 
 ### Identifier Tools
 Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, and BSON ObjectID with timestamp extraction.

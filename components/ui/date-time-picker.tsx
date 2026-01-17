@@ -10,6 +10,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 interface DateTimePickerProps {
   date: Date | undefined
   setDate: (date: Date | undefined) => void
+  buttonLabel?: string
+  iconOnly?: boolean
 }
 
 function useLocale12Hour() {
@@ -24,7 +26,7 @@ function useLocale12Hour() {
   return is12Hour
 }
 
-export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
+export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }: DateTimePickerProps) {
   const [isOpen, setIsOpen] = React.useState(false)
   const is12Hour = useLocale12Hour()
 
@@ -90,9 +92,18 @@ export function DateTimePicker({ date, setDate }: DateTimePickerProps) {
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="justify-start text-left font-normal bg-transparent">
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          Pick
+        <Button
+          variant="outline"
+          size={iconOnly ? "icon" : "sm"}
+          className={
+            iconOnly
+              ? "border-0 bg-transparent shadow-none text-muted-foreground/70 hover:text-foreground"
+              : "justify-start text-left font-normal bg-transparent"
+          }
+          aria-label={iconOnly ? buttonLabel : undefined}
+        >
+          <CalendarIcon className={iconOnly ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+          {!iconOnly && buttonLabel}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
