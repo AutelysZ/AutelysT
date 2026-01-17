@@ -8,7 +8,7 @@ import { z } from "zod"
 import yaml from "js-yaml"
 import toml from "@iarna/toml"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -47,6 +47,8 @@ const paramsSchema = z.object({
   viewMode: z.enum(["table", "text"]).default("table"),
 })
 
+type ViewMode = z.infer<typeof paramsSchema>["viewMode"]
+
 const FILE_SIZE_LIMIT = 1 * 2 ** 20
 
 export default function DiffViewerPage() {
@@ -58,18 +60,9 @@ export default function DiffViewerPage() {
 }
 
 function DiffViewerContent() {
-  const shouldSyncParam = React.useCallback((key: string, value: unknown) => {
-    if (key !== "leftText" && key !== "rightText") return true
-    if (typeof value !== "string") return true
-    return getByteLength(value) <= 2048
-  }, [])
-
-  const { state, setParam } = useUrlSyncedState("diff-viewer", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("diff-viewer", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
-    syncOnHistoryRestore: true,
-    shouldSyncParam,
-    restoreMissingKeys: (key) => key === "leftText" || key === "rightText",
   })
 
   const [leftFileName, setLeftFileName] = React.useState<string | null>(null)
@@ -88,9 +81,9 @@ function DiffViewerContent() {
       const { inputs, params } = entry
       if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
       if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
-      if (params.leftFormat) setParam("leftFormat", params.leftFormat as string)
-      if (params.rightFormat) setParam("rightFormat", params.rightFormat as string)
-      if (params.viewMode) setParam("viewMode", params.viewMode as string)
+      if (params.leftFormat) setParam("leftFormat", params.leftFormat as z.infer<typeof paramsSchema>["leftFormat"])
+      if (params.rightFormat) setParam("rightFormat", params.rightFormat as z.infer<typeof paramsSchema>["rightFormat"])
+      if (params.viewMode) setParam("viewMode", params.viewMode as ViewMode)
 
       if (entry.files?.left) {
         restoreFileFromHistory({
@@ -155,6 +148,9 @@ function DiffViewerContent() {
       <DiffViewerInner
         state={state}
         setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         leftFileName={leftFileName}
         rightFileName={rightFileName}
         leftFileContent={leftFileContent}
@@ -181,6 +177,9 @@ function DiffViewerContent() {
 function DiffViewerInner({
   state,
   setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   leftFileName,
   rightFileName,
   leftFileContent,
@@ -201,7 +200,14 @@ function DiffViewerInner({
   setRightFileName,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   leftFileName: string | null
   rightFileName: string | null
   leftFileContent: string | null
@@ -221,20 +227,30 @@ function DiffViewerInner({
   setLeftFileName: (v: string | null) => void
   setRightFileName: (v: string | null) => void
 }) {
-  const { addHistoryEntry, updateHistoryParams } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
-  const leftInputRef = React.useRef<HTMLInputElement>(null)
-  const rightInputRef = React.useRef<HTMLInputElement>(null)
+  const leftInputRef = React.useRef<HTMLInputElement | null>(null)
+  const rightInputRef = React.useRef<HTMLInputElement | null>(null)
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({
+    leftFormat: state.leftFormat,
+    rightFormat: state.rightFormat,
+    viewMode: state.viewMode,
+    leftFileName,
+    rightFileName,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
 
   const leftEffectiveText = leftFileContent ?? state.leftText
   const rightEffectiveText = rightFileContent ?? state.rightText
 
   const leftDetected = React.useMemo(() => detectFormat(leftEffectiveText), [leftEffectiveText])
   const rightDetected = React.useMemo(() => detectFormat(rightEffectiveText), [rightEffectiveText])
-  const leftTooLong = React.useMemo(() => getByteLength(state.leftText) > 2048, [state.leftText])
-  const rightTooLong = React.useMemo(() => getByteLength(state.rightText) > 2048, [state.rightText])
+  const leftTooLong = React.useMemo(() => oversizeKeys.includes("leftText"), [oversizeKeys])
+  const rightTooLong = React.useMemo(() => oversizeKeys.includes("rightText"), [oversizeKeys])
 
   const leftResolved = state.leftFormat === "auto" ? leftDetected.format : state.leftFormat
   const rightResolved = state.rightFormat === "auto" ? rightDetected.format : state.rightFormat
@@ -265,12 +281,28 @@ function DiffViewerInner({
   }, [showTabs, state.viewMode, setParam])
 
   React.useEffect(() => {
-    updateHistoryParams({
+    const nextParams = {
       leftFormat: state.leftFormat,
       rightFormat: state.rightFormat,
       viewMode: state.viewMode,
-    })
-  }, [state.leftFormat, state.rightFormat, state.viewMode, updateHistoryParams])
+      leftFileName,
+      rightFileName,
+    }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    const same =
+      paramsRef.current.leftFormat === nextParams.leftFormat &&
+      paramsRef.current.rightFormat === nextParams.rightFormat &&
+      paramsRef.current.viewMode === nextParams.viewMode &&
+      paramsRef.current.leftFileName === nextParams.leftFileName &&
+      paramsRef.current.rightFileName === nextParams.rightFileName
+    if (same) return
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [state.leftFormat, state.rightFormat, state.viewMode, leftFileName, rightFileName, upsertParams])
 
   const { changes, stats } = React.useMemo(() => {
     if (!showTabs) {
@@ -323,13 +355,20 @@ function DiffViewerInner({
   const suppressDetail = diffLineCount > 10000 || diffByteSize > 1024 * 1024
 
   React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    lastInputRef.current = `${state.leftText}|${state.rightText}`
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.leftText, state.rightText])
+
+  React.useEffect(() => {
     const combined = `${state.leftText}|${state.rightText}`
     if (!state.leftText && !state.rightText) return
     if (combined === lastInputRef.current) return
 
     const timer = setTimeout(() => {
       lastInputRef.current = combined
-      addHistoryEntry(
+      upsertInputEntry(
         { leftText: leftFileName ? "" : state.leftText, rightText: rightFileName ? "" : state.rightText },
         { leftFormat: state.leftFormat, rightFormat: state.rightFormat, viewMode: state.viewMode, leftFileName, rightFileName },
         "left",
@@ -341,7 +380,7 @@ function DiffViewerInner({
           rightName: rightFileName ?? undefined,
         },
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
   }, [
@@ -352,7 +391,43 @@ function DiffViewerInner({
     state.viewMode,
     leftFileName,
     rightFileName,
-    addHistoryEntry,
+    upsertInputEntry,
+  ])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      if (state.leftText || state.rightText) {
+        upsertInputEntry(
+          { leftText: leftFileName ? "" : state.leftText, rightText: rightFileName ? "" : state.rightText },
+          { leftFormat: state.leftFormat, rightFormat: state.rightFormat, viewMode: state.viewMode, leftFileName, rightFileName },
+          "left",
+          leftFileName || rightFileName || state.leftText.slice(0, 50) + (state.rightText ? " vs " + state.rightText.slice(0, 50) : ""),
+          {
+            left: leftFileBlobRef.current ?? undefined,
+            right: rightFileBlobRef.current ?? undefined,
+            leftName: leftFileName ?? undefined,
+            rightName: rightFileName ?? undefined,
+          },
+        )
+      } else {
+        upsertParams(
+          { leftFormat: state.leftFormat, rightFormat: state.rightFormat, viewMode: state.viewMode, leftFileName, rightFileName },
+          "interpretation",
+        )
+      }
+    }
+  }, [
+    hasUrlParams,
+    state.leftText,
+    state.rightText,
+    state.leftFormat,
+    state.rightFormat,
+    state.viewMode,
+    leftFileName,
+    rightFileName,
+    upsertInputEntry,
+    upsertParams,
   ])
 
   const handleFileUpload = (side: "left" | "right") => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -501,7 +576,11 @@ function DiffViewerInner({
               {suppressDetail ? (
                 <div className="text-xs text-muted-foreground">Diff summary</div>
               ) : showTabs ? (
-                <Tabs value={state.viewMode} onValueChange={(v) => setParam("viewMode", v, true)} className="w-auto">
+                <Tabs
+                  value={state.viewMode}
+                  onValueChange={(v) => setParam("viewMode", v as ViewMode, true)}
+                  className="w-auto"
+                >
                   <TabsList className="h-8">
                     <TabsTrigger value="table" className="px-3 py-1 text-xs">
                       Table View
@@ -628,7 +707,7 @@ function DiffInputPanel({
   fileTooLarge: boolean
   onDismissTooLarge: () => void
   errorMessage: string | null
-  inputRef: React.RefObject<HTMLInputElement>
+  inputRef: React.RefObject<HTMLInputElement | null>
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onValueChange: (value: string) => void
   onFormatChange: (value: FormatType) => void
@@ -806,7 +885,11 @@ async function restoreFileFromHistory({
   blob: Blob
   name: string | null
   side: "left" | "right"
-  setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
   setFileName: (value: string | null) => void
   setFileContent: (value: string | null) => void
   setFileTooLarge: (value: boolean) => void
@@ -1011,7 +1094,19 @@ function DiffRow({ change }: { change: DiffChange }) {
 function UnifiedDiffView({ diffLines }: { diffLines: TextDiffLine[] }) {
   const [expandedGaps, setExpandedGaps] = React.useState<Record<string, { start: number; end: number }>>({})
 
-  const displayItems = React.useMemo(() => {
+  type DisplayItem =
+    | { kind: "line"; index: number }
+    | {
+        kind: "gap"
+        id: string
+        start: number
+        end: number
+        hiddenCount: number
+        leftRange: { start: number; count: number }
+        rightRange: { start: number; count: number }
+      }
+
+  const displayItems = React.useMemo<DisplayItem[]>(() => {
     const contextLines = 3
     const visible = new Array(diffLines.length).fill(false)
     const changedIndices: number[] = []
@@ -1021,7 +1116,7 @@ function UnifiedDiffView({ diffLines }: { diffLines: TextDiffLine[] }) {
     })
 
     if (changedIndices.length === 0) {
-      return diffLines.map((_, idx) => ({ kind: "line", index: idx }))
+      return diffLines.map((_, idx) => ({ kind: "line" as const, index: idx }))
     }
 
     for (const idx of changedIndices) {
@@ -1045,18 +1140,7 @@ function UnifiedDiffView({ diffLines }: { diffLines: TextDiffLine[] }) {
       }
     }
 
-    const items: Array<
-      | { kind: "line"; index: number }
-      | {
-          kind: "gap"
-          id: string
-          start: number
-          end: number
-          hiddenCount: number
-          leftRange: { start: number; count: number }
-          rightRange: { start: number; count: number }
-        }
-    > = []
+    const items: DisplayItem[] = []
 
     cursor = 0
     while (cursor < diffLines.length) {
@@ -1116,6 +1200,8 @@ function UnifiedDiffView({ diffLines }: { diffLines: TextDiffLine[] }) {
           const line = diffLines[item.index]
           return <TextDiffLineRow key={`line-${item.index}`} line={line} />
         }
+
+        if (item.kind !== "gap") return null
 
         const atStart = item.start === 0
         const atEnd = item.end === diffLines.length - 1

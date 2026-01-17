@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { z } from "zod"
 import { Clock, Copy, Check } from "lucide-react"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SearchableSelect } from "@/components/ui/searchable-select"
@@ -40,9 +40,16 @@ export default function TimezonePage() {
 }
 
 function TimezoneContent() {
-  const { state, setParam } = useUrlSyncedState("timezone", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("timezone", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
+    inputSide: {
+      sideKey: "activeSide",
+      inputKeyBySide: {
+        left: "leftText",
+        right: "rightText",
+      },
+    },
   })
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
@@ -145,6 +152,9 @@ function TimezoneContent() {
       <TimezoneInner
         state={state}
         setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         leftError={leftError}
         rightError={rightError}
         handleLeftChange={handleLeftChange}
@@ -158,6 +168,9 @@ function TimezoneContent() {
 function TimezoneInner({
   state,
   setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   leftError,
   rightError,
   handleLeftChange,
@@ -165,15 +178,38 @@ function TimezoneInner({
   handleNow,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, updateHistory?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    updateHistory?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   leftError: string | null
   rightError: string | null
   handleLeftChange: (value: string) => void
   handleRightChange: (value: string) => void
   handleNow: (side: "left" | "right") => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({
+    leftTimezone: state.leftTimezone,
+    rightTimezone: state.rightTimezone,
+    activeSide: state.activeSide,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    lastInputRef.current = activeText
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
 
   React.useEffect(() => {
     const activeText = state.activeSide === "left" ? state.leftText : state.rightText
@@ -181,7 +217,7 @@ function TimezoneInner({
 
     const timer = setTimeout(() => {
       lastInputRef.current = activeText
-      addHistoryEntry(
+      upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
         {
           leftTimezone: state.leftTimezone,
@@ -191,10 +227,76 @@ function TimezoneInner({
         state.activeSide,
         activeText.slice(0, 100),
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.leftText, state.rightText, state.activeSide, state.leftTimezone, state.rightTimezone, addHistoryEntry])
+  }, [
+    state.leftText,
+    state.rightText,
+    state.activeSide,
+    state.leftTimezone,
+    state.rightTimezone,
+    upsertInputEntry,
+  ])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      if (activeText) {
+        upsertInputEntry(
+          { leftText: state.leftText, rightText: state.rightText },
+          {
+            leftTimezone: state.leftTimezone,
+            rightTimezone: state.rightTimezone,
+            activeSide: state.activeSide,
+          },
+          state.activeSide,
+          activeText.slice(0, 100),
+        )
+      } else {
+        upsertParams(
+          {
+            leftTimezone: state.leftTimezone,
+            rightTimezone: state.rightTimezone,
+            activeSide: state.activeSide,
+          },
+          "interpretation",
+        )
+      }
+    }
+  }, [
+    hasUrlParams,
+    state.leftText,
+    state.rightText,
+    state.activeSide,
+    state.leftTimezone,
+    state.rightTimezone,
+    upsertInputEntry,
+    upsertParams,
+  ])
+
+  React.useEffect(() => {
+    const nextParams = {
+      leftTimezone: state.leftTimezone,
+      rightTimezone: state.rightTimezone,
+      activeSide: state.activeSide,
+    }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (
+      paramsRef.current.leftTimezone === nextParams.leftTimezone &&
+      paramsRef.current.rightTimezone === nextParams.rightTimezone &&
+      paramsRef.current.activeSide === nextParams.activeSide
+    ) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [state.leftTimezone, state.rightTimezone, state.activeSide, upsertParams])
 
   const leftDate = React.useMemo(() => {
     if (!state.leftText) return null
@@ -216,11 +318,11 @@ function TimezoneInner({
           text={state.leftText}
           error={leftError}
           isActive={state.activeSide === "left"}
+          warning={oversizeKeys.includes("leftText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
           date={leftDate}
           onTimezoneChange={(v) => setParam("leftTimezone", v, true)}
           onTextChange={handleLeftChange}
           onNow={() => handleNow("left")}
-          onFocus={() => setParam("activeSide", "left", true)}
         />
 
         {/* Divider */}
@@ -235,11 +337,11 @@ function TimezoneInner({
           text={state.rightText}
           error={rightError}
           isActive={state.activeSide === "right"}
+          warning={oversizeKeys.includes("rightText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
           date={rightDate}
           onTimezoneChange={(v) => setParam("rightTimezone", v, true)}
           onTextChange={handleRightChange}
           onNow={() => handleNow("right")}
-          onFocus={() => setParam("activeSide", "right", true)}
         />
       </div>
     </div>
@@ -252,22 +354,22 @@ function TimezonePaneColumn({
   text,
   error,
   isActive,
+  warning,
   date,
   onTimezoneChange,
   onTextChange,
   onNow,
-  onFocus,
 }: {
   side: "left" | "right"
   timezone: string
   text: string
   error: string | null
   isActive: boolean
+  warning: string | null
   date: Date | null
   onTimezoneChange: (v: string) => void
   onTextChange: (v: string) => void
   onNow: () => void
-  onFocus: () => void
 }) {
   const [copied, setCopied] = React.useState<string | null>(null)
 
@@ -344,13 +446,13 @@ function TimezonePaneColumn({
         <Input
           value={text}
           onChange={(e) => onTextChange(e.target.value)}
-          onFocus={onFocus}
           placeholder={
             isUnixEpochTimezone(timezone) ? "Enter unix timestamp..." : "Enter date/time or pick from calendar..."
           }
           className={cn("font-mono text-sm", error && "border-destructive", isActive && "ring-1 ring-primary")}
         />
         {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+        {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
       </div>
 
       {outputs && (

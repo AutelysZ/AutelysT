@@ -16,7 +16,9 @@ Generate and parse UUIDs (v1, v4, v6, v7).
 
 ## URL State
 - Inputs and parameters sync to the URL query
+- Inputs over 2 KB are excluded with a warning
 
 ## History
-- Input changes create history entries
-- Parameter changes update the latest entry
+- URL params take precedence on load; otherwise restore the latest history entry
+- Input changes create valued history entries (debounced)
+- Parameter changes create/update a valueless entry until input is generated or pasted

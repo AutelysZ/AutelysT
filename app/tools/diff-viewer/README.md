@@ -23,9 +23,9 @@ Compare text, JSON, YAML, or TOML content side-by-side with table and text diff 
 - Very large inputs skip in-browser diffing to avoid crashes; download may be disabled
 
 ## URL State
-- Inputs and parameters sync to the URL query (inputs over 2 KB are excluded)
-- When inputs are excluded, the latest history entry restores them automatically
+- Inputs and parameters sync to the URL query (inputs over 2 KB are excluded with a warning)
+- URL params take precedence on load; otherwise restore the latest history entry
 
 ## History
-- Input changes create history entries
-- Parameter changes update the latest entry
+- Input changes create valued history entries (debounced)
+- Parameter changes update the latest entry or keep a valueless placeholder until input

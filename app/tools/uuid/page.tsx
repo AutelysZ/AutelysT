@@ -4,7 +4,7 @@ import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,7 +31,7 @@ export default function UUIDPage() {
 }
 
 function UUIDContent() {
-  const { state, setParam } = useUrlSyncedState("uuid", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("uuid", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
   })
@@ -92,7 +92,7 @@ function UUIDContent() {
     (entry: HistoryEntry) => {
       const { inputs, params } = entry
       if (inputs.content !== undefined) setParam("content", inputs.content)
-      if (params.version) setParam("version", params.version as string)
+      if (params.version) setParam("version", params.version as z.infer<typeof paramsSchema>["version"])
       if (params.count) setParam("count", params.count as number)
     },
     [setParam],
@@ -108,6 +108,9 @@ function UUIDContent() {
       <UUIDInner
         state={state}
         setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         parseError={parseError}
         parsedInfo={parsedInfo}
         copied={copied}
@@ -122,6 +125,9 @@ function UUIDContent() {
 function UUIDInner({
   state,
   setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   parseError,
   parsedInfo,
   copied,
@@ -130,7 +136,14 @@ function UUIDInner({
   handleDownload,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   parseError: string | null
   parsedInfo: ParsedUUID | null
   copied: boolean
@@ -138,34 +151,74 @@ function UUIDInner({
   handleCopy: () => void
   handleDownload: () => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastSavedRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({ version: state.version, count: state.count })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
 
   React.useEffect(() => {
-    const key = `${state.version}:${state.count}:${state.content}`
-    if (key === lastSavedRef.current) return
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    lastSavedRef.current = state.content
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.content])
+
+  React.useEffect(() => {
+    if (state.content === lastSavedRef.current) return
 
     const timer = setTimeout(() => {
-      lastSavedRef.current = key
-      addHistoryEntry(
+      lastSavedRef.current = state.content
+      upsertInputEntry(
         { content: state.content },
         { version: state.version, count: state.count },
         "left",
         state.content ? state.content.slice(0, 100) : `${state.version} x${state.count}`,
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.content, state.version, state.count, addHistoryEntry])
+  }, [state.content, state.version, state.count, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      if (state.content) {
+        upsertInputEntry(
+          { content: state.content },
+          { version: state.version, count: state.count },
+          "left",
+          state.content.slice(0, 100),
+        )
+      } else {
+        upsertParams({ version: state.version, count: state.count }, "deferred")
+      }
+    }
+  }, [hasUrlParams, state.content, state.version, state.count, upsertInputEntry, upsertParams])
+
+  React.useEffect(() => {
+    const nextParams = { version: state.version, count: state.count }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (paramsRef.current.version === nextParams.version && paramsRef.current.count === nextParams.count) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "deferred")
+  }, [state.version, state.count, upsertParams])
 
   const handleGenerate = React.useCallback(() => {
     const uuids = generateUUIDs(state.version as UUIDVersion, state.count)
     const content = uuids.join("\n")
     setParam("content", content)
 
-    lastSavedRef.current = `${state.version}:${state.count}:${content}`
-    addHistoryEntry({ content }, { version: state.version, count: state.count }, "left", content.slice(0, 100))
-  }, [state.version, state.count, setParam, addHistoryEntry])
+    lastSavedRef.current = content
+    upsertInputEntry({ content }, { version: state.version, count: state.count }, "left", content.slice(0, 100))
+  }, [state.version, state.count, setParam, upsertInputEntry])
 
   const handleCountChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +237,10 @@ function UUIDInner({
             <Label htmlFor="version" className="text-sm whitespace-nowrap">
               Version
             </Label>
-            <Select value={state.version} onValueChange={(v) => setParam("version", v, true)}>
+            <Select
+              value={state.version}
+              onValueChange={(v) => setParam("version", v as z.infer<typeof paramsSchema>["version"], true)}
+            >
               <SelectTrigger id="version" className="w-24">
                 <SelectValue />
               </SelectTrigger>
@@ -264,6 +320,9 @@ function UUIDInner({
           />
 
           {parseError && <p className="text-xs text-destructive">{parseError}</p>}
+          {oversizeKeys.includes("content") && (
+            <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+          )}
         </div>
 
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">

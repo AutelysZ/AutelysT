@@ -3,7 +3,9 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { Upload, Copy, Check, Download, AlertCircle } from "lucide-react"
+import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -12,6 +14,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { generateSchema, formatSchema } from "@/lib/data/json-schema"
 import type { HistoryEntry } from "@/lib/history/db"
 import { cn } from "@/lib/utils"
+
+const paramsSchema = z.object({
+  input: z.string().default(""),
+  includeExamples: z.boolean().default(false),
+})
 
 export default function JSONSchemaPage() {
   return (
@@ -22,9 +29,11 @@ export default function JSONSchemaPage() {
 }
 
 function JSONSchemaContent() {
-  const [input, setInput] = React.useState("")
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("json-schema", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  })
   const [fileName, setFileName] = React.useState<string | null>(null)
-  const [includeExamples, setIncludeExamples] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
   const handleLoadHistory = React.useCallback((entry: HistoryEntry) => {
@@ -35,9 +44,9 @@ function JSONSchemaContent() {
       return
     }
 
-    if (inputs.input !== undefined) setInput(inputs.input)
-    if (params.includeExamples !== undefined) setIncludeExamples(params.includeExamples as boolean)
-  }, [])
+    if (inputs.input !== undefined) setParam("input", inputs.input)
+    if (params.includeExamples !== undefined) setParam("includeExamples", params.includeExamples as boolean)
+  }, [setParam])
 
   return (
     <ToolPageWrapper
@@ -47,12 +56,13 @@ function JSONSchemaContent() {
       onLoadHistory={handleLoadHistory}
     >
       <JSONSchemaInner
-        input={input}
-        setInput={setInput}
+        state={state}
+        setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         fileName={fileName}
         setFileName={setFileName}
-        includeExamples={includeExamples}
-        setIncludeExamples={setIncludeExamples}
         error={error}
         setError={setError}
       />
@@ -61,65 +71,114 @@ function JSONSchemaContent() {
 }
 
 function JSONSchemaInner({
-  input,
-  setInput,
+  state,
+  setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   fileName,
   setFileName,
-  includeExamples,
-  setIncludeExamples,
   error,
   setError,
 }: {
-  input: string
-  setInput: (v: string) => void
+  state: z.infer<typeof paramsSchema>
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   fileName: string | null
   setFileName: (v: string | null) => void
-  includeExamples: boolean
-  setIncludeExamples: (v: boolean) => void
   error: string | null
   setError: (v: string | null) => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [copied, setCopied] = React.useState(false)
+  const paramsRef = React.useRef({ includeExamples: state.includeExamples, fileName })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+  const hasHydratedInputRef = React.useRef(false)
 
   const { schema, schemaString, parseError } = React.useMemo(() => {
-    if (!input.trim()) {
+    if (!state.input.trim()) {
       return { schema: null, schemaString: "", parseError: null }
     }
 
     try {
-      const parsed = JSON.parse(input)
-      const schema = generateSchema(parsed, { includeExamples })
+      const parsed = JSON.parse(state.input)
+      const schema = generateSchema(parsed, { includeExamples: state.includeExamples })
       schema.$schema = "http://json-schema.org/draft-07/schema#"
       return { schema, schemaString: formatSchema(schema), parseError: null }
     } catch (e) {
       return { schema: null, schemaString: "", parseError: (e as Error).message }
     }
-  }, [input, includeExamples])
+  }, [state.input, state.includeExamples])
 
   React.useEffect(() => {
     setError(parseError)
   }, [parseError, setError])
 
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    lastInputRef.current = state.input
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.input])
+
   // Save history
   React.useEffect(() => {
-    if (!input) return
-    if (input === lastInputRef.current) return
+    if (state.input === lastInputRef.current) return
 
     const timer = setTimeout(() => {
-      lastInputRef.current = input
-      addHistoryEntry(
-        { input: fileName ? "" : input },
-        { fileName, includeExamples },
+      lastInputRef.current = state.input
+      upsertInputEntry(
+        { input: fileName ? "" : state.input },
+        { fileName, includeExamples: state.includeExamples },
         "left",
-        fileName || input.slice(0, 100),
+        fileName || state.input.slice(0, 100),
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [input, fileName, includeExamples, addHistoryEntry])
+  }, [state.input, fileName, state.includeExamples, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      if (state.input) {
+        upsertInputEntry(
+          { input: fileName ? "" : state.input },
+          { fileName, includeExamples: state.includeExamples },
+          "left",
+          fileName || state.input.slice(0, 100),
+        )
+      } else {
+        upsertParams({ fileName, includeExamples: state.includeExamples }, "interpretation")
+      }
+    }
+  }, [hasUrlParams, state.input, state.includeExamples, fileName, upsertInputEntry, upsertParams])
+
+  React.useEffect(() => {
+    const nextParams = { includeExamples: state.includeExamples, fileName }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (
+      paramsRef.current.includeExamples === nextParams.includeExamples &&
+      paramsRef.current.fileName === nextParams.fileName
+    ) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [state.includeExamples, fileName, upsertParams])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -128,7 +187,7 @@ function JSONSchemaInner({
     const reader = new FileReader()
     reader.onload = (event) => {
       const content = event.target?.result as string
-      setInput(content)
+      setParam("input", content)
       setFileName(file.name)
     }
     reader.readAsText(file)
@@ -160,8 +219,8 @@ function JSONSchemaInner({
             <div className="flex items-center gap-1.5">
               <Checkbox
                 id="include-examples"
-                checked={includeExamples}
-                onCheckedChange={(checked) => setIncludeExamples(checked as boolean)}
+                checked={state.includeExamples}
+                onCheckedChange={(checked) => setParam("includeExamples", checked as boolean, true)}
               />
               <Label htmlFor="include-examples" className="text-xs font-normal">
                 Include examples
@@ -186,9 +245,9 @@ function JSONSchemaInner({
           </div>
         </div>
         <Textarea
-          value={input}
+          value={state.input}
           onChange={(e) => {
-            setInput(e.target.value)
+            setParam("input", e.target.value)
             setFileName(null)
           }}
           placeholder="Paste JSON here to generate schema..."
@@ -197,6 +256,9 @@ function JSONSchemaInner({
             error && "border-destructive",
           )}
         />
+        {oversizeKeys.includes("input") && (
+          <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+        )}
         {error && (
           <Alert variant="destructive" className="py-2">
             <AlertCircle className="h-4 w-4" />

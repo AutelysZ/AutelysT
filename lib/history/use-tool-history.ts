@@ -1,11 +1,47 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { getDB, generateId, type HistoryEntry } from "./db"
+
+function shallowEqualRecord(a: Record<string, unknown>, b: Record<string, unknown>) {
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+  return Object.entries(a).every(([key, value]) => b[key] === value)
+}
+
+function filesEqual(a?: HistoryEntry["files"], b?: HistoryEntry["files"]) {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return (
+    a.left === b.left &&
+    a.right === b.right &&
+    a.leftName === b.leftName &&
+    a.rightName === b.rightName
+  )
+}
+
+function entriesEqual(a: HistoryEntry, b: HistoryEntry) {
+  return (
+    a.hasInput === b.hasInput &&
+    a.inputSide === b.inputSide &&
+    a.preview === b.preview &&
+    shallowEqualRecord(a.inputs, b.inputs) &&
+    shallowEqualRecord(a.params, b.params) &&
+    filesEqual(a.files, b.files)
+  )
+}
 
 export function useToolHistory(toolId: string) {
   const [entries, setEntries] = useState<HistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const latestEntryRef = useRef<HistoryEntry | null>(null)
+  const pendingEntryRef = useRef<HistoryEntry | null>(null)
+  const pendingInputRef = useRef<{
+    inputs: Record<string, string>
+    params: Record<string, unknown>
+    inputSide?: string
+    preview?: string
+    files?: HistoryEntry["files"]
+  } | null>(null)
 
   // Load entries on mount
   useEffect(() => {
@@ -31,20 +67,32 @@ export function useToolHistory(toolId: string) {
     }
   }, [toolId])
 
+  useEffect(() => {
+    latestEntryRef.current = entries[0] ?? null
+  }, [entries])
+
+
   // Add new entry (when input text changes)
   const addEntry = useCallback(
     async (
       inputs: Record<string, string>,
       params: Record<string, unknown>,
-      inputSide?: "left" | "right",
+      inputSide?: string,
       preview?: string,
       files?: HistoryEntry["files"],
+      hasInput = true,
     ) => {
+      if (loading) {
+        pendingInputRef.current = { inputs, params, inputSide, preview, files }
+        return null
+      }
+      const latest = latestEntryRef.current ?? entries[0]
       const entry: HistoryEntry = {
         id: generateId(),
         toolId,
         createdAt: Date.now(),
         updatedAt: Date.now(),
+        hasInput,
         inputSide,
         inputs,
         params,
@@ -52,10 +100,21 @@ export function useToolHistory(toolId: string) {
         preview,
       }
 
+      const pending = pendingEntryRef.current
+      if (pending && entriesEqual(pending, entry)) {
+        return pending
+      }
+      if (latest && entriesEqual(latest, entry)) {
+        return latest
+      }
+
       try {
+        pendingEntryRef.current = entry
         const db = await getDB()
         await db.put("history", entry)
         setEntries((prev) => [entry, ...prev])
+        pendingEntryRef.current = null
+        latestEntryRef.current = entry
 
         // Update recent tools
         await db.put("recentTools", { toolId, lastUsed: Date.now() })
@@ -63,15 +122,17 @@ export function useToolHistory(toolId: string) {
         return entry
       } catch (error) {
         console.error("Failed to add history entry:", error)
+        pendingEntryRef.current = null
         return null
       }
     },
-    [toolId],
+    [toolId, entries],
   )
 
   // Update latest entry params (when params change)
   const updateLatestParams = useCallback(
     async (params: Record<string, unknown>) => {
+      if (loading) return
       if (entries.length === 0) return
 
       const latest = entries[0]
@@ -89,6 +150,7 @@ export function useToolHistory(toolId: string) {
         const db = await getDB()
         await db.put("history", updated)
         setEntries((prev) => [updated, ...prev.slice(1)])
+        latestEntryRef.current = updated
       } catch (error) {
         console.error("Failed to update history entry:", error)
       }
@@ -102,7 +164,9 @@ export function useToolHistory(toolId: string) {
       params?: Record<string, unknown>
       files?: HistoryEntry["files"]
       preview?: string
+      hasInput?: boolean
     }) => {
+      if (loading) return
       if (entries.length === 0) return
 
       const latest = entries[0]
@@ -110,22 +174,33 @@ export function useToolHistory(toolId: string) {
       const nextParams = updates.params ?? latest.params
       const nextFiles = updates.files ? { ...(latest.files ?? {}), ...updates.files } : latest.files
       const nextPreview = updates.preview ?? latest.preview
+      const nextHasInput = updates.hasInput ?? latest.hasInput
       const sameInputs =
         Object.keys(nextInputs).length === Object.keys(latest.inputs).length &&
         Object.entries(nextInputs).every(([key, value]) => latest.inputs[key] === value)
       const sameParams =
         Object.keys(nextParams).length === Object.keys(latest.params).length &&
         Object.entries(nextParams).every(([key, value]) => latest.params[key] === value)
+      const latestFiles = (latest.files ?? {}) as Record<string, unknown>
+      const nextFilesRecord = (nextFiles ?? {}) as Record<string, unknown>
       const sameFiles =
-        Object.keys(nextFiles ?? {}).length === Object.keys(latest.files ?? {}).length &&
-        Object.entries(nextFiles ?? {}).every(([key, value]) => (latest.files ?? {})[key] === value)
-      if (sameInputs && sameParams && sameFiles && nextPreview === latest.preview) return
+        Object.keys(nextFilesRecord).length === Object.keys(latestFiles).length &&
+        Object.entries(nextFilesRecord).every(([key, value]) => latestFiles[key] === value)
+      if (
+        sameInputs &&
+        sameParams &&
+        sameFiles &&
+        nextPreview === latest.preview &&
+        nextHasInput === latest.hasInput
+      )
+        return
       const updated: HistoryEntry = {
         ...latest,
         inputs: nextInputs,
         params: nextParams,
         files: nextFiles,
         preview: nextPreview,
+        hasInput: nextHasInput,
         updatedAt: Date.now(),
       }
 
@@ -133,11 +208,66 @@ export function useToolHistory(toolId: string) {
         const db = await getDB()
         await db.put("history", updated)
         setEntries((prev) => [updated, ...prev.slice(1)])
+        latestEntryRef.current = updated
       } catch (error) {
         console.error("Failed to update history entry:", error)
       }
     },
     [entries],
+  )
+
+  const upsertInputEntry = useCallback(
+    async (
+      inputs: Record<string, string>,
+      params: Record<string, unknown>,
+      inputSide?: string,
+      preview?: string,
+      files?: HistoryEntry["files"],
+    ) => {
+      if (loading) {
+        pendingInputRef.current = { inputs, params, inputSide, preview, files }
+        return null
+      }
+      const latest = entries[0]
+      if (!latest) {
+        return addEntry(inputs, params, inputSide, preview, files, true)
+      }
+      if (latest.hasInput === false) {
+        await updateLatestEntry({ inputs, params, preview, files, hasInput: true })
+        return entries[0] ?? null
+      }
+      return addEntry(inputs, params, inputSide, preview, files, true)
+    },
+    [entries, addEntry, updateLatestEntry],
+  )
+
+  useEffect(() => {
+    if (loading) return
+    if (!pendingInputRef.current) return
+    const pending = pendingInputRef.current
+    pendingInputRef.current = null
+    void upsertInputEntry(pending.inputs, pending.params, pending.inputSide, pending.preview, pending.files)
+  }, [loading, upsertInputEntry])
+
+  const upsertParams = useCallback(
+    async (params: Record<string, unknown>, mode: "interpretation" | "deferred") => {
+      if (loading) return
+      const latest = entries[0]
+      if (!latest) {
+        await addEntry({}, params, undefined, undefined, undefined, false)
+        return
+      }
+      if (latest.hasInput === false) {
+        await updateLatestEntry({ params, hasInput: false })
+        return
+      }
+      if (mode === "deferred") {
+        await addEntry({}, params, undefined, undefined, undefined, false)
+        return
+      }
+      await updateLatestEntry({ params })
+    },
+    [entries, addEntry, updateLatestEntry],
   )
 
   // Delete single entry
@@ -182,6 +312,8 @@ export function useToolHistory(toolId: string) {
     addEntry,
     updateLatestParams,
     updateLatestEntry,
+    upsertInputEntry,
+    upsertParams,
     deleteEntry,
     clearHistory,
   }

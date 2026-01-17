@@ -67,7 +67,7 @@ export default function PasswordGeneratorPage() {
 function PasswordGeneratorContent() {
   const searchParams = useSearchParams()
   const searchParamString = searchParams.toString()
-  const { state, setParam, setStateSilently } = useUrlSyncedState("password-generator", {
+  const { state, setParam, setStateSilently, hasUrlParams, oversizeKeys } = useUrlSyncedState("password-generator", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
     restoreFromHistory: false,
@@ -77,10 +77,6 @@ function PasswordGeneratorContent() {
   const [label, setLabel] = React.useState("")
   const [result, setResult] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
-  const hasUrlParams = React.useMemo(
-    () => Array.from(searchParams.keys()).some((key) => key in paramsSchema.shape),
-    [searchParams],
-  )
   const paramsForHistory = React.useMemo(
     () => ({
       serialization: state.serialization,
@@ -176,6 +172,7 @@ function PasswordGeneratorContent() {
         state={state}
         setParam={setParam}
         setStateSilently={setStateSilently}
+        oversizeKeys={oversizeKeys}
         label={label}
         setLabel={setLabel}
         result={result}
@@ -192,6 +189,7 @@ function PasswordGeneratorInner({
   state,
   setParam,
   setStateSilently,
+  oversizeKeys,
   label,
   setLabel,
   result,
@@ -201,10 +199,15 @@ function PasswordGeneratorInner({
   paramsForHistory,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
   setStateSilently: (
     updater: z.infer<typeof paramsSchema> | ((prev: z.infer<typeof paramsSchema>) => z.infer<typeof paramsSchema>),
   ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
   label: string
   setLabel: (value: string) => void
   result: string
@@ -213,9 +216,12 @@ function PasswordGeneratorInner({
   hasUrlParams: boolean
   paramsForHistory: Record<string, unknown>
 }) {
-  const { entries, loading, addHistoryEntry, updateHistoryParams, updateLatestEntry } = useToolHistoryContext()
+  const { entries, loading, upsertInputEntry, upsertParams } = useToolHistoryContext()
   const [copied, setCopied] = React.useState(false)
   const historyInitializedRef = React.useRef(false)
+  const symbolsWarning = oversizeKeys.includes("symbols")
+    ? "Input exceeds 2 KB and is not synced to the URL."
+    : null
 
   const handleCopy = async () => {
     if (!result || error) return
@@ -224,29 +230,21 @@ function PasswordGeneratorInner({
     setTimeout(() => setCopied(false), 2000)
 
     const preview = label ? `${label}: ${result}` : result
-    if (entries.length === 0) {
-      const saved = await addHistoryEntry({ label, password: result }, paramsForHistory, "left", preview.slice(0, 100))
-      if (saved) {
-        await addHistoryEntry({}, paramsForHistory)
-      }
-      return
-    }
-
-    await updateLatestEntry({ inputs: { label, password: result }, preview: preview.slice(0, 100) })
-    await addHistoryEntry({}, paramsForHistory)
+    await upsertInputEntry({ label, password: result }, paramsForHistory, "left", preview.slice(0, 100))
+    await upsertParams(paramsForHistory, "deferred")
   }
 
   React.useEffect(() => {
     if (loading || historyInitializedRef.current) return
 
     if (entries.length === 0) {
-      addHistoryEntry({}, paramsForHistory)
+      upsertParams(paramsForHistory, "deferred")
       historyInitializedRef.current = true
       return
     }
 
     if (hasUrlParams) {
-      updateHistoryParams(paramsForHistory)
+      upsertParams(paramsForHistory, "deferred")
       historyInitializedRef.current = true
       return
     }
@@ -257,27 +255,18 @@ function PasswordGeneratorInner({
     const parsed = paramsSchema.safeParse(merged)
     if (parsed.success) {
       setStateSilently(parsed.data)
-      const hasSavedValue = Boolean(latest.inputs?.label || latest.inputs?.password)
-      if (hasSavedValue) {
-        addHistoryEntry({}, parsed.data)
+      if (latest.hasInput !== false) {
+        upsertParams(parsed.data, "deferred")
       }
     }
 
     historyInitializedRef.current = true
-  }, [
-    addHistoryEntry,
-    entries,
-    hasUrlParams,
-    loading,
-    paramsForHistory,
-    setStateSilently,
-    updateHistoryParams,
-  ])
+  }, [entries, hasUrlParams, loading, paramsForHistory, setStateSilently, upsertParams])
 
   React.useEffect(() => {
     if (!historyInitializedRef.current) return
-    updateHistoryParams(paramsForHistory)
-  }, [paramsForHistory, updateHistoryParams])
+    upsertParams(paramsForHistory, "deferred")
+  }, [paramsForHistory, upsertParams])
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-5xl flex-col justify-start gap-6 py-6 lg:min-h-[calc(100vh-220px)] lg:justify-center">
@@ -285,7 +274,12 @@ function PasswordGeneratorInner({
         <div className="flex flex-nowrap items-center gap-3">
           <Label className="w-28 text-sm font-medium">Serialization</Label>
           <div className="min-w-0 flex-1 lg:hidden">
-            <Select value={state.serialization} onValueChange={(value) => setParam("serialization", value, true)}>
+            <Select
+              value={state.serialization}
+              onValueChange={(value) =>
+                setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
+              }
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -300,7 +294,9 @@ function PasswordGeneratorInner({
           </div>
           <RadioGroup
             value={state.serialization}
-            onValueChange={(value) => setParam("serialization", value, true)}
+            onValueChange={(value) =>
+              setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
+            }
             className="hidden flex-nowrap lg:flex"
           >
             {serializationOptions.map((item) => (
@@ -345,7 +341,9 @@ function PasswordGeneratorInner({
             <div className="w-28 shrink-0" />
             <RadioGroup
               value={state.caseMode}
-              onValueChange={(value) => setParam("caseMode", value, true)}
+              onValueChange={(value) =>
+                setParam("caseMode", value as z.infer<typeof paramsSchema>["caseMode"], true)
+              }
               className="flex flex-nowrap"
             >
               <div className="mr-5 flex items-center gap-2">
@@ -453,6 +451,7 @@ function PasswordGeneratorInner({
                   </Button>
                 </div>
               </div>
+              {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
             </div>
             <div className="hidden items-center gap-3 lg:flex">
               <div className="w-28 shrink-0" />
@@ -517,6 +516,7 @@ function PasswordGeneratorInner({
                   </Button>
                 </div>
               </div>
+              {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
             </div>
           </>
         )}
@@ -525,7 +525,9 @@ function PasswordGeneratorInner({
           <Label className="w-28 text-sm font-medium">Length Type</Label>
           <RadioGroup
             value={state.lengthType}
-            onValueChange={(value) => setParam("lengthType", value, true)}
+            onValueChange={(value) =>
+              setParam("lengthType", value as z.infer<typeof paramsSchema>["lengthType"], true)
+            }
             className="flex flex-nowrap"
           >
             <div className="mr-5 flex items-center gap-2">
@@ -548,7 +550,7 @@ function PasswordGeneratorInner({
             <Select
               value={state.lengthPreset}
               onValueChange={(value) => {
-                setParam("lengthPreset", value, true)
+                setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
                 if (value !== "custom") {
                   setParam("lengthValue", Number(value), true)
                 }
@@ -569,7 +571,7 @@ function PasswordGeneratorInner({
           <RadioGroup
             value={state.lengthPreset}
             onValueChange={(value) => {
-              setParam("lengthPreset", value, true)
+              setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
               if (value !== "custom") {
                 setParam("lengthValue", Number(value), true)
               }

@@ -24,9 +24,10 @@ Generate secure passwords with multiple serialization modes and length presets.
 
 ## URL State
 - Parameters sync to the URL query (label and output do not)
+- Inputs over 2 KB are excluded with a warning
 
 ## History
-- Opening the page creates a history entry
-- Parameter changes update the latest entry
-- Copy action updates the latest entry, then creates a new blank entry for future edits
+- URL params take precedence on load; otherwise restore the latest history entry
+- History entries are created only on Save and Copy
+- Parameter changes create/update a valueless entry until saved
 - History list shows time, label, and password only (click does not restore state)

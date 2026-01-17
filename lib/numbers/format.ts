@@ -69,10 +69,16 @@ export function parseFormattedNumber(value: string, format: NumberFormat): numbe
       return Number.parseFloat(trimmed.replace(/,/g, ""))
 
     case "chinese-lower":
-      return Nzh.cn.decodeS(trimmed) ?? 0
+      {
+        const decoded = Nzh.cn.decodeS(trimmed)
+        return typeof decoded === "number" ? decoded : Number(decoded) || 0
+      }
 
     case "chinese-upper":
-      return Nzh.cn.decodeB(trimmed) ?? 0
+      {
+        const decoded = Nzh.cn.decodeB(trimmed)
+        return typeof decoded === "number" ? decoded : Number(decoded) || 0
+      }
 
     case "roman":
       return parseRomanNumeral(trimmed)

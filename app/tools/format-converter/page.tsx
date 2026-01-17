@@ -3,7 +3,9 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { Upload, Copy, Check, Download, AlertCircle, ArrowRight } from "lucide-react"
+import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -19,6 +21,12 @@ const FORMAT_OPTIONS: { value: FormatType; label: string; ext: string }[] = [
   { value: "toml", label: "TOML", ext: ".toml" },
 ]
 
+const paramsSchema = z.object({
+  input: z.string().default(""),
+  inputFormat: z.enum(["json", "yaml", "toml"]).default("json"),
+  outputFormat: z.enum(["json", "yaml", "toml"]).default("yaml"),
+})
+
 export default function FormatConverterPage() {
   return (
     <Suspense fallback={null}>
@@ -28,9 +36,10 @@ export default function FormatConverterPage() {
 }
 
 function FormatConverterContent() {
-  const [input, setInput] = React.useState("")
-  const [inputFormat, setInputFormat] = React.useState<FormatType>("json")
-  const [outputFormat, setOutputFormat] = React.useState<FormatType>("yaml")
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("format-converter", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  })
   const [fileName, setFileName] = React.useState<string | null>(null)
 
   const handleLoadHistory = React.useCallback((entry: HistoryEntry) => {
@@ -41,10 +50,10 @@ function FormatConverterContent() {
       return
     }
 
-    if (inputs.input !== undefined) setInput(inputs.input)
-    if (params.inputFormat) setInputFormat(params.inputFormat as FormatType)
-    if (params.outputFormat) setOutputFormat(params.outputFormat as FormatType)
-  }, [])
+    if (inputs.input !== undefined) setParam("input", inputs.input)
+    if (params.inputFormat) setParam("inputFormat", params.inputFormat as FormatType)
+    if (params.outputFormat) setParam("outputFormat", params.outputFormat as FormatType)
+  }, [setParam])
 
   return (
     <ToolPageWrapper
@@ -54,12 +63,11 @@ function FormatConverterContent() {
       onLoadHistory={handleLoadHistory}
     >
       <FormatConverterInner
-        input={input}
-        setInput={setInput}
-        inputFormat={inputFormat}
-        setInputFormat={setInputFormat}
-        outputFormat={outputFormat}
-        setOutputFormat={setOutputFormat}
+        state={state}
+        setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         fileName={fileName}
         setFileName={setFileName}
       />
@@ -68,72 +76,133 @@ function FormatConverterContent() {
 }
 
 function FormatConverterInner({
-  input,
-  setInput,
-  inputFormat,
-  setInputFormat,
-  outputFormat,
-  setOutputFormat,
+  state,
+  setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   fileName,
   setFileName,
 }: {
-  input: string
-  setInput: (v: string) => void
-  inputFormat: FormatType
-  setInputFormat: (v: FormatType) => void
-  outputFormat: FormatType
-  setOutputFormat: (v: FormatType) => void
+  state: z.infer<typeof paramsSchema>
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   fileName: string | null
   setFileName: (v: string | null) => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [copied, setCopied] = React.useState(false)
+  const paramsRef = React.useRef({
+    inputFormat: state.inputFormat,
+    outputFormat: state.outputFormat,
+    fileName,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+  const hasHydratedInputRef = React.useRef(false)
 
   // Parse and convert
   const { output, error } = React.useMemo(() => {
-    if (!input.trim()) {
+    if (!state.input.trim()) {
       return { output: "", error: null }
     }
 
     try {
-      const parsed = parseInput(input, inputFormat)
-      const result = formatOutput(parsed, outputFormat)
+      const parsed = parseInput(state.input, state.inputFormat)
+      const result = formatOutput(parsed, state.outputFormat)
       return { output: result, error: null }
     } catch (e) {
       return { output: "", error: (e as Error).message }
     }
-  }, [input, inputFormat, outputFormat])
+  }, [state.input, state.inputFormat, state.outputFormat])
 
   // Auto-detect format on input change
   React.useEffect(() => {
-    if (input.trim()) {
-      const detected = detectFormat(input)
-      if (detected && detected !== inputFormat) {
-        setInputFormat(detected)
+    if (state.input.trim()) {
+      const detected = detectFormat(state.input)
+      if (detected && detected !== state.inputFormat) {
+        setParam("inputFormat", detected, true)
       }
     }
-  }, [input]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.input, state.inputFormat, setParam])
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    lastInputRef.current = state.input
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.input])
 
   // Save history
   React.useEffect(() => {
-    const combined = `${input}|${inputFormat}|${outputFormat}`
-    if (!input) return
-    if (combined === lastInputRef.current) return
+    if (state.input === lastInputRef.current) return
 
     const timer = setTimeout(() => {
-      lastInputRef.current = combined
-      addHistoryEntry(
-        { input: fileName ? "" : input },
-        { inputFormat, outputFormat, fileName },
+      lastInputRef.current = state.input
+      upsertInputEntry(
+        { input: fileName ? "" : state.input },
+        { inputFormat: state.inputFormat, outputFormat: state.outputFormat, fileName },
         "input",
-        fileName || `${inputFormat.toUpperCase()} → ${outputFormat.toUpperCase()}`,
+        fileName || `${state.inputFormat.toUpperCase()} → ${state.outputFormat.toUpperCase()}`,
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [input, inputFormat, outputFormat, fileName, addHistoryEntry])
+  }, [state.input, state.inputFormat, state.outputFormat, fileName, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      if (state.input) {
+        upsertInputEntry(
+          { input: fileName ? "" : state.input },
+          { inputFormat: state.inputFormat, outputFormat: state.outputFormat, fileName },
+          "input",
+          fileName || `${state.inputFormat.toUpperCase()} → ${state.outputFormat.toUpperCase()}`,
+        )
+      } else {
+        upsertParams({ inputFormat: state.inputFormat, outputFormat: state.outputFormat, fileName }, "interpretation")
+      }
+    }
+  }, [
+    hasUrlParams,
+    state.input,
+    state.inputFormat,
+    state.outputFormat,
+    fileName,
+    upsertInputEntry,
+    upsertParams,
+  ])
+
+  React.useEffect(() => {
+    const nextParams = {
+      inputFormat: state.inputFormat,
+      outputFormat: state.outputFormat,
+      fileName,
+    }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (
+      paramsRef.current.inputFormat === nextParams.inputFormat &&
+      paramsRef.current.outputFormat === nextParams.outputFormat &&
+      paramsRef.current.fileName === nextParams.fileName
+    ) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [state.inputFormat, state.outputFormat, fileName, upsertParams])
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -142,7 +211,7 @@ function FormatConverterInner({
     const reader = new FileReader()
     reader.onload = (event) => {
       const content = event.target?.result as string
-      setInput(content)
+      setParam("input", content)
       setFileName(file.name)
     }
     reader.readAsText(file)
@@ -155,7 +224,7 @@ function FormatConverterInner({
   }
 
   const handleDownload = () => {
-    const ext = FORMAT_OPTIONS.find((f) => f.value === outputFormat)?.ext || ".txt"
+    const ext = FORMAT_OPTIONS.find((f) => f.value === state.outputFormat)?.ext || ".txt"
     const blob = new Blob([output], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
@@ -171,7 +240,7 @@ function FormatConverterInner({
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <Label className="text-sm">From:</Label>
-          <Select value={inputFormat} onValueChange={(v) => setInputFormat(v as FormatType)}>
+          <Select value={state.inputFormat} onValueChange={(v) => setParam("inputFormat", v as FormatType, true)}>
             <SelectTrigger className="h-8 w-24">
               <SelectValue />
             </SelectTrigger>
@@ -189,12 +258,12 @@ function FormatConverterInner({
 
         <div className="flex items-center gap-2">
           <Label className="text-sm">To:</Label>
-          <Select value={outputFormat} onValueChange={(v) => setOutputFormat(v as FormatType)}>
+          <Select value={state.outputFormat} onValueChange={(v) => setParam("outputFormat", v as FormatType, true)}>
             <SelectTrigger className="h-8 w-24">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {FORMAT_OPTIONS.filter((f) => f.value !== inputFormat).map((f) => (
+              {FORMAT_OPTIONS.filter((f) => f.value !== state.inputFormat).map((f) => (
                 <SelectItem key={f.value} value={f.value}>
                   {f.label}
                 </SelectItem>
@@ -210,7 +279,7 @@ function FormatConverterInner({
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <div className="flex items-center justify-between">
             <Label className="text-sm font-medium">
-              Input ({inputFormat.toUpperCase()}) {fileName && `(${fileName})`}
+              Input ({state.inputFormat.toUpperCase()}) {fileName && `(${fileName})`}
             </Label>
             <div className="flex gap-1">
               <input
@@ -232,17 +301,20 @@ function FormatConverterInner({
             </div>
           </div>
           <Textarea
-            value={input}
+            value={state.input}
             onChange={(e) => {
-              setInput(e.target.value)
+              setParam("input", e.target.value)
               setFileName(null)
             }}
-            placeholder={`Paste ${inputFormat.toUpperCase()} here...`}
+            placeholder={`Paste ${state.inputFormat.toUpperCase()} here...`}
             className={cn(
               "max-h-[400px] min-h-[300px] overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
               error && "border-destructive",
             )}
           />
+          {oversizeKeys.includes("input") && (
+            <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+          )}
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
@@ -254,7 +326,7 @@ function FormatConverterInner({
         {/* Output */}
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">Output ({outputFormat.toUpperCase()})</Label>
+          <Label className="text-sm font-medium">Output ({state.outputFormat.toUpperCase()})</Label>
             <div className="flex gap-1">
               <Button
                 variant="outline"

@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { z } from "zod"
 import { Copy, Check, Link2 } from "lucide-react"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
@@ -28,9 +28,16 @@ export default function URLEncodePage() {
 }
 
 function URLEncodeContent() {
-  const { state, setParam } = useUrlSyncedState("url-encode", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("url-encode", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
+    inputSide: {
+      sideKey: "activeSide",
+      inputKeyBySide: {
+        encoded: "encoded",
+        decoded: "decoded",
+      },
+    },
   })
 
   const handleEncodedChange = React.useCallback(
@@ -72,6 +79,9 @@ function URLEncodeContent() {
     >
       <URLEncodeInner
         state={state}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         handleEncodedChange={handleEncodedChange}
         handleDecodedChange={handleDecodedChange}
       />
@@ -81,15 +91,31 @@ function URLEncodeContent() {
 
 function URLEncodeInner({
   state,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   handleEncodedChange,
   handleDecodedChange,
 }: {
   state: z.infer<typeof paramsSchema>
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   handleEncodedChange: (value: string) => void
   handleDecodedChange: (value: string) => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    const activeText = state.activeSide === "encoded" ? state.encoded : state.decoded
+    lastInputRef.current = activeText
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.activeSide, state.encoded, state.decoded])
 
   React.useEffect(() => {
     const activeText = state.activeSide === "encoded" ? state.encoded : state.decoded
@@ -97,16 +123,33 @@ function URLEncodeInner({
 
     const timer = setTimeout(() => {
       lastInputRef.current = activeText
-      addHistoryEntry(
+      upsertInputEntry(
         { encoded: state.encoded, decoded: state.decoded },
         { activeSide: state.activeSide },
         state.activeSide,
         activeText.slice(0, 100),
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.encoded, state.decoded, state.activeSide, addHistoryEntry])
+  }, [state.encoded, state.decoded, state.activeSide, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      const activeText = state.activeSide === "encoded" ? state.encoded : state.decoded
+      if (activeText) {
+        upsertInputEntry(
+          { encoded: state.encoded, decoded: state.decoded },
+          { activeSide: state.activeSide },
+          state.activeSide,
+          activeText.slice(0, 100),
+        )
+      } else {
+        upsertParams({ activeSide: state.activeSide }, "interpretation")
+      }
+    }
+  }, [hasUrlParams, state.encoded, state.decoded, state.activeSide, upsertInputEntry, upsertParams])
 
   const parsedURL = React.useMemo(() => {
     if (!state.encoded) return null
@@ -121,6 +164,7 @@ function URLEncodeInner({
         value={state.encoded}
         onChange={handleEncodedChange}
         isActive={state.activeSide === "encoded"}
+        warning={oversizeKeys.includes("encoded") ? "Input exceeds 2 KB and is not synced to the URL." : null}
         showParsed={false}
         parsedURL={null}
       />
@@ -136,6 +180,7 @@ function URLEncodeInner({
         value={state.decoded}
         onChange={handleDecodedChange}
         isActive={state.activeSide === "decoded"}
+        warning={oversizeKeys.includes("decoded") ? "Input exceeds 2 KB and is not synced to the URL." : null}
         showParsed={true}
         parsedURL={parsedURL}
       />
@@ -148,6 +193,7 @@ function URLColumn({
   value,
   onChange,
   isActive,
+  warning,
   showParsed,
   parsedURL,
 }: {
@@ -155,6 +201,7 @@ function URLColumn({
   value: string
   onChange: (value: string) => void
   isActive: boolean
+  warning: string | null
   showParsed: boolean
   parsedURL: ReturnType<typeof parseURL> | null
 }) {
@@ -204,6 +251,7 @@ function URLColumn({
           )}
           style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
         />
+        {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
       </div>
 
       {/* Row 2: Parsed Result */}

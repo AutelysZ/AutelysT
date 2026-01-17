@@ -12,7 +12,7 @@ interface ToolHistoryContextValue {
   addHistoryEntry: (
     inputs: Record<string, string>,
     params: Record<string, unknown>,
-    inputSide?: "left" | "right",
+    inputSide?: string,
     preview?: string,
     files?: HistoryEntry["files"],
   ) => Promise<HistoryEntry | null>
@@ -23,6 +23,14 @@ interface ToolHistoryContextValue {
     files?: HistoryEntry["files"]
     preview?: string
   }) => Promise<void>
+  upsertInputEntry: (
+    inputs: Record<string, string>,
+    params: Record<string, unknown>,
+    inputSide?: string,
+    preview?: string,
+    files?: HistoryEntry["files"],
+  ) => Promise<HistoryEntry | null>
+  upsertParams: (params: Record<string, unknown>, mode: "interpretation" | "deferred") => Promise<void>
 }
 
 const ToolHistoryContext = React.createContext<ToolHistoryContextValue | null>(null)
@@ -52,8 +60,17 @@ export function ToolPageWrapper({
   onLoadHistory,
   historyVariant = "default",
 }: ToolPageWrapperProps) {
-  const { entries, loading, addEntry, updateLatestParams, updateLatestEntry, deleteEntry, clearHistory } =
-    useToolHistory(toolId)
+  const {
+    entries,
+    loading,
+    addEntry,
+    updateLatestParams,
+    updateLatestEntry,
+    upsertInputEntry,
+    upsertParams,
+    deleteEntry,
+    clearHistory,
+  } = useToolHistory(toolId)
 
   const { recordToolUse } = useRecentTools()
 
@@ -69,6 +86,11 @@ export function ToolPageWrapper({
     [onLoadHistory],
   )
 
+  const visibleEntries = React.useMemo(
+    () => entries.filter((entry) => entry.hasInput !== false),
+    [entries],
+  )
+
   const contextValue = React.useMemo(
     () => ({
       entries,
@@ -76,8 +98,10 @@ export function ToolPageWrapper({
       addHistoryEntry: addEntry,
       updateHistoryParams: updateLatestParams,
       updateLatestEntry,
+      upsertInputEntry,
+      upsertParams,
     }),
-    [entries, loading, addEntry, updateLatestParams, updateLatestEntry],
+    [entries, loading, addEntry, updateLatestParams, updateLatestEntry, upsertInputEntry, upsertParams],
   )
 
   return (
@@ -87,7 +111,7 @@ export function ToolPageWrapper({
           toolId={toolId}
           title={title}
           description={description}
-          historyEntries={entries}
+          historyEntries={visibleEntries}
           historyLoading={loading}
           onHistorySelect={handleHistorySelect}
           onHistoryDelete={deleteEntry}

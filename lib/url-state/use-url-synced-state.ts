@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation"
 import type { z, ZodObject, ZodRawShape } from "zod"
 import { getDB, type HistoryEntry } from "@/lib/history/db"
@@ -32,16 +32,25 @@ async function getLatestHistoryEntry(toolId: string): Promise<HistoryEntry | nul
   }
 }
 
+export const DEFAULT_URL_SYNC_DEBOUNCE_MS = 300
+const DEFAULT_MAX_URL_PARAM_LENGTH = 2048
+
 export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
   schema: ZodObject<T>
   defaults: z.infer<ZodObject<T>>
   debounceMs?: number
+  maxUrlParamLength?: number
   restoreFromHistory?: boolean
   syncOnHistoryRestore?: boolean
   shouldSyncParam?: (
     key: keyof z.infer<ZodObject<T>>,
     value: z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>],
+    state: z.infer<ZodObject<T>>,
   ) => boolean
+  inputSide?: {
+    sideKey: keyof z.infer<ZodObject<T>>
+    inputKeyBySide: Record<string, keyof z.infer<ZodObject<T>>>
+  }
   restoreMissingKeys?: (key: keyof z.infer<ZodObject<T>>) => boolean
   initialSearch?: string
 }
@@ -50,10 +59,12 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const {
     schema,
     defaults,
-    debounceMs = 300,
+    debounceMs = DEFAULT_URL_SYNC_DEBOUNCE_MS,
+    maxUrlParamLength = DEFAULT_MAX_URL_PARAM_LENGTH,
     restoreFromHistory = true,
     syncOnHistoryRestore = false,
     shouldSyncParam,
+    inputSide,
     restoreMissingKeys,
     initialSearch,
   } = options
@@ -67,6 +78,8 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const pendingImmediateRef = useRef(false)
   const pendingStateRef = useRef<z.infer<ZodObject<T>> | null>(null)
   const skipNextUrlUpdateRef = useRef(false)
+  const hasInitializedFromUrlRef = useRef(false)
+  const [hydrationSource, setHydrationSource] = useState<"default" | "url" | "history">("default")
   const normalizedInitialSearch = initialSearch ? (initialSearch.startsWith("?") ? initialSearch : `?${initialSearch}`) : ""
 
   // Parse URL params
@@ -99,16 +112,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   )
 
   // Initialize state from URL on first render only
-  const [state, setStateInternal] = useState<z.infer<ZodObject<T>>>(() => {
-    if (typeof window !== "undefined") {
-      lastUrlRef.current = window.location.search
-      return parseUrlParams(window.location.search)
-    }
-    if (normalizedInitialSearch) {
-      return parseUrlParams(normalizedInitialSearch)
-    }
-    return defaults
-  })
+  const [state, setStateInternal] = useState<z.infer<ZodObject<T>>>(() => defaults)
 
   useEffect(() => {
     isMountedRef.current = true
@@ -117,15 +121,69 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     }
   }, [])
 
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    if (hasInitializedFromUrlRef.current) return
+    hasInitializedFromUrlRef.current = true
+
+    const search = normalizedInitialSearch || window.location.search
+    lastUrlRef.current = search
+    const parsed = parseUrlParams(search)
+    const params = new URLSearchParams(search)
+    const hasUrlParams = Array.from(params.keys()).some((key) => key in defaults)
+    if (hasUrlParams) {
+      setHydrationSource("url")
+    }
+    skipNextUrlUpdateRef.current = true
+    setStateInternal(parsed)
+  }, [normalizedInitialSearch, parseUrlParams])
+
+  const shouldSyncParamWithState = useCallback(
+    (key: keyof z.infer<ZodObject<T>>, value: z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>], state: z.infer<ZodObject<T>>) => {
+      if (inputSide) {
+        const activeSide = String(state[inputSide.sideKey])
+        const inputKey = inputSide.inputKeyBySide[activeSide]
+        if (inputKey && key !== inputSide.sideKey && key !== inputKey && Object.values(inputSide.inputKeyBySide).includes(key)) {
+          return false
+        }
+      }
+      if (shouldSyncParam && !shouldSyncParam(key, value, state)) {
+        return false
+      }
+      return true
+    },
+    [inputSide, shouldSyncParam],
+  )
+
+  const getByteLength = useCallback((value: string) => new TextEncoder().encode(value).length, [])
+
+  const oversizeKeys = useMemo(() => {
+    const keys: (keyof z.infer<ZodObject<T>>)[] = []
+    for (const [key, value] of Object.entries(state)) {
+      const typedKey = key as keyof z.infer<ZodObject<T>>
+      if (!shouldSyncParamWithState(typedKey, value as z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>], state)) {
+        continue
+      }
+      if (typeof value === "string" && getByteLength(value) > maxUrlParamLength) {
+        keys.push(typedKey)
+      }
+    }
+    return keys
+  }, [state, maxUrlParamLength, shouldSyncParamWithState, getByteLength])
+
   const updateUrl = useCallback(
     (newState: z.infer<ZodObject<T>>) => {
       const params = new URLSearchParams()
 
       for (const [key, value] of Object.entries(newState)) {
-        if (shouldSyncParam && !shouldSyncParam(key as keyof z.infer<ZodObject<T>>, value)) {
+        const typedKey = key as keyof z.infer<ZodObject<T>>
+        if (!shouldSyncParamWithState(typedKey, value as z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>], newState)) {
           continue
         }
-        if (value !== defaults[key as keyof typeof defaults] && value !== null && value !== undefined) {
+        if (typeof value === "string" && getByteLength(value) > maxUrlParamLength) {
+          continue
+        }
+        if (value !== defaults[typedKey] && value !== null && value !== undefined) {
           params.set(key, String(value))
         }
       }
@@ -137,7 +195,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
       lastUrlRef.current = queryString ? `?${queryString}` : ""
       window.history.replaceState({}, "", newUrl)
     },
-    [pathname, defaults, shouldSyncParam],
+    [pathname, defaults, shouldSyncParamWithState, maxUrlParamLength, getByteLength],
   )
 
   useEffect(() => {
@@ -185,6 +243,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
               skipNextUrlUpdateRef.current = true
               setStateInternal(parsed)
             }
+            setHydrationSource("history")
           } catch {
             // Ignore parse errors
           }
@@ -221,7 +280,16 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     } else {
       hasRestoredFromHistoryRef.current = true
     }
-  }, [toolId, defaults, schema, restoreFromHistory, syncOnHistoryRestore, restoreMissingKeys, updateUrl, parseUrlParams])
+  }, [
+    toolId,
+    defaults,
+    schema,
+    restoreFromHistory,
+    syncOnHistoryRestore,
+    restoreMissingKeys,
+    updateUrl,
+    parseUrlParams,
+  ])
 
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed
@@ -304,11 +372,21 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     }
   }, [])
 
+  const urlParamKeys = useMemo(() => {
+    if (typeof window === "undefined") return [] as string[]
+    const params = new URLSearchParams(searchString)
+    return Array.from(params.keys()).filter((key) => key in defaults)
+  }, [searchString, defaults])
+
   return {
     state,
     setState,
     setParam,
     resetToDefaults: () => setState(defaults, true),
     setStateSilently,
+    oversizeKeys,
+    hasUrlParams: urlParamKeys.length > 0,
+    urlParamKeys,
+    hydrationSource,
   }
 }

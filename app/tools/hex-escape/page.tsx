@@ -5,7 +5,7 @@ import { Suspense } from "react"
 import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -25,9 +25,16 @@ const paramsSchema = z.object({
 const encodings = getAllEncodings()
 
 function HexEscapeContent() {
-  const { state, setParam } = useUrlSyncedState("hex-escape", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("hex-escape", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
+    inputSide: {
+      sideKey: "activeSide",
+      inputKeyBySide: {
+        left: "leftText",
+        right: "rightText",
+      },
+    },
   })
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
@@ -182,6 +189,9 @@ function HexEscapeContent() {
       <HexEscapeInner
         state={state}
         setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         leftError={leftError}
         rightError={rightError}
         handleLeftChange={handleLeftChange}
@@ -200,6 +210,9 @@ function HexEscapeContent() {
 function HexEscapeInner({
   state,
   setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   leftError,
   rightError,
   handleLeftChange,
@@ -212,7 +225,14 @@ function HexEscapeInner({
   setRightFileResult,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, updateHistory?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    updateHistory?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   leftError: string | null
   rightError: string | null
   handleLeftChange: (value: string) => void
@@ -224,8 +244,24 @@ function HexEscapeInner({
   setLeftFileResult: (v: typeof leftFileResult) => void
   setRightFileResult: (v: typeof rightFileResult) => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({
+    encoding: state.encoding,
+    upperCase: state.upperCase,
+    activeSide: state.activeSide,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    lastInputRef.current = activeText
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
 
   React.useEffect(() => {
     const activeText = state.activeSide === "left" ? state.leftText : state.rightText
@@ -233,16 +269,74 @@ function HexEscapeInner({
 
     const timer = setTimeout(() => {
       lastInputRef.current = activeText
-      addHistoryEntry(
+      upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
         { encoding: state.encoding, upperCase: state.upperCase, activeSide: state.activeSide },
         state.activeSide,
         activeText.slice(0, 100),
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.leftText, state.rightText, state.activeSide, state.encoding, state.upperCase, addHistoryEntry])
+  }, [state.leftText, state.rightText, state.activeSide, state.encoding, state.upperCase, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      if (activeText) {
+        upsertInputEntry(
+          { leftText: state.leftText, rightText: state.rightText },
+          { encoding: state.encoding, upperCase: state.upperCase, activeSide: state.activeSide },
+          state.activeSide,
+          activeText.slice(0, 100),
+        )
+      } else {
+        upsertParams(
+          { encoding: state.encoding, upperCase: state.upperCase, activeSide: state.activeSide },
+          "interpretation",
+        )
+      }
+    }
+  }, [
+    hasUrlParams,
+    state.leftText,
+    state.rightText,
+    state.activeSide,
+    state.encoding,
+    state.upperCase,
+    upsertInputEntry,
+    upsertParams,
+  ])
+
+  React.useEffect(() => {
+    const nextParams = {
+      encoding: state.encoding,
+      upperCase: state.upperCase,
+      activeSide: state.activeSide,
+    }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (
+      paramsRef.current.encoding === nextParams.encoding &&
+      paramsRef.current.upperCase === nextParams.upperCase &&
+      paramsRef.current.activeSide === nextParams.activeSide
+    ) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [state.encoding, state.upperCase, state.activeSide, upsertParams])
+
+  const leftWarning = oversizeKeys.includes("leftText")
+    ? "Input exceeds 2 KB and is not synced to the URL."
+    : null
+  const rightWarning = oversizeKeys.includes("rightText")
+    ? "Input exceeds 2 KB and is not synced to the URL."
+    : null
 
   return (
     <DualPaneLayout
@@ -253,9 +347,10 @@ function HexEscapeInner({
       onLeftChange={handleLeftChange}
       onRightChange={handleRightChange}
       activeSide={state.activeSide}
-      onActiveSideChange={(side) => setParam("activeSide", side, true)}
       leftError={leftError}
       rightError={rightError}
+      leftWarning={leftWarning}
+      rightWarning={rightWarning}
       leftPlaceholder="Enter text to encode..."
       rightPlaceholder="Enter hex escape to decode (e.g., \x48\x65\x6c\x6c\x6f)..."
       leftFileUpload={handleLeftFileUpload}

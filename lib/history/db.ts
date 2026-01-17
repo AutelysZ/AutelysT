@@ -7,7 +7,8 @@ export interface HistoryEntry {
   toolId: string
   createdAt: number
   updatedAt: number
-  inputSide?: "left" | "right"
+  hasInput?: boolean
+  inputSide?: string
   inputs: Record<string, string>
   params: Record<string, unknown>
   files?: {

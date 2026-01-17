@@ -4,7 +4,7 @@ import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,7 +29,7 @@ export default function ObjectIdPage() {
 }
 
 function ObjectIdContent() {
-  const { state, setParam } = useUrlSyncedState("objectid", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("objectid", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
   })
@@ -105,6 +105,9 @@ function ObjectIdContent() {
       <ObjectIdInner
         state={state}
         setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
         parseError={parseError}
         parsedInfo={parsedInfo}
         copied={copied}
@@ -119,6 +122,9 @@ function ObjectIdContent() {
 function ObjectIdInner({
   state,
   setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
   parseError,
   parsedInfo,
   copied,
@@ -127,7 +133,14 @@ function ObjectIdInner({
   handleDownload,
 }: {
   state: z.infer<typeof paramsSchema>
-  setParam: (key: string, value: unknown, immediate?: boolean) => void
+  setParam: <K extends keyof z.infer<typeof paramsSchema>>(
+    key: K,
+    value: z.infer<typeof paramsSchema>[K],
+    immediate?: boolean,
+  ) => void
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
   parseError: string | null
   parsedInfo: ParsedObjectId | null
   copied: boolean
@@ -135,34 +148,67 @@ function ObjectIdInner({
   handleCopy: () => void
   handleDownload: () => void
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastSavedRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({ count: state.count })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
 
   React.useEffect(() => {
-    const key = `${state.count}:${state.content}`
-    if (key === lastSavedRef.current) return
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    lastSavedRef.current = state.content
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.content])
+
+  React.useEffect(() => {
+    if (state.content === lastSavedRef.current) return
 
     const timer = setTimeout(() => {
-      lastSavedRef.current = key
-      addHistoryEntry(
+      lastSavedRef.current = state.content
+      upsertInputEntry(
         { content: state.content },
         { count: state.count },
         "left",
         state.content ? state.content.slice(0, 100) : `x${state.count}`,
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.content, state.count, addHistoryEntry])
+  }, [state.content, state.count, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      if (state.content) {
+        upsertInputEntry({ content: state.content }, { count: state.count }, "left", state.content.slice(0, 100))
+      } else {
+        upsertParams({ count: state.count }, "deferred")
+      }
+    }
+  }, [hasUrlParams, state.content, state.count, upsertInputEntry, upsertParams])
+
+  React.useEffect(() => {
+    const nextParams = { count: state.count }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (paramsRef.current.count === nextParams.count) return
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "deferred")
+  }, [state.count, upsertParams])
 
   const handleGenerate = React.useCallback(() => {
     const objectIds = generateObjectIds(state.count)
     const content = objectIds.join("\n")
     setParam("content", content)
 
-    lastSavedRef.current = `${state.count}:${content}`
-    addHistoryEntry({ content }, { count: state.count }, "left", content.slice(0, 100))
-  }, [state.count, setParam, addHistoryEntry])
+    lastSavedRef.current = content
+    upsertInputEntry({ content }, { count: state.count }, "left", content.slice(0, 100))
+  }, [state.count, setParam, upsertInputEntry])
 
   const handleCountChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -244,6 +290,9 @@ function ObjectIdInner({
           />
 
           {parseError && <p className="text-xs text-destructive">{parseError}</p>}
+          {oversizeKeys.includes("content") && (
+            <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+          )}
         </div>
 
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">

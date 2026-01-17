@@ -4,7 +4,7 @@ import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -44,9 +44,16 @@ const PADDING_OPTIONS = ["0", "1", "2", "4", "8"]
 const PADDING_OPTIONS_BASE60 = ["0", "2"]
 
 function RadixContent() {
-  const { state, setParam } = useUrlSyncedState("radix", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("radix", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
+    inputSide: {
+      sideKey: "activeSide",
+      inputKeyBySide: {
+        left: "leftText",
+        right: "rightText",
+      },
+    },
   })
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
@@ -169,6 +176,9 @@ function RadixContent() {
     const text = isLeft ? state.leftText : state.rightText
     const error = isLeft ? leftError : rightError
     const isActive = state.activeSide === side
+    const warning = oversizeKeys.includes(isLeft ? "leftText" : "rightText")
+      ? "Input exceeds 2 KB and is not synced to the URL."
+      : null
 
     const effectiveRadix = radix === "custom" ? customRadix : Number.parseInt(radix, 10)
     const showPadding = effectiveRadix === 2 || effectiveRadix === 16 || effectiveRadix === 60
@@ -253,7 +263,6 @@ function RadixContent() {
           <Textarea
             value={text}
             onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
-            onFocus={() => setParam("activeSide", side, true)}
             placeholder={`Enter ${effectiveRadix === 60 ? "base60 (xx:xx:xx)" : `base ${effectiveRadix}`} number...`}
             className={cn(
               "h-full min-h-[150px] resize-none font-mono",
@@ -262,6 +271,7 @@ function RadixContent() {
             )}
           />
           {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+          {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
         </div>
       </div>
     )
@@ -274,7 +284,12 @@ function RadixContent() {
       description="Convert numbers between different bases (radixes)"
       onLoadHistory={handleLoadHistory}
     >
-      <RadixInner state={state} renderSidePanel={renderSidePanel} />
+      <RadixInner
+        state={state}
+        renderSidePanel={renderSidePanel}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
+      />
     </ToolPageWrapper>
   )
 }
@@ -282,12 +297,38 @@ function RadixContent() {
 function RadixInner({
   state,
   renderSidePanel,
+  hasUrlParams,
+  hydrationSource,
 }: {
   state: z.infer<typeof paramsSchema>
   renderSidePanel: (side: "left" | "right") => React.ReactNode
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
 }) {
-  const { addHistoryEntry } = useToolHistoryContext()
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const lastInputRef = React.useRef<string>("")
+  const hasHydratedInputRef = React.useRef(false)
+  const paramsRef = React.useRef({
+    leftRadix: state.leftRadix,
+    leftCustomRadix: state.leftCustomRadix,
+    leftUpperCase: state.leftUpperCase,
+    leftPadding: state.leftPadding,
+    rightRadix: state.rightRadix,
+    rightCustomRadix: state.rightCustomRadix,
+    rightUpperCase: state.rightUpperCase,
+    rightPadding: state.rightPadding,
+    activeSide: state.activeSide,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+    lastInputRef.current = activeText
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
 
   React.useEffect(() => {
     const activeText = state.activeSide === "left" ? state.leftText : state.rightText
@@ -295,16 +336,109 @@ function RadixInner({
 
     const timer = setTimeout(() => {
       lastInputRef.current = activeText
-      addHistoryEntry(
+      upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
-        { activeSide: state.activeSide },
+        {
+          leftRadix: state.leftRadix,
+          leftCustomRadix: state.leftCustomRadix,
+          leftUpperCase: state.leftUpperCase,
+          leftPadding: state.leftPadding,
+          rightRadix: state.rightRadix,
+          rightCustomRadix: state.rightCustomRadix,
+          rightUpperCase: state.rightUpperCase,
+          rightPadding: state.rightPadding,
+          activeSide: state.activeSide,
+        },
         state.activeSide,
         activeText.slice(0, 100),
       )
-    }, 1000)
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.leftText, state.rightText, state.activeSide, addHistoryEntry])
+  }, [state.leftText, state.rightText, state.activeSide, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      if (activeText) {
+        upsertInputEntry(
+          { leftText: state.leftText, rightText: state.rightText },
+          {
+            leftRadix: state.leftRadix,
+            leftCustomRadix: state.leftCustomRadix,
+            leftUpperCase: state.leftUpperCase,
+            leftPadding: state.leftPadding,
+            rightRadix: state.rightRadix,
+            rightCustomRadix: state.rightCustomRadix,
+            rightUpperCase: state.rightUpperCase,
+            rightPadding: state.rightPadding,
+            activeSide: state.activeSide,
+          },
+          state.activeSide,
+          activeText.slice(0, 100),
+        )
+      } else {
+        upsertParams(
+          {
+            leftRadix: state.leftRadix,
+            leftCustomRadix: state.leftCustomRadix,
+            leftUpperCase: state.leftUpperCase,
+            leftPadding: state.leftPadding,
+            rightRadix: state.rightRadix,
+            rightCustomRadix: state.rightCustomRadix,
+            rightUpperCase: state.rightUpperCase,
+            rightPadding: state.rightPadding,
+            activeSide: state.activeSide,
+          },
+          "interpretation",
+        )
+      }
+    }
+  }, [hasUrlParams, state.leftText, state.rightText, state.activeSide, upsertInputEntry, upsertParams])
+
+  React.useEffect(() => {
+    const nextParams = {
+      leftRadix: state.leftRadix,
+      leftCustomRadix: state.leftCustomRadix,
+      leftUpperCase: state.leftUpperCase,
+      leftPadding: state.leftPadding,
+      rightRadix: state.rightRadix,
+      rightCustomRadix: state.rightCustomRadix,
+      rightUpperCase: state.rightUpperCase,
+      rightPadding: state.rightPadding,
+      activeSide: state.activeSide,
+    }
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    const same =
+      paramsRef.current.leftRadix === nextParams.leftRadix &&
+      paramsRef.current.leftCustomRadix === nextParams.leftCustomRadix &&
+      paramsRef.current.leftUpperCase === nextParams.leftUpperCase &&
+      paramsRef.current.leftPadding === nextParams.leftPadding &&
+      paramsRef.current.rightRadix === nextParams.rightRadix &&
+      paramsRef.current.rightCustomRadix === nextParams.rightCustomRadix &&
+      paramsRef.current.rightUpperCase === nextParams.rightUpperCase &&
+      paramsRef.current.rightPadding === nextParams.rightPadding &&
+      paramsRef.current.activeSide === nextParams.activeSide
+    if (same) return
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [
+    state.leftRadix,
+    state.leftCustomRadix,
+    state.leftUpperCase,
+    state.leftPadding,
+    state.rightRadix,
+    state.rightCustomRadix,
+    state.rightUpperCase,
+    state.rightPadding,
+    state.activeSide,
+    upsertParams,
+  ])
 
   return (
     <div className="flex min-h-[400px] gap-4">

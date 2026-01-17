@@ -14,8 +14,10 @@ Generate JSON Schema from sample JSON data.
 - Paste sample JSON and generate schema
 
 ## URL State
-- Inputs sync to the URL query
+- Inputs and parameters sync to the URL query
+- Inputs over 2 KB are excluded with a warning
 
 ## History
-- Input changes create history entries
-- Parameter changes update the latest entry
+- URL params take precedence on load; otherwise restore the latest history entry
+- Input changes create valued history entries (debounced)
+- Parameter changes update the latest entry or keep a valueless placeholder until input

@@ -10,9 +10,9 @@ interface PaneProps {
   label: string
   value: string
   onChange: (value: string) => void
-  onFocus: () => void
   isActive: boolean
   error?: string | null
+  warning?: string | null
   placeholder?: string
   disabled?: boolean
   onFileUpload?: (file: File) => void
@@ -29,9 +29,9 @@ function Pane({
   label,
   value,
   onChange,
-  onFocus,
   isActive,
   error,
+  warning,
   placeholder,
   disabled,
   onFileUpload,
@@ -156,7 +156,6 @@ function Pane({
           <Textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onFocus={onFocus}
             placeholder={placeholder}
             disabled={disabled}
             className={cn(
@@ -170,6 +169,7 @@ function Pane({
       )}
 
       {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
+      {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
     </div>
   )
 }
@@ -182,9 +182,10 @@ interface DualPaneLayoutProps {
   onLeftChange: (value: string) => void
   onRightChange: (value: string) => void
   activeSide: "left" | "right"
-  onActiveSideChange: (side: "left" | "right") => void
   leftError?: string | null
   rightError?: string | null
+  leftWarning?: string | null
+  rightWarning?: string | null
   leftPlaceholder?: string
   rightPlaceholder?: string
   leftFileUpload?: (file: File) => void
@@ -214,9 +215,10 @@ export function DualPaneLayout({
   onLeftChange,
   onRightChange,
   activeSide,
-  onActiveSideChange,
   leftError,
   rightError,
+  leftWarning,
+  rightWarning,
   leftPlaceholder,
   rightPlaceholder,
   leftFileUpload,
@@ -238,9 +240,9 @@ export function DualPaneLayout({
           label={leftLabel}
           value={leftValue}
           onChange={onLeftChange}
-          onFocus={() => onActiveSideChange("left")}
           isActive={activeSide === "left"}
           error={leftError}
+          warning={leftWarning}
           placeholder={leftPlaceholder}
           onFileUpload={leftFileUpload}
           fileResult={leftFileResult}
@@ -255,9 +257,9 @@ export function DualPaneLayout({
           label={rightLabel}
           value={rightValue}
           onChange={onRightChange}
-          onFocus={() => onActiveSideChange("right")}
           isActive={activeSide === "right"}
           error={rightError}
+          warning={rightWarning}
           placeholder={rightPlaceholder}
           onFileUpload={rightFileUpload}
           fileResult={rightFileResult}
