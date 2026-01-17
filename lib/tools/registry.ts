@@ -241,7 +241,33 @@ export const tools: Tool[] = [
       keywords: ["timezone converter", "time zone", "unix timestamp", "epoch converter"],
     },
   },
+  {
+    id: "world-clock",
+    name: "World Clock",
+    description: "View multiple time zones with live or custom reference time",
+    category: "Date & Time",
+    route: "/tools/world-clock",
+    keywords: ["world clock", "time zone", "time", "date", "global"],
+    seo: {
+      title: "World Clock - AutelysT",
+      description: "Free online world clock with multiple time zones and live updates.",
+      keywords: ["world clock", "time zone", "global time", "live clock"],
+    },
+  },
   // Web Tools
+  {
+    id: "html-encoder",
+    name: "HTML Encoder/Decoder",
+    description: "Encode plain text to HTML entities or decode HTML back to text",
+    category: "Web",
+    route: "/tools/html-encoder",
+    keywords: ["html", "encode", "decode", "entities", "escape", "unescape"],
+    seo: {
+      title: "HTML Encoder/Decoder - AutelysT",
+      description: "Free online HTML encoder and decoder for escaping and unescaping entities.",
+      keywords: ["html encoder", "html decoder", "entities", "escape", "unescape"],
+    },
+  },
   {
     id: "url-encode",
     name: "URL Encoder/Decoder",

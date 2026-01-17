@@ -9,7 +9,7 @@ A comprehensive web-based developer toolkit featuring encoding tools, password g
 ## Features
 
 ### Encoding Tools
-Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape with 100+ text encodings, file upload/download, and URL-safe modes.
+Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder with 100+ text encodings, file upload/download, and URL-safe modes.
 
 ### Crypto Tools
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
@@ -29,6 +29,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, and BSON ObjectID with times
 - **Base Conversion** - Convert between binary, decimal, hex, and custom bases
 - **Number Format** - Chinese numerals, Roman numerals, scientific notation
 - **Timezone** - Convert times between timezones with Unix epoch support
+- **World Clock** - View multiple time zones with live or custom reference time
 - **URL Encoder** - Encode/decode URLs with component parsing
 
 ### Core Features
