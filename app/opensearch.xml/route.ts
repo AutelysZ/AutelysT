@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server"
 
-export async function GET(request: Request) {
-  const url = new URL(request.url)
-  const baseUrl = `${url.protocol}//${url.host}`
+export const dynamic = "force-static"
+export const revalidate = false
 
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://autelyst.vercel.app"
+
+export async function GET() {
   const opensearchXml = `<?xml version="1.0" encoding="UTF-8"?>
 <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
   <ShortName>AutelysT</ShortName>

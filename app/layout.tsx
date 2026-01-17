@@ -9,6 +9,9 @@ import "./globals.css"
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
+export const dynamic = "force-static"
+export const revalidate = false
+
 export const metadata: Metadata = {
   title: {
     default: "AutelysT - AI-Powered Web Toolkit",
