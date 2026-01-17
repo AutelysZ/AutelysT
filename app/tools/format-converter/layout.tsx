@@ -3,8 +3,8 @@ import type { Metadata } from "next"
 
 export const metadata: Metadata = {
   title: "Format Converter - AutelysT",
-  description: "Free online format converter. Convert between JSON, YAML, and TOML formats instantly.",
-  keywords: ["json to yaml", "yaml to json", "toml converter", "format converter", "json yaml toml"],
+  description: "Online JSON/YAML/TOML converter with auto-detection and error reporting.",
+  keywords: ["format converter", "json to yaml", "yaml to json", "json to toml", "toml to json"],
 }
 
 export default function FormatConverterLayout({ children }: { children: React.ReactNode }) {

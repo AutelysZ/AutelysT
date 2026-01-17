@@ -169,7 +169,7 @@ export default function HashPage() {
 }
 
 function HashContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("hash", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("hash-generator", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
   })
@@ -195,8 +195,8 @@ function HashContent() {
 
   return (
     <ToolPageWrapper
-      toolId="hash"
-      title="Hash (Digest)"
+      toolId="hash-generator"
+      title="Hash"
       description="Generate cryptographic digests for text or uploaded files."
       onLoadHistory={handleLoadHistory}
     >

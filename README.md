@@ -13,11 +13,11 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder wi
 
 ### Crypto Tools
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
-- **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
 - **Keypair Generator** - Generate RSA/EC/Ed keypairs with PEM and JWK export
-- **PEM/JWK Converter** - Convert cryptographic keys between PEM and JWK formats
-- **Hash (Digest)** - Generate MD, SHA, SHA3, and BLAKE hash digests
-- **Symmetric Crypto** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES
+- **JWK Converter** - Convert cryptographic keys between PEM and JWK formats
+- **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
+- **Hash** - Generate MD, SHA, SHA3, and BLAKE hash digests
+- **Symmetric Encryption** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES
 
 ### Identifier Tools
 Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, and BSON ObjectID with timestamp extraction.

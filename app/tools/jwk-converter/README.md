@@ -1,4 +1,4 @@
-# PEM/JWK Converter
+# JWK Converter
 
 Convert cryptographic keys between PEM (SPKI/PKCS8) and JWK formats using Web Crypto.
 

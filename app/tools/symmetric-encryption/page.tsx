@@ -360,7 +360,7 @@ export default function SymmetricCryptoPage() {
 
 function SymmetricCryptoContent() {
   const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } = useUrlSyncedState(
-    "symmetric-crypto",
+    "symmetric-encryption",
     {
       schema: paramsSchema,
       defaults: paramsSchema.parse({}),
@@ -389,8 +389,8 @@ function SymmetricCryptoContent() {
 
   return (
     <ToolPageWrapper
-      toolId="symmetric-crypto"
-      title="Symmetric Crypto"
+      toolId="symmetric-encryption"
+      title="Symmetric Encryption"
       description="Encrypt or decrypt data using AES, ChaCha20, Salsa20, Twofish, Blowfish, DES, or 3DES."
       onLoadHistory={handleLoadHistory}
     >

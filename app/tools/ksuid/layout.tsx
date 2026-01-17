@@ -2,9 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "KSUID - AutelysT",
-  description: "Generate and parse KSUIDs (K-Sortable Unique Identifiers). Extract timestamp and payload information.",
-  keywords: ["ksuid", "generator", "parser", "timestamp", "sortable", "unique identifier"],
+  title: "KSUID Generator/Parser - AutelysT",
+  description: "Online KSUID generator and parser with timestamp and payload extraction.",
+  keywords: ["ksuid", "ksuid generator", "ksuid parser", "sortable identifier", "timestamp"],
 }
 
 export default function KSUIDLayout({ children }: { children: React.ReactNode }) {

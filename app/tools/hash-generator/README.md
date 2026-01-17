@@ -1,4 +1,4 @@
-# Hash (Digest)
+# Hash
 
 Generate cryptographic digests from text or uploaded files with support for MD, SHA, SHA3, and BLAKE families.
 

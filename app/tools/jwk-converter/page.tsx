@@ -304,7 +304,7 @@ export default function PemJwkPage() {
 }
 
 function PemJwkContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("pem-jwk", {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("jwk-converter", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
     inputSide: {
@@ -409,8 +409,8 @@ function PemJwkContent() {
 
   return (
     <ToolPageWrapper
-      toolId="pem-jwk"
-      title="PEM/JWK Converter"
+      toolId="jwk-converter"
+      title="JWK Converter"
       description="Convert cryptographic keys between PEM and JWK formats using Web Crypto."
       onLoadHistory={handleLoadHistory}
     >

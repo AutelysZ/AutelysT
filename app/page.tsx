@@ -82,7 +82,7 @@ function HomePage() {
           <h1 className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
           <p className="mx-auto mb-6 max-w-2xl text-balance text-muted-foreground">
             Free online tools for encoding, decoding, HTML escaping, world clocks, hashing, symmetric encryption,
-            PEM/JWK conversion, keypair generation, JWT inspection, password generation, ID creation, data comparison,
+            JWK conversion, keypair generation, JWT inspection, password generation, ID creation, data comparison,
             and number conversion. Fast, private, and works entirely in your browser.
           </p>
           {/* Search Input */}

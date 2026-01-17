@@ -1,4 +1,4 @@
-# Symmetric Crypto
+# Symmetric Encryption
 
 Encrypt or decrypt data using AES, ChaCha20, Salsa20, Twofish, Blowfish, DES, or 3DES with selectable encodings.
 

@@ -2,10 +2,9 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Radix/Base Converter",
-  description:
-    "Free online number base converter. Convert between binary, octal, decimal, hexadecimal, base60, and custom bases.",
-  keywords: ["radix converter", "base converter", "binary", "hexadecimal", "octal"],
+  title: "Base Converter (Radix) - AutelysT",
+  description: "Online base converter for binary, octal, decimal, hex, base60, and custom radixes with padding and case options.",
+  keywords: ["base converter", "radix converter", "binary", "octal", "decimal", "hexadecimal", "base60", "custom base"],
 }
 
 export default function RadixLayout({ children }: { children: React.ReactNode }) {
