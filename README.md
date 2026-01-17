@@ -20,7 +20,7 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder wi
 - **Symmetric Encryption** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES
 
 ### Identifier Tools
-Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, and BSON ObjectID with timestamp extraction.
+Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake ID with timestamp extraction.
 
 ### Data Tools
 - **JSON/YAML Diff Viewer** - Compare files with table and GitHub-style unified text views, character-level highlighting, fullscreen mode

@@ -264,6 +264,29 @@ export const tools: Tool[] = [
       keywords: ["objectid", "bson", "mongodb", "objectid generator", "objectid parser", "timestamp"],
     },
   },
+  {
+    id: "snowflake-id",
+    name: "Snowflake ID",
+    description: "Generate and parse Twitter Snowflake IDs with timestamp and node fields.",
+    category: "Identifier",
+    route: "/tools/snowflake-id",
+    keywords: ["snowflake", "snowflake id", "twitter", "generate", "parse", "timestamp", "datacenter", "worker"],
+    seo: {
+      title: "Snowflake ID Generator/Parser - AutelysT",
+      description:
+        "Online Snowflake ID generator and parser with timestamp decoding, datacenter ID, worker ID, and sequence.",
+      keywords: [
+        "snowflake id",
+        "snowflake generator",
+        "snowflake parser",
+        "twitter snowflake",
+        "timestamp",
+        "datacenter",
+        "worker",
+        "sequence",
+      ],
+    },
+  },
   // Number Tools
   {
     id: "radix",
