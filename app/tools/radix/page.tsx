@@ -6,13 +6,13 @@ import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeftRight } from "lucide-react"
+import { ArrowLeftRight, Check, Copy } from "lucide-react"
 import { convertRadix, toBase60, fromBase60, isValidBase60 } from "@/lib/numbers/radix"
 import { cn } from "@/lib/utils"
 import type { HistoryEntry } from "@/lib/history/db"
@@ -58,6 +58,20 @@ function RadixContent() {
 
   const [leftError, setLeftError] = React.useState<string | null>(null)
   const [rightError, setRightError] = React.useState<string | null>(null)
+  const [copiedSide, setCopiedSide] = React.useState<"left" | "right" | null>(null)
+
+  const handleCopy = React.useCallback(
+    async (side: "left" | "right") => {
+      const value = side === "left" ? state.leftText : state.rightText
+      if (!value) return
+      try {
+        await navigator.clipboard.writeText(value)
+        setCopiedSide(side)
+        setTimeout(() => setCopiedSide(null), 1500)
+      } catch {}
+    },
+    [state.leftText, state.rightText],
+  )
 
   const getEffectiveRadix = (side: "left" | "right"): number => {
     const radix = side === "left" ? state.leftRadix : state.rightRadix
@@ -188,42 +202,63 @@ function RadixContent() {
       <div className="flex flex-1 flex-col gap-3">
         <Card>
           <CardContent className="space-y-4 p-4">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">Radix</Label>
-              <RadioGroup
-                value={radix}
-                onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}
-                className="grid grid-cols-2 gap-2 sm:grid-cols-3"
-              >
-                {RADIX_OPTIONS.map((opt) => (
-                  <div key={opt.value} className="flex items-center gap-1.5">
-                    <RadioGroupItem value={opt.value} id={`${side}-radix-${opt.value}`} />
-                    <Label htmlFor={`${side}-radix-${opt.value}`} className="text-sm cursor-pointer">
-                      {opt.label}
-                    </Label>
-                  </div>
-                ))}
-              </RadioGroup>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <Label className="text-sm whitespace-nowrap">Radix</Label>
+                <div className="flex-1 min-w-0 sm:hidden">
+                  <Select value={radix} onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RADIX_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="hidden flex-1 sm:block">
+                  <RadioGroup
+                    value={radix}
+                    onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}
+                    className="grid grid-cols-3 gap-2"
+                  >
+                    {RADIX_OPTIONS.map((opt) => (
+                      <div key={opt.value} className="flex items-center gap-1.5">
+                        <RadioGroupItem value={opt.value} id={`${side}-radix-${opt.value}`} />
+                        <Label htmlFor={`${side}-radix-${opt.value}`} className="text-sm cursor-pointer">
+                          {opt.label}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              </div>
               {radix === "custom" && (
-                <Input
-                  type="number"
-                  min={2}
-                  max={36}
-                  value={customRadix}
-                  onChange={(e) =>
-                    setParam(
-                      isLeft ? "leftCustomRadix" : "rightCustomRadix",
-                      Number.parseInt(e.target.value) || 10,
-                      true,
-                    )
-                  }
-                  className="mt-2 w-24"
-                  placeholder="2-36"
-                />
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm whitespace-nowrap">Custom</Label>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={36}
+                    value={customRadix}
+                    onChange={(e) =>
+                      setParam(
+                        isLeft ? "leftCustomRadix" : "rightCustomRadix",
+                        Number.parseInt(e.target.value) || 10,
+                        true,
+                      )
+                    }
+                    className="flex-1 min-w-0 sm:flex-none sm:w-24"
+                    placeholder="2-36"
+                  />
+                </div>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id={`${side}-uppercase`}
@@ -238,21 +273,23 @@ function RadixContent() {
               {showPadding && (
                 <div className="flex items-center gap-2">
                   <Label className="text-sm">Padding</Label>
-                  <Select
-                    value={padding}
-                    onValueChange={(v) => setParam(isLeft ? "leftPadding" : "rightPadding", v, true)}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paddingOptions.map((p) => (
-                        <SelectItem key={p} value={p}>
-                          {p === "0" ? "None" : p}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 min-w-0 sm:flex-none sm:w-20">
+                    <Select
+                      value={padding}
+                      onValueChange={(v) => setParam(isLeft ? "leftPadding" : "rightPadding", v, true)}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {paddingOptions.map((p) => (
+                          <SelectItem key={p} value={p}>
+                            {p === "0" ? "None" : p}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
             </div>
@@ -260,16 +297,28 @@ function RadixContent() {
         </Card>
 
         <div className="flex-1">
-          <Textarea
-            value={text}
-            onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
-            placeholder={`Enter ${effectiveRadix === 60 ? "base60 (xx:xx:xx)" : `base ${effectiveRadix}`} number...`}
-            className={cn(
-              "h-full min-h-[150px] resize-none font-mono",
-              error && "border-destructive",
-              isActive && "ring-1 ring-primary",
-            )}
-          />
+          <div className="relative">
+            <Input
+              value={text}
+              onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
+              placeholder={`Enter ${effectiveRadix === 60 ? "base60 (xx:xx:xx)" : `base ${effectiveRadix}`} number...`}
+              className={cn(
+                "pr-10 font-mono",
+                error && "border-destructive",
+                isActive && "ring-1 ring-primary",
+              )}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleCopy(side)}
+              disabled={!text}
+              className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+            >
+              {copiedSide === side ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
           {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
           {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
         </div>
@@ -441,10 +490,10 @@ function RadixInner({
   ])
 
   return (
-    <div className="flex min-h-[400px] gap-4">
+    <div className="flex flex-col gap-4 md:min-h-[400px] md:flex-row">
       {renderSidePanel("left")}
-      <div className="flex items-center">
-        <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-center justify-center">
+        <ArrowLeftRight className="h-5 w-5 text-muted-foreground rotate-90 md:rotate-0" />
       </div>
       {renderSidePanel("right")}
     </div>

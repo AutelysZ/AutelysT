@@ -3,8 +3,7 @@
 Convert times between time zones, including Unix epoch formats.
 
 ## Features
-- Responsive layout on mobile
-- Dual-pane conversion
+- Dual input panes with a dedicated formatted output panel
 - Date/time picker
 - IANA timezone support
 

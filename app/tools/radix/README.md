@@ -3,10 +3,10 @@
 Convert numbers between different bases (radixes).
 
 ## Features
-- Dual-pane conversion
-- Supports common bases and custom radix
+- Dual-pane conversion with single-line inputs
+- Supports common bases and custom radix (select-based)
 - Base60 formatting support
-- Responsive layout on small screens
+- Copy buttons for inputs/outputs
 
 ## Parameters
 - Radix per side (10/16/8/2/60/custom)

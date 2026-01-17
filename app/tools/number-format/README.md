@@ -3,8 +3,9 @@
 Convert between number formatting styles (grouping, numerals, scientific, etc.).
 
 ## Features
-- Dual-pane conversion
+- Dual-pane conversion with single-line inputs
 - Multiple formats including Chinese, Roman, scientific, engineering
+- Copy buttons for inputs/outputs
 
 ## Parameters
 - Format type

@@ -6,10 +6,11 @@ import { z } from "zod"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeftRight } from "lucide-react"
+import { ArrowLeftRight, Check, Copy } from "lucide-react"
 import {
   parseFormattedNumber,
   formatNumber,
@@ -176,6 +177,20 @@ function NumberFormatInner({
   })
   const hasInitializedParamsRef = React.useRef(false)
   const hasHandledUrlRef = React.useRef(false)
+  const [copiedSide, setCopiedSide] = React.useState<"left" | "right" | null>(null)
+
+  const handleCopy = React.useCallback(
+    async (side: "left" | "right") => {
+      const value = side === "left" ? state.leftText : state.rightText
+      if (!value) return
+      try {
+        await navigator.clipboard.writeText(value)
+        setCopiedSide(side)
+        setTimeout(() => setCopiedSide(null), 1500)
+      } catch {}
+    },
+    [state.leftText, state.rightText],
+  )
 
   React.useEffect(() => {
     if (hasHydratedInputRef.current) return
@@ -300,54 +315,70 @@ function NumberFormatInner({
     return (
       <div className="flex flex-1 flex-col gap-3">
         <Card>
-          <CardContent className="flex flex-wrap items-center gap-4 p-4">
+          <CardContent className="flex flex-col gap-3 p-4">
             <div className="flex items-center gap-2">
               <Label className="text-sm whitespace-nowrap">Format</Label>
-              <Select value={format} onValueChange={(v) => setParam(isLeft ? "leftFormat" : "rightFormat", v, true)}>
-                <SelectTrigger className="w-56">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {NUMBER_FORMATS.map((f) => (
-                    <SelectItem key={f.value} value={f.value}>
-                      {f.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex-1 min-w-0">
+                <Select value={format} onValueChange={(v) => setParam(isLeft ? "leftFormat" : "rightFormat", v, true)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NUMBER_FORMATS.map((f) => (
+                      <SelectItem key={f.value} value={f.value}>
+                        {f.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {showUnitSelect && (
               <div className="flex items-center gap-2">
                 <Label className="text-sm whitespace-nowrap">Unit</Label>
-                <Select value={unit} onValueChange={(v) => setParam(isLeft ? "leftUnit" : "rightUnit", v, true)}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENGINEERING_UNITS.map((u) => (
-                      <SelectItem key={u.value} value={u.value}>
-                        {u.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex-1 min-w-0">
+                  <Select value={unit} onValueChange={(v) => setParam(isLeft ? "leftUnit" : "rightUnit", v, true)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ENGINEERING_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             )}
           </CardContent>
         </Card>
 
         <div className="flex-1">
-          <Textarea
-            value={text}
-            onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
-            placeholder="Enter number..."
-            className={cn(
-              "h-full min-h-[150px] resize-none font-mono",
-              error && "border-destructive",
-              isActive && "ring-1 ring-primary",
-            )}
-          />
+          <div className="relative">
+            <Input
+              value={text}
+              onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
+              placeholder="Enter number..."
+              className={cn(
+                "pr-10 font-mono",
+                error && "border-destructive",
+                isActive && "ring-1 ring-primary",
+              )}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => handleCopy(side)}
+              disabled={!text}
+              className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+            >
+              {copiedSide === side ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            </Button>
+          </div>
           {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
           {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
         </div>
@@ -356,10 +387,10 @@ function NumberFormatInner({
   }
 
   return (
-    <div className="flex min-h-[400px] gap-4">
+    <div className="flex flex-col gap-4 md:min-h-[400px] md:flex-row">
       {renderSidePanel("left")}
-      <div className="flex items-center">
-        <ArrowLeftRight className="h-5 w-5 text-muted-foreground" />
+      <div className="flex items-center justify-center">
+        <ArrowLeftRight className="h-5 w-5 text-muted-foreground rotate-90 md:rotate-0" />
       </div>
       {renderSidePanel("right")}
     </div>

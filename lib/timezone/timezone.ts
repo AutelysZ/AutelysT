@@ -1,4 +1,5 @@
-import { formatInTimeZone } from "date-fns-tz"
+import { parse, isValid } from "date-fns"
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz"
 
 export interface TimezoneOption {
   value: string
@@ -8,10 +9,10 @@ export interface TimezoneOption {
 export const SPECIAL_TIMEZONES: TimezoneOption[] = [
   { value: "local", label: "Local" },
   { value: "UTC", label: "UTC" },
-  { value: "unix-s", label: "Unix Epoch (s)" },
-  { value: "unix-ms", label: "Unix Epoch (ms)" },
-  { value: "unix-us", label: "Unix Epoch (us)" },
-  { value: "unix-ns", label: "Unix Epoch (ns)" },
+  { value: "unix-s", label: "Unix (s)" },
+  { value: "unix-ms", label: "Unix (ms)" },
+  { value: "unix-us", label: "Unix (us)" },
+  { value: "unix-ns", label: "Unix (ns)" },
 ]
 
 // All IANA timezones
@@ -461,9 +462,12 @@ export function getLocalTimezone(): string {
 
 export function parseTimestamp(input: string, timezone: string): Date | null {
   try {
+    const trimmed = input.trim()
+    if (!trimmed) return null
+
     // Unix epoch parsing
     if (isUnixEpochTimezone(timezone)) {
-      const num = Number.parseFloat(input)
+      const num = Number.parseFloat(trimmed)
       if (isNaN(num)) return null
 
       switch (timezone) {
@@ -480,14 +484,26 @@ export function parseTimestamp(input: string, timezone: string): Date | null {
       }
     }
 
-    // Try parsing as ISO string first
-    const isoDate = new Date(input)
-    if (!isNaN(isoDate.getTime())) {
-      return isoDate
+    const tz = timezone === "local" ? getLocalTimezone() : timezone
+    const hasExplicitZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed)
+
+    if (hasExplicitZone) {
+      const isoDate = new Date(trimmed)
+      if (!isNaN(isoDate.getTime())) {
+        return isoDate
+      }
+    } else {
+      const formats = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"]
+      for (const format of formats) {
+        const parsed = parse(trimmed, format, new Date())
+        if (isValid(parsed)) {
+          return fromZonedTime(parsed, tz)
+        }
+      }
     }
 
     // Try parsing as locale string
-    const parsed = Date.parse(input)
+    const parsed = Date.parse(trimmed)
     if (!isNaN(parsed)) {
       return new Date(parsed)
     }
@@ -525,62 +541,47 @@ export function getFormattedOutputs(date: Date, timezone: string): Record<string
   // Use Intl.DateTimeFormat for locale formats with proper dateStyle/timeStyle
   const localeFull = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: undefined,
+    dateStyle: "full",
+    timeStyle: "long",
   }).format(date)
 
   const localeLong = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
-    year: "numeric",
-    month: "long",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: undefined,
+    dateStyle: "long",
+    timeStyle: "long",
+  }).format(date)
+
+  const localeMedium = new Intl.DateTimeFormat(undefined, {
+    timeZone: tz,
+    dateStyle: "medium",
+    timeStyle: "medium",
   }).format(date)
 
   const localeShort = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
+
+  const localeTwoDigit = new Intl.DateTimeFormat(undefined, {
+    timeZone: tz,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-    hour12: undefined,
-  }).format(date)
-
-  const localeDate = new Intl.DateTimeFormat(undefined, {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date)
-
-  const localeTime = new Intl.DateTimeFormat(undefined, {
-    timeZone: tz,
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: undefined,
   }).format(date)
 
   return {
     ISO: date.toISOString(),
     GMT: date.toUTCString(),
-    "Unix Epoch (s)": Math.floor(date.getTime() / 1000).toString(),
-    "Unix Epoch (ms)": date.getTime().toString(),
-    "Locale Full": localeFull,
-    "Locale Long": localeLong,
-    "Locale Short": localeShort,
-    "Locale Date": localeDate,
-    "Locale Time": localeTime,
+    "Unix (s)": Math.floor(date.getTime() / 1000).toString(),
+    "Unix (ms)": date.getTime().toString(),
+    Full: localeFull,
+    Long: localeLong,
+    Medium: localeMedium,
+    Short: localeShort,
+    "2-digit": localeTwoDigit,
   }
 }

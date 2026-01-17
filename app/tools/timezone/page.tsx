@@ -55,50 +55,49 @@ function TimezoneContent() {
   const [leftError, setLeftError] = React.useState<string | null>(null)
   const [rightError, setRightError] = React.useState<string | null>(null)
 
+  const convertFromSide = React.useCallback(
+    (value: string, fromSide: "left" | "right", updateActiveSide: boolean) => {
+      const fromTimezone = fromSide === "left" ? state.leftTimezone : state.rightTimezone
+      const toTimezone = fromSide === "left" ? state.rightTimezone : state.leftTimezone
+      const setError = fromSide === "left" ? setLeftError : setRightError
+      const targetKey = fromSide === "left" ? "rightText" : "leftText"
+
+      setError(null)
+
+      if (!value) {
+        setParam(targetKey, "")
+        return
+      }
+
+      const date = parseTimestamp(value, fromTimezone)
+      if (!date) {
+        setError("Invalid date/time format")
+        return
+      }
+
+      const formatted = formatTimestamp(date, toTimezone)
+      setParam(targetKey, formatted)
+      if (updateActiveSide) {
+        setParam("activeSide", fromSide)
+      }
+    },
+    [state.leftTimezone, state.rightTimezone, setParam],
+  )
+
   const handleLeftChange = React.useCallback(
     (value: string) => {
       setParam("leftText", value)
-      setParam("activeSide", "left")
-      setLeftError(null)
-
-      if (!value) {
-        setParam("rightText", "")
-        return
-      }
-
-      const date = parseTimestamp(value, state.leftTimezone)
-      if (!date) {
-        setLeftError("Invalid date/time format")
-        return
-      }
-
-      const formatted = formatTimestamp(date, state.rightTimezone)
-      setParam("rightText", formatted)
+      convertFromSide(value, "left", true)
     },
-    [state.leftTimezone, state.rightTimezone, setParam],
+    [setParam, convertFromSide],
   )
 
   const handleRightChange = React.useCallback(
     (value: string) => {
       setParam("rightText", value)
-      setParam("activeSide", "right")
-      setRightError(null)
-
-      if (!value) {
-        setParam("leftText", "")
-        return
-      }
-
-      const date = parseTimestamp(value, state.rightTimezone)
-      if (!date) {
-        setRightError("Invalid date/time format")
-        return
-      }
-
-      const formatted = formatTimestamp(date, state.leftTimezone)
-      setParam("leftText", formatted)
+      convertFromSide(value, "right", true)
     },
-    [state.leftTimezone, state.rightTimezone, setParam],
+    [setParam, convertFromSide],
   )
 
   const handleNow = React.useCallback(
@@ -136,11 +135,11 @@ function TimezoneContent() {
 
   React.useEffect(() => {
     if (state.activeSide === "left" && state.leftText) {
-      handleLeftChange(state.leftText)
+      convertFromSide(state.leftText, "left", false)
     } else if (state.activeSide === "right" && state.rightText) {
-      handleRightChange(state.rightText)
+      convertFromSide(state.rightText, "right", false)
     }
-  }, [state.leftTimezone, state.rightTimezone])
+  }, [state.leftTimezone, state.rightTimezone, state.activeSide, state.leftText, state.rightText, convertFromSide])
 
   return (
     <ToolPageWrapper
@@ -308,54 +307,55 @@ function TimezoneInner({
     return parseTimestamp(state.rightText, state.rightTimezone)
   }, [state.rightText, state.rightTimezone])
 
+  const baseDate = state.activeSide === "left" ? leftDate : rightDate
+  const outputDate = baseDate ?? leftDate ?? rightDate
+
   return (
     <div className="flex h-full flex-col gap-4">
       <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
         {/* Left Column */}
-        <TimezonePaneColumn
-          side="left"
-          timezone={state.leftTimezone}
-          text={state.leftText}
-          error={leftError}
-          isActive={state.activeSide === "left"}
-          warning={oversizeKeys.includes("leftText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
-          date={leftDate}
-          onTimezoneChange={(v) => setParam("leftTimezone", v, true)}
-          onTextChange={handleLeftChange}
-          onNow={() => handleNow("left")}
-        />
-
-        {/* Divider */}
-        <div className="hidden shrink-0 items-center justify-center md:flex">
-          <Clock className="h-5 w-5 text-muted-foreground" />
+        <div className="flex w-full flex-col gap-4 md:flex-1 min-w-0">
+          <TimezoneInputPane
+            side="left"
+            timezone={state.leftTimezone}
+            text={state.leftText}
+            error={leftError}
+            isActive={state.activeSide === "left"}
+            warning={oversizeKeys.includes("leftText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
+            onTimezoneChange={(v) => setParam("leftTimezone", v, true)}
+            onTextChange={handleLeftChange}
+            onNow={() => handleNow("left")}
+          />
+          <div className="flex items-center justify-center text-muted-foreground">
+            <Clock className="h-4 w-4" />
+          </div>
+          <TimezoneInputPane
+            side="right"
+            timezone={state.rightTimezone}
+            text={state.rightText}
+            error={rightError}
+            isActive={state.activeSide === "right"}
+            warning={oversizeKeys.includes("rightText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
+            onTimezoneChange={(v) => setParam("rightTimezone", v, true)}
+            onTextChange={handleRightChange}
+            onNow={() => handleNow("right")}
+          />
         </div>
 
         {/* Right Column */}
-        <TimezonePaneColumn
-          side="right"
-          timezone={state.rightTimezone}
-          text={state.rightText}
-          error={rightError}
-          isActive={state.activeSide === "right"}
-          warning={oversizeKeys.includes("rightText") ? "Input exceeds 2 KB and is not synced to the URL." : null}
-          date={rightDate}
-          onTimezoneChange={(v) => setParam("rightTimezone", v, true)}
-          onTextChange={handleRightChange}
-          onNow={() => handleNow("right")}
-        />
+        <TimezoneOutputPane date={outputDate} timezone={state.rightTimezone} />
       </div>
     </div>
   )
 }
 
-function TimezonePaneColumn({
+function TimezoneInputPane({
   side,
   timezone,
   text,
   error,
   isActive,
   warning,
-  date,
   onTimezoneChange,
   onTextChange,
   onNow,
@@ -366,7 +366,6 @@ function TimezonePaneColumn({
   error: string | null
   isActive: boolean
   warning: string | null
-  date: Date | null
   onTimezoneChange: (v: string) => void
   onTextChange: (v: string) => void
   onNow: () => void
@@ -394,27 +393,26 @@ function TimezonePaneColumn({
     return parsed || undefined
   }, [text, timezone])
 
-  const outputs = React.useMemo(() => {
-    if (!date) return null
-    return getFormattedOutputs(date, timezone)
-  }, [date, timezone])
-
   return (
-    <div className="flex w-full flex-1 flex-col gap-3 md:w-0">
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <SearchableSelect
-          value={timezone}
-          onValueChange={onTimezoneChange}
-          options={timezones}
-          placeholder="Select timezone..."
-          searchPlaceholder="Search timezones..."
-          triggerClassName="flex-1 min-w-[140px]"
-          className="w-80"
-        />
-        <DateTimePicker date={currentDate} setDate={handleDateTimeChange} />
-        <Button variant="outline" size="sm" onClick={onNow}>
-          Now
-        </Button>
+    <div className="flex w-full flex-col gap-3 rounded-md border p-4">
+      <div className="flex items-center gap-2 flex-nowrap">
+        <div className="min-w-0 flex-1">
+          <SearchableSelect
+            value={timezone}
+            onValueChange={onTimezoneChange}
+            options={timezones}
+            placeholder="Select timezone..."
+            searchPlaceholder="Search timezones..."
+            triggerClassName="w-full"
+            className="w-full"
+          />
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <DateTimePicker date={currentDate} setDate={handleDateTimeChange} />
+          <Button variant="outline" size="sm" onClick={onNow}>
+            Now
+          </Button>
+        </div>
       </div>
 
       {/* Row 2: Input without card wrapper */}
@@ -454,26 +452,60 @@ function TimezonePaneColumn({
         {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
         {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
       </div>
+    </div>
+  )
+}
 
-      {outputs && (
-        <div className="min-h-0 flex-1 space-y-2 overflow-auto text-sm">
-          {Object.entries(outputs).map(([label, value]) => (
-            <div key={label} className="group flex items-start gap-1">
-              <span className="shrink-0 text-muted-foreground">{label}:</span>
-              <code className="break-all text-muted-foreground">{value}</code>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleCopy(value, label)}
-                className="h-5 w-5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-                aria-label={`Copy ${label}`}
-              >
-                {copied === label ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+function TimezoneOutputPane({ date, timezone }: { date: Date | null; timezone: string }) {
+  const [copied, setCopied] = React.useState<string | null>(null)
+
+  const handleCopy = async (value: string, key: string) => {
+    await navigator.clipboard.writeText(value)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const outputs = React.useMemo(() => {
+    if (!date) return null
+    return getFormattedOutputs(date, timezone)
+  }, [date, timezone])
+
+  if (!outputs) {
+    return (
+      <div className="flex w-full flex-col gap-3 rounded-md border p-4 md:flex-1 min-w-0">
+        <div className="text-sm text-muted-foreground">Formatted outputs appear here.</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-3 rounded-md border p-4 md:flex-1 min-w-0">
+      <div className="text-sm font-medium text-muted-foreground">Formatted ({timezone})</div>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <table className="w-full text-sm">
+          <tbody>
+            {Object.entries(outputs).map(([label, value]) => (
+              <tr key={label} className="group border-b last:border-b-0">
+                <td className="py-2 pr-3 align-top text-muted-foreground whitespace-nowrap">{label}</td>
+                <td className="py-2 align-top">
+                  <code className="break-all text-muted-foreground">{value}</code>
+                </td>
+                <td className="py-2 pl-2 align-top text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleCopy(value, label)}
+                    className="h-5 w-5 shrink-0 text-muted-foreground transition-opacity sm:opacity-0 sm:group-hover:opacity-100"
+                    aria-label={`Copy ${label}`}
+                  >
+                    {copied === label ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
