@@ -125,6 +125,19 @@ export const tools: Tool[] = [
       keywords: ["jwt", "json web token", "jwt parser", "jwt generator", "claims"],
     },
   },
+  {
+    id: "keypair-generator",
+    name: "Keypair Generator",
+    description: "Generate RSA, ECDSA, ECDH, and Ed keypairs with PEM and JWK export",
+    category: "Crypto",
+    route: "/tools/keypair-generator",
+    keywords: ["keypair", "rsa", "ecdsa", "ecdh", "ed25519", "jwk", "pem", "web crypto"],
+    seo: {
+      title: "Keypair Generator - AutelysT",
+      description: "Free online keypair generator with Web Crypto parameters and PEM/JWK export.",
+      keywords: ["keypair generator", "rsa", "ecdsa", "jwk", "pem", "web crypto"],
+    },
+  },
   // Identifier Tools
   {
     id: "uuid",
