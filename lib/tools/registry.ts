@@ -138,6 +138,45 @@ export const tools: Tool[] = [
       keywords: ["keypair generator", "rsa", "ecdsa", "jwk", "pem", "web crypto"],
     },
   },
+  {
+    id: "pem-jwk",
+    name: "PEM/JWK Converter",
+    description: "Convert cryptographic keys between PEM and JWK formats using Web Crypto",
+    category: "Crypto",
+    route: "/tools/pem-jwk",
+    keywords: ["pem", "jwk", "converter", "key", "rsa", "ecdsa", "ed25519", "web crypto"],
+    seo: {
+      title: "PEM/JWK Converter - AutelysT",
+      description: "Free online PEM to JWK converter. Convert RSA, EC, and OKP keys between PEM and JWK formats.",
+      keywords: ["pem", "jwk", "pem to jwk", "key converter", "rsa", "ecdsa", "ed25519"],
+    },
+  },
+  {
+    id: "hash",
+    name: "Hash (Digest)",
+    description: "Generate cryptographic digests using MD, SHA, SHA3, and BLAKE algorithms",
+    category: "Crypto",
+    route: "/tools/hash",
+    keywords: ["hash", "digest", "checksum", "md5", "sha", "sha3", "blake"],
+    seo: {
+      title: "Hash Generator - AutelysT",
+      description: "Free online hash generator supporting MD2/MD4/MD5, SHA-1/2/3, and BLAKE digests.",
+      keywords: ["hash generator", "digest", "md5", "sha256", "sha3", "blake2", "blake3"],
+    },
+  },
+  {
+    id: "symmetric-crypto",
+    name: "Symmetric Crypto",
+    description: "Encrypt and decrypt with AES, ChaCha20, Salsa20, Twofish, Blowfish, DES, or 3DES using configurable parameters",
+    category: "Crypto",
+    route: "/tools/symmetric-crypto",
+    keywords: ["symmetric", "encrypt", "decrypt", "aes", "chacha20", "salsa20", "twofish", "blowfish", "des", "3des"],
+    seo: {
+      title: "Symmetric Crypto - AutelysT",
+      description: "Free online symmetric encryption tool supporting AES, ChaCha20, Salsa20, Twofish, Blowfish, DES, and 3DES.",
+      keywords: ["symmetric encryption", "aes", "chacha20", "salsa20", "twofish", "blowfish", "des", "3des", "decrypt"],
+    },
+  },
   // Identifier Tools
   {
     id: "uuid",

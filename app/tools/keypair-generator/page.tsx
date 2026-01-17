@@ -62,6 +62,15 @@ const edAlgorithms = new Set<KeypairAlgorithm>(["Ed25519", "Ed448"])
 const xAlgorithms = new Set<KeypairAlgorithm>(["X25519", "X448"])
 
 type UsageKey = "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
+type UsageStateKey =
+  | "usageSign"
+  | "usageVerify"
+  | "usageEncrypt"
+  | "usageDecrypt"
+  | "usageWrapKey"
+  | "usageUnwrapKey"
+  | "usageDeriveKey"
+  | "usageDeriveBits"
 
 const usageLabels: Record<UsageKey, string> = {
   sign: "Sign",
@@ -74,7 +83,7 @@ const usageLabels: Record<UsageKey, string> = {
   deriveBits: "Derive bits",
 }
 
-const usageKeyMap: Record<UsageKey, keyof KeypairState> = {
+const usageKeyMap: Record<UsageKey, UsageStateKey> = {
   sign: "usageSign",
   verify: "usageVerify",
   encrypt: "usageEncrypt",
@@ -126,12 +135,13 @@ function slugify(value: string) {
 function parseExponent(value: string) {
   const trimmed = value.trim()
   if (!/^\d+$/.test(trimmed)) return null
-  let num = BigInt(trimmed)
-  if (num <= 0n) return null
+  const num = Number(trimmed)
+  if (!Number.isSafeInteger(num) || num <= 0) return null
   const bytes: number[] = []
-  while (num > 0n) {
-    bytes.unshift(Number(num & 0xffn))
-    num >>= 8n
+  let remaining = num
+  while (remaining > 0) {
+    bytes.unshift(remaining & 0xff)
+    remaining = Math.floor(remaining / 256)
   }
   return new Uint8Array(bytes)
 }
@@ -242,8 +252,9 @@ function KeypairGeneratorInner({
       paramsRef.current = nextParams
       return
     }
-    const keys = Object.keys(nextParams)
-    const same = keys.every((key) => paramsRef.current[key] === nextParams[key])
+    const keys = Object.keys(nextParams) as (keyof typeof nextParams)[]
+    const prev = paramsRef.current as typeof nextParams
+    const same = keys.every((key) => prev[key] === nextParams[key])
     if (same) return
     paramsRef.current = nextParams
     upsertParams(nextParams, "deferred")
@@ -359,7 +370,7 @@ function KeypairGeneratorInner({
     setIsGenerating(true)
 
     try {
-      let algorithm: AlgorithmIdentifier
+      let algorithm: RsaHashedKeyGenParams | EcKeyGenParams | AlgorithmIdentifier
       if (rsaAlgorithms.has(state.algorithm)) {
         const exponent = parseExponent(state.rsaPublicExponent)!
         algorithm = {
@@ -367,9 +378,9 @@ function KeypairGeneratorInner({
           modulusLength: state.rsaModulusLength,
           publicExponent: exponent,
           hash: { name: state.rsaHash },
-        }
+        } as RsaHashedKeyGenParams
       } else if (ecAlgorithms.has(state.algorithm)) {
-        algorithm = { name: state.algorithm, namedCurve: state.namedCurve }
+        algorithm = { name: state.algorithm, namedCurve: state.namedCurve } as EcKeyGenParams
       } else if (edAlgorithms.has(state.algorithm) || xAlgorithms.has(state.algorithm)) {
         algorithm = { name: state.algorithm }
       } else {

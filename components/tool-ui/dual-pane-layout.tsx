@@ -16,6 +16,7 @@ interface PaneProps {
   placeholder?: string
   disabled?: boolean
   onFileUpload?: (file: File) => void
+  onDownload?: () => void
   fileResult?: {
     status: "success" | "error"
     message: string
@@ -35,6 +36,7 @@ function Pane({
   placeholder,
   disabled,
   onFileUpload,
+  onDownload,
   fileResult,
   onClearFile,
 }: PaneProps) {
@@ -66,6 +68,7 @@ function Pane({
       if (file && onFileUpload) {
         onFileUpload(file)
       }
+      e.target.value = ""
     },
     [onFileUpload],
   )
@@ -88,6 +91,18 @@ function Pane({
                 File
               </Button>
             </>
+          )}
+          {onDownload && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDownload}
+              disabled={!value}
+              className="h-7 gap-1 px-2 text-xs"
+            >
+              <Download className="h-3 w-3" />
+              Download
+            </Button>
           )}
           <Button variant="ghost" size="sm" onClick={handleCopy} disabled={!value} className="h-7 gap-1 px-2 text-xs">
             {copied ? (
@@ -190,6 +205,8 @@ interface DualPaneLayoutProps {
   rightPlaceholder?: string
   leftFileUpload?: (file: File) => void
   rightFileUpload?: (file: File) => void
+  leftDownload?: () => void
+  rightDownload?: () => void
   leftFileResult?: {
     status: "success" | "error"
     message: string
@@ -223,6 +240,8 @@ export function DualPaneLayout({
   rightPlaceholder,
   leftFileUpload,
   rightFileUpload,
+  leftDownload,
+  rightDownload,
   leftFileResult,
   rightFileResult,
   onClearLeftFile,
@@ -245,6 +264,7 @@ export function DualPaneLayout({
           warning={leftWarning}
           placeholder={leftPlaceholder}
           onFileUpload={leftFileUpload}
+          onDownload={leftDownload}
           fileResult={leftFileResult}
           onClearFile={onClearLeftFile}
         />
@@ -262,6 +282,7 @@ export function DualPaneLayout({
           warning={rightWarning}
           placeholder={rightPlaceholder}
           onFileUpload={rightFileUpload}
+          onDownload={rightDownload}
           fileResult={rightFileResult}
           onClearFile={onClearRightFile}
         />
