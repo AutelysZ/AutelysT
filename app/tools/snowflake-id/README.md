@@ -5,15 +5,25 @@ Generate and parse Twitter Snowflake-style IDs with timestamp decoding.
 ## Features
 - Responsive layout on mobile
 - Generate multiple Snowflake IDs
-- Parse a single Snowflake ID to extract fields
+- Parse single or multiple Snowflake IDs with decoded fields
+- Custom epoch, timestamp step, and bit layout controls
+- Twitter and Sonyflake presets with one-click reset
+- CSV export for parsed tables
 
 ## Parameters
 - Count
 - Datacenter ID
 - Worker ID
+- Timestamp Bits
+- Datacenter Bits
+- Worker Bits
+- Sequence Bits
+- Start Time (ms)
+- Timestamp Offset (ms)
 
 ## Usage
-- Generate Snowflake IDs or paste one to parse
+- Generate Snowflake IDs or paste one/many to parse
+- Use presets to reset layout/epoch values quickly
 
 ## URL State
 - Inputs and parameters sync to the URL query
