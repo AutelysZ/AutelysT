@@ -1,0 +1,1333 @@
+"use client"
+
+import * as React from "react"
+import { Suspense } from "react"
+import { z } from "zod"
+import { AlertCircle, Check, Copy, Download, RefreshCcw, Upload } from "lucide-react"
+import { secp256k1, schnorr as schnorrCurve } from "@noble/curves/secp256k1.js"
+import { x25519 } from "@noble/curves/ed25519.js"
+import { x448 } from "@noble/curves/ed448.js"
+import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
+import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Slider } from "@/components/ui/slider"
+import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
+import { decodeHex, encodeHex } from "@/lib/encoding/hex"
+import type { HistoryEntry } from "@/lib/history/db"
+import { cn } from "@/lib/utils"
+
+const algorithmValues = ["ECDH", "Schnorr", "X25519", "X448"] as const
+const ecdhCurves = ["P-256", "P-384", "P-521", "secp256k1"] as const
+const outputEncodings = ["base64", "base64url", "hex"] as const
+const paramEncodings = ["utf8", "base64", "hex"] as const
+const kdfAlgorithms = ["HKDF", "PBKDF2"] as const
+const kdfHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
+const lengthPresets = ["256", "384", "512", "custom"] as const
+
+type AgreementAlgorithm = (typeof algorithmValues)[number]
+type EcdhCurve = (typeof ecdhCurves)[number]
+type OutputEncoding = (typeof outputEncodings)[number]
+type ParamEncoding = (typeof paramEncodings)[number]
+type KdfAlgorithm = (typeof kdfAlgorithms)[number]
+type KdfHash = (typeof kdfHashes)[number]
+type LengthPreset = (typeof lengthPresets)[number]
+
+const encodingLabels = {
+  utf8: "UTF-8",
+  base64: "Base64",
+  base64url: "Base64url",
+  hex: "Hex",
+} as const
+
+const paramsSchema = z.object({
+  algorithm: z.enum(algorithmValues).default("ECDH"),
+  ecdhCurve: z.enum(ecdhCurves).default("P-256"),
+  localPrivateKey: z.string().default(""),
+  peerPublicKey: z.string().default(""),
+  outputEncoding: z.enum(outputEncodings).default("base64"),
+  useKdf: z.boolean().default(false),
+  kdfAlgorithm: z.enum(kdfAlgorithms).default("HKDF"),
+  kdfHash: z.enum(kdfHashes).default("SHA-256"),
+  kdfLength: z.coerce.number().int().min(1).max(16320).default(32),
+  kdfSalt: z.string().default(""),
+  kdfSaltEncoding: z.enum(paramEncodings).default("base64"),
+  kdfInfo: z.string().default(""),
+  kdfInfoEncoding: z.enum(paramEncodings).default("base64"),
+  kdfIterations: z.coerce.number().int().min(1).max(10000000).default(100000),
+})
+
+type KeyAgreementState = z.infer<typeof paramsSchema>
+
+const textEncoder = new TextEncoder()
+const SALT_DEFAULT_LENGTH = 16
+
+function randomBytes(length: number) {
+  if (!globalThis.crypto?.getRandomValues) {
+    throw new Error("Secure random generation is unavailable.")
+  }
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return bytes
+}
+
+function randomAsciiString(length: number) {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+  const bytes = randomBytes(length)
+  let value = ""
+  for (let i = 0; i < bytes.length; i += 1) {
+    value += alphabet[bytes[i] % alphabet.length]
+  }
+  return value
+}
+
+function getMaxKdfLengthBytes(hash: KdfHash) {
+  if (hash === "SHA-384") return 255 * 48
+  if (hash === "SHA-512") return 255 * 64
+  return 255 * 32
+}
+
+function getLengthPreset(value: number): LengthPreset | null {
+  if (value === 32) return "256"
+  if (value === 48) return "384"
+  if (value === 64) return "512"
+  return null
+}
+
+function encodeParamValue(bytes: Uint8Array, encoding: ParamEncoding) {
+  if (encoding === "utf8") return randomAsciiString(bytes.length)
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
+  return encodeBase64(bytes, { urlSafe: false, padding: true })
+}
+
+function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
+  if (encoding === "base64") return encodeBase64(bytes, { urlSafe: false, padding: true })
+  return encodeBase64(bytes, { urlSafe: true, padding: false })
+}
+
+function encodeBase64Url(bytes: Uint8Array) {
+  return encodeBase64(bytes, { urlSafe: true, padding: false })
+}
+
+function decodeBase64Url(value: string) {
+  return decodeBase64(value)
+}
+
+function decodeParamValue(value: string, encoding: ParamEncoding) {
+  if (!value) return new Uint8Array()
+  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "hex") return decodeHex(value)
+  return decodeBase64(value)
+}
+
+function padBytes(bytes: Uint8Array, length: number) {
+  if (bytes.length === length) return bytes
+  if (bytes.length > length) {
+    throw new Error("Key length is invalid for the selected curve.")
+  }
+  const padded = new Uint8Array(length)
+  padded.set(bytes, length - bytes.length)
+  return padded
+}
+
+function parseJwk(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith("{")) return null
+  try {
+    const jwk = JSON.parse(trimmed)
+    if (jwk && typeof jwk === "object" && "kty" in jwk) {
+      return jwk as JsonWebKey
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
+function createEcJwk(curve: EcdhCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
+  const coordLength = (publicKey.length - 1) / 2
+  const x = publicKey.slice(1, 1 + coordLength)
+  const y = publicKey.slice(1 + coordLength)
+  const jwk: JsonWebKey = {
+    kty: "EC",
+    crv: curve,
+    x: encodeBase64Url(x),
+    y: encodeBase64Url(y),
+  }
+  if (privateKey) {
+    jwk.d = encodeBase64Url(privateKey)
+  }
+  return jwk
+}
+
+function createOkpJwk(curve: "X25519" | "X448", publicKey: Uint8Array, privateKey?: Uint8Array) {
+  const jwk: JsonWebKey = {
+    kty: "OKP",
+    crv: curve,
+    x: encodeBase64Url(publicKey),
+  }
+  if (privateKey) {
+    jwk.d = encodeBase64Url(privateKey)
+  }
+  return jwk
+}
+
+function extractPemBlock(pem: string) {
+  const trimmed = pem.trim()
+  if (!trimmed) return null
+  const match = trimmed.match(/-----BEGIN ([^-]+)-----([\s\S]+?)-----END \1-----/)
+  if (!match) return null
+  const label = match[1]
+  const body = match[2].replace(/\s+/g, "")
+  return { label, body }
+}
+
+function pemToArrayBuffer(pem: string) {
+  const block = extractPemBlock(pem)
+  if (!block) return null
+  const binary = atob(block.body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return { label: block.label, buffer: bytes.buffer }
+}
+
+function toPem(buffer: ArrayBuffer, label: "PUBLIC KEY" | "PRIVATE KEY") {
+  const bytes = new Uint8Array(buffer)
+  let binary = ""
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+  const base64 = btoa(binary).replace(/(.{64})/g, "$1\n")
+  return `-----BEGIN ${label}-----\n${base64}\n-----END ${label}-----`
+}
+
+function isKeyPair(key: CryptoKey | CryptoKeyPair): key is CryptoKeyPair {
+  return "publicKey" in key && "privateKey" in key
+}
+
+function getWebCryptoAlgorithm(state: KeyAgreementState): EcKeyImportParams | null {
+  if (state.algorithm === "ECDH" && state.ecdhCurve !== "secp256k1") {
+    return { name: "ECDH", namedCurve: state.ecdhCurve }
+  }
+  return null
+}
+
+function getDeriveParams(publicKey: CryptoKey): EcdhKeyDeriveParams {
+  return { name: "ECDH", public: publicKey }
+}
+
+function getAgreementKeyId(algorithm: AgreementAlgorithm, curve: EcdhCurve) {
+  if (algorithm === "ECDH") return `ECDH:${curve}`
+  return algorithm
+}
+
+function getSharedSecretBits(algorithm: AgreementAlgorithm, curve: EcdhCurve) {
+  if (algorithm === "ECDH") {
+    if (curve === "P-384") return 384
+    if (curve === "P-521") return 528
+    return 256
+  }
+  if (algorithm === "Schnorr") return 256
+  if (algorithm === "X448") return 448
+  return 256
+}
+
+async function importWebCryptoAgreementKey({
+  keyText,
+  algorithm,
+  type,
+}: {
+  keyText: string
+  algorithm: EcKeyImportParams
+  type: "private" | "public"
+}) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("Web Crypto is unavailable in this environment.")
+  }
+  const jwk = parseJwk(keyText)
+  if (jwk) {
+    if (type === "private" && !jwk.d) return null
+    if (type === "public" && jwk.d) return null
+    return crypto.subtle.importKey("jwk", jwk, algorithm, false, type === "private" ? ["deriveBits"] : [])
+  }
+  const parsed = pemToArrayBuffer(keyText)
+  if (!parsed) return null
+  if (type === "private" && parsed.label.includes("PUBLIC KEY")) return null
+  if (type === "public" && parsed.label.includes("PRIVATE KEY")) return null
+  const format = parsed.label.includes("PRIVATE KEY") ? "pkcs8" : "spki"
+  return crypto.subtle.importKey(format, parsed.buffer, algorithm, false, type === "private" ? ["deriveBits"] : [])
+}
+
+function getSecp256k1PrivateKeyBytes(keyText: string) {
+  const jwk = parseJwk(keyText)
+  if (!jwk || jwk.kty !== "EC" || jwk.crv !== "secp256k1") {
+    throw new Error("Invalid key format. Use EC JWK with secp256k1.")
+  }
+  if (!jwk.d) {
+    throw new Error("Private EC JWK (with d) is required.")
+  }
+  const raw = decodeBase64Url(jwk.d)
+  const length = secp256k1.lengths.secretKey ?? raw.length
+  return padBytes(raw, length)
+}
+
+function getSecp256k1PublicKeyBytes(keyText: string) {
+  const jwk = parseJwk(keyText)
+  if (!jwk || jwk.kty !== "EC" || jwk.crv !== "secp256k1") {
+    throw new Error("Invalid key format. Use EC JWK with secp256k1.")
+  }
+  if (jwk.x && jwk.y) {
+    const x = decodeBase64Url(jwk.x)
+    const y = decodeBase64Url(jwk.y)
+    const publicKey = new Uint8Array(1 + x.length + y.length)
+    publicKey[0] = 4
+    publicKey.set(x, 1)
+    publicKey.set(y, 1 + x.length)
+    return publicKey
+  }
+  if (jwk.d) {
+    const secret = getSecp256k1PrivateKeyBytes(JSON.stringify(jwk))
+    return secp256k1.getPublicKey(secret, false)
+  }
+  throw new Error("Public EC JWK must include x and y coordinates.")
+}
+
+function getSchnorrPublicKeyBytes(keyText: string) {
+  const jwk = parseJwk(keyText)
+  if (!jwk || jwk.kty !== "EC" || jwk.crv !== "secp256k1") {
+    throw new Error("Invalid key format. Use EC JWK with secp256k1.")
+  }
+  if (jwk.x) {
+    const x = padBytes(decodeBase64Url(jwk.x), 32)
+    if (jwk.y) {
+      const y = decodeBase64Url(jwk.y)
+      const publicKey = new Uint8Array(1 + x.length + y.length)
+      publicKey[0] = 4
+      publicKey.set(x, 1)
+      publicKey.set(y, 1 + x.length)
+      return publicKey
+    }
+    const compressed = new Uint8Array(33)
+    compressed[0] = 2
+    compressed.set(x, 1)
+    return compressed
+  }
+  if (jwk.d) {
+    const secret = getSecp256k1PrivateKeyBytes(JSON.stringify(jwk))
+    return secp256k1.getPublicKey(secret, true)
+  }
+  throw new Error("Public EC JWK must include x (and optionally y).")
+}
+
+function getOkpPrivateKeyBytes(keyText: string, curve: "X25519" | "X448") {
+  const jwk = parseJwk(keyText)
+  if (!jwk || jwk.kty !== "OKP" || jwk.crv !== curve) {
+    throw new Error(`Invalid key format. Use OKP JWK with ${curve}.`)
+  }
+  if (!jwk.d) {
+    throw new Error("Private OKP JWK (with d) is required.")
+  }
+  const raw = decodeBase64Url(jwk.d)
+  const lengths = curve === "X448" ? x448.lengths : x25519.lengths
+  return padBytes(raw, lengths.secretKey ?? raw.length)
+}
+
+function getOkpPublicKeyBytes(keyText: string, curve: "X25519" | "X448") {
+  const jwk = parseJwk(keyText)
+  if (!jwk || jwk.kty !== "OKP" || jwk.crv !== curve) {
+    throw new Error(`Invalid key format. Use OKP JWK with ${curve}.`)
+  }
+  if (jwk.x) {
+    const raw = decodeBase64Url(jwk.x)
+    const lengths = curve === "X448" ? x448.lengths : x25519.lengths
+    return padBytes(raw, lengths.publicKey ?? raw.length)
+  }
+  if (jwk.d) {
+    const secret = getOkpPrivateKeyBytes(JSON.stringify(jwk), curve)
+    const keygen = curve === "X448" ? x448 : x25519
+    return keygen.getPublicKey(secret)
+  }
+  throw new Error("Public OKP JWK must include x.")
+}
+
+async function deriveKdfBytes(sharedSecret: Uint8Array, state: KeyAgreementState) {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("Web Crypto is unavailable in this environment.")
+  }
+  const lengthBits = state.kdfLength * 8
+  const salt = decodeParamValue(state.kdfSalt, state.kdfSaltEncoding)
+  if (state.kdfAlgorithm === "HKDF") {
+    const info = decodeParamValue(state.kdfInfo, state.kdfInfoEncoding)
+    const keyMaterial = await crypto.subtle.importKey("raw", sharedSecret, "HKDF", false, ["deriveBits"])
+    const bits = await crypto.subtle.deriveBits(
+      { name: "HKDF", hash: { name: state.kdfHash }, salt, info },
+      keyMaterial,
+      lengthBits,
+    )
+    return new Uint8Array(bits)
+  }
+  const keyMaterial = await crypto.subtle.importKey("raw", sharedSecret, "PBKDF2", false, ["deriveBits"])
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", hash: { name: state.kdfHash }, salt, iterations: state.kdfIterations },
+    keyMaterial,
+    lengthBits,
+  )
+  return new Uint8Array(bits)
+}
+
+async function generateKeypair(state: KeyAgreementState) {
+  const webCryptoAlgorithm = getWebCryptoAlgorithm(state)
+  if (webCryptoAlgorithm) {
+    if (!globalThis.crypto?.subtle) {
+      throw new Error("Web Crypto is unavailable in this environment.")
+    }
+    const keyPair = await crypto.subtle.generateKey(webCryptoAlgorithm, true, ["deriveBits"])
+    if (!isKeyPair(keyPair)) {
+      throw new Error("Keypair generation failed.")
+    }
+    const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey)
+    const privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+    return {
+      publicPem: toPem(publicKey, "PUBLIC KEY"),
+      privatePem: toPem(privateKey, "PRIVATE KEY"),
+    }
+  }
+
+  if (state.algorithm === "ECDH") {
+    const { secretKey } = secp256k1.keygen()
+    const publicKey = secp256k1.getPublicKey(secretKey, false)
+    const publicJwk = createEcJwk("secp256k1", publicKey)
+    const privateJwk = createEcJwk("secp256k1", publicKey, secretKey)
+    return {
+      publicPem: JSON.stringify(publicJwk, null, 2),
+      privatePem: JSON.stringify(privateJwk, null, 2),
+    }
+  }
+
+  if (state.algorithm === "Schnorr") {
+    const { secretKey } = schnorrCurve.keygen()
+    const publicKey = secp256k1.getPublicKey(secretKey, false)
+    const publicJwk = createEcJwk("secp256k1", publicKey)
+    const privateJwk = createEcJwk("secp256k1", publicKey, secretKey)
+    return {
+      publicPem: JSON.stringify(publicJwk, null, 2),
+      privatePem: JSON.stringify(privateJwk, null, 2),
+    }
+  }
+
+  if (state.algorithm === "X25519") {
+    const { secretKey, publicKey } = x25519.keygen()
+    const publicJwk = createOkpJwk("X25519", publicKey)
+    const privateJwk = createOkpJwk("X25519", publicKey, secretKey)
+    return {
+      publicPem: JSON.stringify(publicJwk, null, 2),
+      privatePem: JSON.stringify(privateJwk, null, 2),
+    }
+  }
+
+  const { secretKey, publicKey } = x448.keygen()
+  const publicJwk = createOkpJwk("X448", publicKey)
+  const privateJwk = createOkpJwk("X448", publicKey, secretKey)
+  return {
+    publicPem: JSON.stringify(publicJwk, null, 2),
+    privatePem: JSON.stringify(privateJwk, null, 2),
+  }
+}
+
+function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-w-0 w-full overflow-x-auto">
+      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    </div>
+  )
+}
+
+export default function KeyAgreementPage() {
+  return (
+    <Suspense fallback={null}>
+      <KeyAgreementContent />
+    </Suspense>
+  )
+}
+
+function KeyAgreementContent() {
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } = useUrlSyncedState(
+    "key-agreement",
+    {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    },
+  )
+
+  const handleLoadHistory = React.useCallback(
+    (entry: HistoryEntry) => {
+      const { inputs, params } = entry
+      if (inputs.localPrivateKey !== undefined) setParam("localPrivateKey", inputs.localPrivateKey)
+      if (inputs.peerPublicKey !== undefined) setParam("peerPublicKey", inputs.peerPublicKey)
+      const typedParams = params as Partial<KeyAgreementState>
+      ;(Object.keys(paramsSchema.shape) as (keyof KeyAgreementState)[]).forEach((key) => {
+        if (typedParams[key] !== undefined) {
+          setParam(key, typedParams[key] as KeyAgreementState[typeof key])
+        }
+      })
+    },
+    [setParam],
+  )
+
+  return (
+    <ToolPageWrapper
+      toolId="key-agreement"
+      title="Key Agreement"
+      description="Derive shared secrets with ECDH (P-256/P-384/P-521/secp256k1), Schnorr (secp256k1), or X25519/X448, plus optional HKDF/PBKDF2 key derivation."
+      onLoadHistory={handleLoadHistory}
+    >
+      <KeyAgreementInner
+        state={state}
+        setParam={setParam}
+        oversizeKeys={oversizeKeys}
+        hasUrlParams={hasUrlParams}
+        hydrationSource={hydrationSource}
+        resetToDefaults={resetToDefaults}
+      />
+    </ToolPageWrapper>
+  )
+}
+
+function KeyAgreementInner({
+  state,
+  setParam,
+  oversizeKeys,
+  hasUrlParams,
+  hydrationSource,
+  resetToDefaults,
+}: {
+  state: KeyAgreementState
+  setParam: <K extends keyof KeyAgreementState>(key: K, value: KeyAgreementState[K], immediate?: boolean) => void
+  oversizeKeys: (keyof KeyAgreementState)[]
+  hasUrlParams: boolean
+  hydrationSource: "default" | "url" | "history"
+  resetToDefaults: () => void
+}) {
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
+  const [sharedSecret, setSharedSecret] = React.useState("")
+  const [derivedSecret, setDerivedSecret] = React.useState("")
+  const [error, setError] = React.useState<string | null>(null)
+  const [isWorking, setIsWorking] = React.useState(false)
+  const [copied, setCopied] = React.useState<"shared" | "derived" | null>(null)
+  const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false)
+  const [isGeneratingPeerKey, setIsGeneratingPeerKey] = React.useState(false)
+  const [lengthMode, setLengthMode] = React.useState<LengthPreset>(() => getLengthPreset(state.kdfLength) ?? "custom")
+  const keyCacheRef = React.useRef<
+    Partial<Record<string, { localPrivateKey: string; peerPublicKey: string }>>
+  >({})
+  const selectionRef = React.useRef(getAgreementKeyId(state.algorithm, state.ecdhCurve))
+  const localPrivateKeyRef = React.useRef<HTMLInputElement>(null)
+  const peerPublicKeyRef = React.useRef<HTMLInputElement>(null)
+  const hasHydratedInputRef = React.useRef(false)
+  const hasHandledUrlRef = React.useRef(false)
+  const lastInputRef = React.useRef("")
+  const paramsRef = React.useRef({
+    algorithm: state.algorithm,
+    ecdhCurve: state.ecdhCurve,
+    localPrivateKey: state.localPrivateKey,
+    peerPublicKey: state.peerPublicKey,
+    outputEncoding: state.outputEncoding,
+    useKdf: state.useKdf,
+    kdfAlgorithm: state.kdfAlgorithm,
+    kdfHash: state.kdfHash,
+    kdfLength: state.kdfLength,
+    kdfSalt: state.kdfSalt,
+    kdfSaltEncoding: state.kdfSaltEncoding,
+    kdfInfo: state.kdfInfo,
+    kdfInfoEncoding: state.kdfInfoEncoding,
+    kdfIterations: state.kdfIterations,
+  })
+  const hasInitializedParamsRef = React.useRef(false)
+  const runRef = React.useRef(0)
+  const maxKdfLength = React.useMemo(() => getMaxKdfLengthBytes(state.kdfHash), [state.kdfHash])
+
+  React.useEffect(() => {
+    if (state.kdfLength > maxKdfLength) {
+      setParam("kdfLength", maxKdfLength, true)
+    }
+  }, [state.kdfLength, maxKdfLength, setParam])
+
+  React.useEffect(() => {
+    if (lengthMode === "custom") return
+    const preset = getLengthPreset(state.kdfLength) ?? "custom"
+    if (preset !== lengthMode) {
+      setLengthMode(preset)
+    }
+  }, [state.kdfLength, lengthMode])
+
+  const historyParams = React.useMemo(
+    () => ({
+      algorithm: state.algorithm,
+      ecdhCurve: state.ecdhCurve,
+      localPrivateKey: state.localPrivateKey,
+      peerPublicKey: state.peerPublicKey,
+      outputEncoding: state.outputEncoding,
+      useKdf: state.useKdf,
+      kdfAlgorithm: state.kdfAlgorithm,
+      kdfHash: state.kdfHash,
+      kdfLength: state.kdfLength,
+      kdfSalt: state.kdfSalt,
+      kdfSaltEncoding: state.kdfSaltEncoding,
+      kdfInfo: state.kdfInfo,
+      kdfInfoEncoding: state.kdfInfoEncoding,
+      kdfIterations: state.kdfIterations,
+    }),
+    [
+      state.algorithm,
+      state.ecdhCurve,
+      state.localPrivateKey,
+      state.peerPublicKey,
+      state.outputEncoding,
+      state.useKdf,
+      state.kdfAlgorithm,
+      state.kdfHash,
+      state.kdfLength,
+      state.kdfSalt,
+      state.kdfSaltEncoding,
+      state.kdfInfo,
+      state.kdfInfoEncoding,
+      state.kdfIterations,
+    ],
+  )
+
+  React.useEffect(() => {
+    const selectionKey = getAgreementKeyId(state.algorithm, state.ecdhCurve)
+    const prevKey = selectionRef.current
+    if (prevKey !== selectionKey) {
+      keyCacheRef.current[prevKey] = {
+        localPrivateKey: state.localPrivateKey,
+        peerPublicKey: state.peerPublicKey,
+      }
+      const cached = keyCacheRef.current[selectionKey]
+      const nextLocalPrivate = cached?.localPrivateKey ?? ""
+      const nextPeerPublic = cached?.peerPublicKey ?? ""
+      if (nextLocalPrivate !== state.localPrivateKey) setParam("localPrivateKey", nextLocalPrivate)
+      if (nextPeerPublic !== state.peerPublicKey) setParam("peerPublicKey", nextPeerPublic)
+      selectionRef.current = selectionKey
+      return
+    }
+    keyCacheRef.current[selectionKey] = {
+      localPrivateKey: state.localPrivateKey,
+      peerPublicKey: state.peerPublicKey,
+    }
+  }, [
+    state.algorithm,
+    state.ecdhCurve,
+    state.localPrivateKey,
+    state.peerPublicKey,
+    setParam,
+  ])
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return
+    if (hydrationSource === "default") return
+    const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+    lastInputRef.current = signature
+    hasHydratedInputRef.current = true
+  }, [hydrationSource, state.localPrivateKey, state.peerPublicKey])
+
+  React.useEffect(() => {
+    const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+    if (!signature.trim() || signature === lastInputRef.current) return
+
+    const timer = setTimeout(() => {
+      lastInputRef.current = signature
+      const previewBase = state.peerPublicKey || state.localPrivateKey
+      const preview = previewBase ? previewBase.slice(0, 100) : "Key agreement"
+      upsertInputEntry(
+        {
+          localPrivateKey: state.localPrivateKey,
+          peerPublicKey: state.peerPublicKey,
+        },
+        historyParams,
+        "left",
+        preview,
+      )
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+
+    return () => clearTimeout(timer)
+  }, [state.localPrivateKey, state.peerPublicKey, historyParams, upsertInputEntry])
+
+  React.useEffect(() => {
+    if (hasUrlParams && !hasHandledUrlRef.current) {
+      hasHandledUrlRef.current = true
+      const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+      if (signature.trim()) {
+        const previewBase = state.peerPublicKey || state.localPrivateKey
+        const preview = previewBase ? previewBase.slice(0, 100) : "Key agreement"
+        upsertInputEntry(
+          {
+            localPrivateKey: state.localPrivateKey,
+            peerPublicKey: state.peerPublicKey,
+          },
+          historyParams,
+          "left",
+          preview,
+        )
+      } else {
+        upsertParams(historyParams, "interpretation")
+      }
+    }
+  }, [hasUrlParams, state.localPrivateKey, state.peerPublicKey, historyParams, upsertInputEntry, upsertParams])
+
+  React.useEffect(() => {
+    const nextParams = historyParams
+    if (!hasInitializedParamsRef.current) {
+      hasInitializedParamsRef.current = true
+      paramsRef.current = nextParams
+      return
+    }
+    if (
+      paramsRef.current.algorithm === nextParams.algorithm &&
+      paramsRef.current.ecdhCurve === nextParams.ecdhCurve &&
+      paramsRef.current.localPrivateKey === nextParams.localPrivateKey &&
+      paramsRef.current.peerPublicKey === nextParams.peerPublicKey &&
+      paramsRef.current.outputEncoding === nextParams.outputEncoding &&
+      paramsRef.current.useKdf === nextParams.useKdf &&
+      paramsRef.current.kdfAlgorithm === nextParams.kdfAlgorithm &&
+      paramsRef.current.kdfHash === nextParams.kdfHash &&
+      paramsRef.current.kdfLength === nextParams.kdfLength &&
+      paramsRef.current.kdfSalt === nextParams.kdfSalt &&
+      paramsRef.current.kdfSaltEncoding === nextParams.kdfSaltEncoding &&
+      paramsRef.current.kdfInfo === nextParams.kdfInfo &&
+      paramsRef.current.kdfInfoEncoding === nextParams.kdfInfoEncoding &&
+      paramsRef.current.kdfIterations === nextParams.kdfIterations
+    ) {
+      return
+    }
+    paramsRef.current = nextParams
+    upsertParams(nextParams, "interpretation")
+  }, [historyParams, upsertParams])
+
+  React.useEffect(() => {
+    const privateKeyText = state.localPrivateKey.trim()
+    const peerKeyText = state.peerPublicKey.trim()
+    if (!privateKeyText || !peerKeyText) {
+      setSharedSecret("")
+      setDerivedSecret("")
+      setError(null)
+      setIsWorking(false)
+      return
+    }
+
+    const runId = ++runRef.current
+    setIsWorking(true)
+    setError(null)
+
+    const run = async () => {
+      try {
+        const webCryptoAlgorithm = getWebCryptoAlgorithm(state)
+        if ((webCryptoAlgorithm || state.useKdf) && !globalThis.crypto?.subtle) {
+          throw new Error("Web Crypto is unavailable in this environment.")
+        }
+
+        let sharedBytes: Uint8Array
+
+        if (webCryptoAlgorithm) {
+          const privateKey = await importWebCryptoAgreementKey({ keyText: privateKeyText, algorithm: webCryptoAlgorithm, type: "private" })
+          if (!privateKey) {
+            throw new Error("Invalid private key format. Use PKCS8 PEM or JWK.")
+          }
+          const publicKey = await importWebCryptoAgreementKey({ keyText: peerKeyText, algorithm: webCryptoAlgorithm, type: "public" })
+          if (!publicKey) {
+            throw new Error("Invalid peer public key format. Use SPKI PEM or JWK.")
+          }
+          const bits = getSharedSecretBits(state.algorithm, state.ecdhCurve)
+          const derived = await crypto.subtle.deriveBits(getDeriveParams(publicKey), privateKey, bits)
+          sharedBytes = new Uint8Array(derived)
+        } else if (state.algorithm === "ECDH") {
+          const secretKey = getSecp256k1PrivateKeyBytes(privateKeyText)
+          const publicKey = getSecp256k1PublicKeyBytes(peerKeyText)
+          const shared = secp256k1.getSharedSecret(secretKey, publicKey, true)
+          sharedBytes = shared.slice(1)
+        } else if (state.algorithm === "Schnorr") {
+          const secretKey = getSecp256k1PrivateKeyBytes(privateKeyText)
+          const publicKey = getSchnorrPublicKeyBytes(peerKeyText)
+          const shared = secp256k1.getSharedSecret(secretKey, publicKey, true)
+          sharedBytes = shared.slice(1)
+        } else if (state.algorithm === "X25519") {
+          const secretKey = getOkpPrivateKeyBytes(privateKeyText, "X25519")
+          const publicKey = getOkpPublicKeyBytes(peerKeyText, "X25519")
+          sharedBytes = x25519.getSharedSecret(secretKey, publicKey)
+        } else {
+          const secretKey = getOkpPrivateKeyBytes(privateKeyText, "X448")
+          const publicKey = getOkpPublicKeyBytes(peerKeyText, "X448")
+          sharedBytes = x448.getSharedSecret(secretKey, publicKey)
+        }
+
+        const sharedText = encodeOutputBytes(sharedBytes, state.outputEncoding)
+        const kdfBytes = state.useKdf ? await deriveKdfBytes(sharedBytes, state) : null
+        const derivedText = kdfBytes ? encodeOutputBytes(kdfBytes, state.outputEncoding) : ""
+        if (runRef.current !== runId) return
+        setSharedSecret(sharedText)
+        setDerivedSecret(derivedText)
+        setError(null)
+      } catch (err) {
+        if (runRef.current !== runId) return
+        setError(err instanceof Error ? err.message : "Failed to derive shared secret.")
+        setSharedSecret("")
+        setDerivedSecret("")
+      } finally {
+        if (runRef.current === runId) {
+          setIsWorking(false)
+        }
+      }
+    }
+
+    run()
+  }, [
+    state.algorithm,
+    state.ecdhCurve,
+    state.localPrivateKey,
+    state.peerPublicKey,
+    state.outputEncoding,
+    state.useKdf,
+    state.kdfAlgorithm,
+    state.kdfHash,
+    state.kdfLength,
+    state.kdfSalt,
+    state.kdfSaltEncoding,
+    state.kdfInfo,
+    state.kdfInfoEncoding,
+    state.kdfIterations,
+  ])
+
+  const handleLengthPresetChange = (value: LengthPreset) => {
+    setLengthMode(value)
+    if (value === "256") setParam("kdfLength", 32, true)
+    if (value === "384") setParam("kdfLength", 48, true)
+    if (value === "512") setParam("kdfLength", 64, true)
+  }
+
+  const handleGenerateSalt = () => {
+    try {
+      const bytes = randomBytes(SALT_DEFAULT_LENGTH)
+      const encoded = encodeParamValue(bytes, state.kdfSaltEncoding)
+      setParam("kdfSalt", encoded)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to generate salt.")
+    }
+  }
+
+  const handleGenerateKeypair = async () => {
+    try {
+      setIsGeneratingKeys(true)
+      setError(null)
+      const { privatePem } = await generateKeypair(state)
+      setParam("localPrivateKey", privatePem)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to generate keypair.")
+    } finally {
+      setIsGeneratingKeys(false)
+    }
+  }
+
+  const handleGeneratePeerKey = async () => {
+    try {
+      setIsGeneratingPeerKey(true)
+      setError(null)
+      const { publicPem } = await generateKeypair(state)
+      setParam("peerPublicKey", publicPem)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to generate peer key.")
+    } finally {
+      setIsGeneratingPeerKey(false)
+    }
+  }
+
+  const handleCopy = async (value: string, target: "shared" | "derived") => {
+    if (!value) return
+    await navigator.clipboard.writeText(value)
+    setCopied(target)
+    setTimeout(() => setCopied(null), 2000)
+  }
+
+  const handleDownload = (value: string, name: string) => {
+    if (!value) return
+    const blob = new Blob([value], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = name
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleKeyUploadClick = (type: "localPrivate" | "peerPublic") => {
+    if (type === "localPrivate") {
+      localPrivateKeyRef.current?.click()
+    } else {
+      peerPublicKeyRef.current?.click()
+    }
+  }
+
+  const handleKeyFileUpload = (
+    type: "localPrivate" | "peerPublic",
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (typeof result !== "string") return
+      if (type === "localPrivate") {
+        setParam("localPrivateKey", result)
+      } else {
+        setParam("peerPublicKey", result)
+      }
+    }
+    reader.readAsText(file)
+  }
+
+  const handleClearAll = React.useCallback(() => {
+    runRef.current += 1
+    resetToDefaults()
+    setSharedSecret("")
+    setDerivedSecret("")
+    setError(null)
+    setIsWorking(false)
+    setCopied(null)
+  }, [resetToDefaults])
+
+  const localKeyHint = React.useMemo(() => {
+    if (state.algorithm === "ECDH") {
+      return state.ecdhCurve === "secp256k1" ? "JWK (EC secp256k1)" : "PEM (PKCS8) or JWK (EC)"
+    }
+    if (state.algorithm === "Schnorr") {
+      return "JWK (EC secp256k1)"
+    }
+    return state.algorithm === "X448" ? "JWK (OKP X448)" : "JWK (OKP X25519)"
+  }, [state.algorithm, state.ecdhCurve])
+
+  const peerPublicHint = React.useMemo(() => {
+    if (state.algorithm === "ECDH") {
+      return state.ecdhCurve === "secp256k1" ? "JWK (EC secp256k1)" : "PEM (SPKI) or JWK (EC)"
+    }
+    if (state.algorithm === "Schnorr") {
+      return "JWK (EC secp256k1, x-only ok)"
+    }
+    return state.algorithm === "X448" ? "JWK (OKP X448)" : "JWK (OKP X25519)"
+  }, [state.algorithm, state.ecdhCurve])
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-semibold">Key Agreement</h2>
+        <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
+          Clear
+        </Button>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <Label className="w-24 text-sm sm:w-32">Algorithm</Label>
+            <Tabs
+              value={state.algorithm}
+              onValueChange={(value) => setParam("algorithm", value as AgreementAlgorithm, true)}
+              className="min-w-0 flex-1"
+            >
+              <ScrollableTabsList>
+                {algorithmValues.map((value) => (
+                  <TabsTrigger key={value} value={value} className="text-xs">
+                    {value}
+                  </TabsTrigger>
+                ))}
+              </ScrollableTabsList>
+            </Tabs>
+          </div>
+
+          {state.algorithm === "ECDH" && (
+            <div className="flex items-center gap-3">
+              <Label className="w-24 text-sm sm:w-32">Curve</Label>
+              <Tabs
+                value={state.ecdhCurve}
+                onValueChange={(value) => setParam("ecdhCurve", value as EcdhCurve, true)}
+              >
+                <TabsList className="h-8">
+                  {ecdhCurves.map((curve) => (
+                    <TabsTrigger key={curve} value={curve} className="text-xs">
+                      {curve}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+          {state.algorithm === "Schnorr" && (
+            <div className="flex items-center gap-3">
+              <Label className="w-24 text-sm sm:w-32">Curve</Label>
+              <span className="text-sm font-medium">secp256k1</span>
+            </div>
+          )}
+
+          <div className="flex items-start gap-3">
+            <Label className="w-24 text-sm sm:w-32 pt-2">Local Private Key</Label>
+            <div className="min-w-0 flex-1">
+              <Textarea
+                value={state.localPrivateKey}
+                onChange={(event) => setParam("localPrivateKey", event.target.value)}
+                placeholder="-----BEGIN PRIVATE KEY-----"
+                className={cn(
+                  "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
+                  oversizeKeys.includes("localPrivateKey") && "border-destructive",
+                )}
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">{localKeyHint}</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleKeyUploadClick("localPrivate")}
+                    className="h-7 gap-1 px-2 text-xs"
+                  >
+                    <Upload className="h-3 w-3" />
+                    Upload
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateKeypair}
+                    className="h-7 gap-1 px-2 text-xs"
+                    disabled={isGeneratingKeys}
+                  >
+                    <RefreshCcw className="h-3 w-3" />
+                    {isGeneratingKeys ? "Generating..." : "Generate"}
+                  </Button>
+                </div>
+              </div>
+              {oversizeKeys.includes("localPrivateKey") && (
+                <p className="text-xs text-muted-foreground">Private key exceeds 2 KB and is not synced to the URL.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <Label className="w-24 text-sm sm:w-32 pt-2">Peer Public Key</Label>
+            <div className="min-w-0 flex-1">
+              <Textarea
+                value={state.peerPublicKey}
+                onChange={(event) => setParam("peerPublicKey", event.target.value)}
+                placeholder="-----BEGIN PUBLIC KEY-----"
+                className={cn(
+                  "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
+                  oversizeKeys.includes("peerPublicKey") && "border-destructive",
+                )}
+              />
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">{peerPublicHint}</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleKeyUploadClick("peerPublic")}
+                    className="h-7 gap-1 px-2 text-xs"
+                  >
+                    <Upload className="h-3 w-3" />
+                    Upload
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGeneratePeerKey}
+                    className="h-7 gap-1 px-2 text-xs"
+                    disabled={isGeneratingPeerKey}
+                  >
+                    <RefreshCcw className="h-3 w-3" />
+                    {isGeneratingPeerKey ? "Generating..." : "Generate"}
+                  </Button>
+                </div>
+              </div>
+              {oversizeKeys.includes("peerPublicKey") && (
+                <p className="text-xs text-muted-foreground">Peer key exceeds 2 KB and is not synced to the URL.</p>
+              )}
+            </div>
+          </div>
+
+          <input
+            ref={localPrivateKeyRef}
+            type="file"
+            onChange={(event) => handleKeyFileUpload("localPrivate", event)}
+            className="hidden"
+          />
+          <input
+            ref={peerPublicKeyRef}
+            type="file"
+            onChange={(event) => handleKeyFileUpload("peerPublic", event)}
+            className="hidden"
+          />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm">Shared Secret</Label>
+              <Tabs
+                value={state.outputEncoding}
+                onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {outputEncodings.map((encoding) => (
+                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
+                      {encodingLabels[encoding]}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopy(sharedSecret, "shared")}
+                  className="h-7 w-7 p-0"
+                  aria-label="Copy shared secret"
+                  disabled={!sharedSecret}
+                >
+                  {copied === "shared" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDownload(sharedSecret, "key-agreement-shared.txt")}
+                  className="h-7 w-7 p-0"
+                  aria-label="Download shared secret"
+                  disabled={!sharedSecret}
+                >
+                  <Download className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+            <Textarea
+              value={sharedSecret}
+              readOnly
+              placeholder="Shared secret will appear here..."
+              className="min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs"
+            />
+          </div>
+
+          <div className="rounded-md border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="use-kdf"
+                  checked={state.useKdf}
+                  onCheckedChange={(value) => setParam("useKdf", Boolean(value), true)}
+                />
+                <Label htmlFor="use-kdf" className="text-sm">
+                  Use KDF
+                </Label>
+              </div>
+              <span className="text-xs text-muted-foreground">Derive a final key from the shared secret.</span>
+            </div>
+
+            {state.useKdf && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 text-sm sm:w-32">Algorithm</Label>
+                  <Tabs
+                    value={state.kdfAlgorithm}
+                    onValueChange={(value) => setParam("kdfAlgorithm", value as KdfAlgorithm, true)}
+                  >
+                    <TabsList className="h-8">
+                      {kdfAlgorithms.map((alg) => (
+                        <TabsTrigger key={alg} value={alg} className="text-xs">
+                          {alg}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 text-sm sm:w-32">Hash</Label>
+                  <Tabs value={state.kdfHash} onValueChange={(value) => setParam("kdfHash", value as KdfHash, true)}>
+                    <ScrollableTabsList>
+                      {kdfHashes.map((hash) => (
+                        <TabsTrigger key={hash} value={hash} className="text-xs">
+                          {hash}
+                        </TabsTrigger>
+                      ))}
+                    </ScrollableTabsList>
+                  </Tabs>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 text-sm sm:w-32">Length</Label>
+                  <Tabs value={lengthMode} onValueChange={(value) => handleLengthPresetChange(value as LengthPreset)}>
+                    <TabsList className="h-8">
+                      <TabsTrigger value="256" className="text-xs">
+                        256-bit
+                      </TabsTrigger>
+                      <TabsTrigger value="384" className="text-xs">
+                        384-bit
+                      </TabsTrigger>
+                      <TabsTrigger value="512" className="text-xs">
+                        512-bit
+                      </TabsTrigger>
+                      <TabsTrigger value="custom" className="text-xs">
+                        Custom
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                {lengthMode === "custom" && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 sm:w-32" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Slider
+                        value={[state.kdfLength]}
+                        min={1}
+                        max={maxKdfLength}
+                        step={1}
+                        onValueChange={(value) => setParam("kdfLength", value[0] ?? 1, true)}
+                      />
+                      <p className="text-xs text-muted-foreground">{state.kdfLength * 8} bits</p>
+                    </div>
+                  </div>
+                )}
+                {state.kdfAlgorithm === "PBKDF2" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-24 text-sm sm:w-32">Iterations</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={10000000}
+                      value={state.kdfIterations}
+                      onChange={(event) => {
+                        const value = Number.parseInt(event.target.value, 10)
+                        setParam("kdfIterations", Number.isNaN(value) ? 100000 : value, true)
+                      }}
+                      className="h-9 w-32"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <Label className="w-24 text-sm sm:w-32">Salt</Label>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <Tabs
+                      value={state.kdfSaltEncoding}
+                      onValueChange={(value) => setParam("kdfSaltEncoding", value as ParamEncoding, true)}
+                    >
+                      <TabsList className="h-7">
+                        {paramEncodings.map((encoding) => (
+                          <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                            {encodingLabels[encoding]}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                    <div className="relative">
+                      <Input
+                        value={state.kdfSalt}
+                        onChange={(event) => setParam("kdfSalt", event.target.value)}
+                        placeholder="Enter salt..."
+                        className={cn(
+                          "h-9 pr-10 font-mono text-xs",
+                          oversizeKeys.includes("kdfSalt") && "border-destructive",
+                        )}
+                      />
+                      <div className="absolute right-1 top-1/2 -translate-y-1/2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGenerateSalt}
+                          className="h-7 w-7 p-0"
+                          aria-label="Generate salt"
+                        >
+                          <RefreshCcw className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {state.kdfAlgorithm === "HKDF" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-24 text-sm sm:w-32">Info</Label>
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <Tabs
+                        value={state.kdfInfoEncoding}
+                        onValueChange={(value) => setParam("kdfInfoEncoding", value as ParamEncoding, true)}
+                      >
+                        <TabsList className="h-7">
+                          {paramEncodings.map((encoding) => (
+                            <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                              {encodingLabels[encoding]}
+                            </TabsTrigger>
+                          ))}
+                        </TabsList>
+                      </Tabs>
+                      <Input
+                        value={state.kdfInfo}
+                        onChange={(event) => setParam("kdfInfo", event.target.value)}
+                        placeholder="Enter info..."
+                        className={cn("h-9 font-mono text-xs", oversizeKeys.includes("kdfInfo") && "border-destructive")}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {state.useKdf && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Label className="text-sm">Derived Key</Label>
+                <div className="ml-auto flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(derivedSecret, "derived")}
+                    className="h-7 w-7 p-0"
+                    aria-label="Copy derived key"
+                    disabled={!derivedSecret}
+                  >
+                    {copied === "derived" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(derivedSecret, "key-agreement-derived.txt")}
+                    className="h-7 w-7 p-0"
+                    aria-label="Download derived key"
+                    disabled={!derivedSecret}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                value={derivedSecret}
+                readOnly
+                placeholder="Derived key will appear here..."
+                className="min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs"
+              />
+            </div>
+          )}
+
+          {isWorking && <p className="text-xs text-muted-foreground">Deriving shared secret...</p>}
+          {error && (
+            <Alert variant="destructive" className="py-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-xs">{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}

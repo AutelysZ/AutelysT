@@ -5,13 +5,13 @@ Generate cryptographic digests from text or uploaded files with support for MD, 
 ## Features
 - Text input with UTF-8, Base64, or Hex decoding
 - File upload with hashing of raw bytes
-- Searchable algorithm selector
+- Algorithm families with tabbed selection
 - Digest output in hex, base64, or base64url
 - Copy digest output
 - URL-synced inputs and history tracking
 
 ## Parameters
-- Algorithm selection
+- Algorithm family and selection
 - Input encoding
 - Digest encoding
 - Input text

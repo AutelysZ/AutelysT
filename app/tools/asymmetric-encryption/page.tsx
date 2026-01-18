@@ -547,18 +547,14 @@ function AsymmetricEncryptionInner({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 overflow-x-hidden">
           <div className="flex items-center gap-3">
             <Label className="w-20 text-sm sm:w-28">Algorithm</Label>
             <span className="text-sm font-medium">RSA-OAEP</span>
           </div>
           <div className="flex items-center gap-3">
             <Label className="w-20 text-sm sm:w-28">Hash</Label>
-            <Tabs
-              value={state.rsaHash}
-              onValueChange={(value) => setParam("rsaHash", value as RsaHash, true)}
-              className="min-w-0 flex-1"
-            >
+            <Tabs value={state.rsaHash} onValueChange={(value) => setParam("rsaHash", value as RsaHash, true)}>
               <ScrollableTabsList>
                 {rsaHashes.map((hash) => (
                   <TabsTrigger key={hash} value={hash} className="text-xs">

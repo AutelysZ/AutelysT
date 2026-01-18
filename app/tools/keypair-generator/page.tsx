@@ -4,15 +4,22 @@ import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
 import { Check, Copy, Download, FileDown } from "lucide-react"
+import { secp256k1, schnorr as schnorrCurve } from "@noble/curves/secp256k1.js"
+import { p256, p384, p521 } from "@noble/curves/nist.js"
+import { ed25519, x25519 } from "@noble/curves/ed25519.js"
+import { ed448, x448 } from "@noble/curves/ed448.js"
+import { brainpoolP256r1, brainpoolP384r1, brainpoolP512r1 } from "@noble/curves/misc.js"
+import type { ECDSA } from "@noble/curves/abstract/weierstrass.js"
+import type { EdDSA } from "@noble/curves/abstract/edwards.js"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { encodeBase64 } from "@/lib/encoding/base64"
 import type { HistoryEntry } from "@/lib/history/db"
 
 const algorithmValues = [
@@ -21,18 +28,75 @@ const algorithmValues = [
   "RSA-OAEP",
   "ECDSA",
   "ECDH",
+  "Schnorr",
   "Ed25519",
   "Ed448",
   "X25519",
   "X448",
 ] as const
 
+const algorithmFamilies = {
+  rsa: ["RSA-PSS", "RSASSA-PKCS1-v1_5", "RSA-OAEP"],
+  ec: ["ECDSA", "ECDH", "Schnorr"],
+  okp: ["Ed25519", "Ed448", "X25519", "X448"],
+} as const
+
+type AlgorithmFamily = keyof typeof algorithmFamilies
+
 const hashValues = ["SHA-1", "SHA-256", "SHA-384", "SHA-512"] as const
-const curveValues = ["P-256", "P-384", "P-521"] as const
+const curveValues = [
+  "P-256",
+  "P-384",
+  "P-521",
+  "secp256k1",
+  "brainpoolP256r1",
+  "brainpoolP384r1",
+  "brainpoolP512r1",
+] as const
 
 type KeypairAlgorithm = (typeof algorithmValues)[number]
 type HashAlgorithm = (typeof hashValues)[number]
 type NamedCurve = (typeof curveValues)[number]
+type OkpCurve = "Ed25519" | "Ed448" | "X25519" | "X448"
+
+const algorithmFamilyLabels: Record<AlgorithmFamily, string> = {
+  rsa: "RSA",
+  ec: "EC",
+  okp: "OKP",
+}
+
+const algorithmFamilyMap: Record<KeypairAlgorithm, AlgorithmFamily> = {
+  "RSA-PSS": "rsa",
+  "RSASSA-PKCS1-v1_5": "rsa",
+  "RSA-OAEP": "rsa",
+  ECDSA: "ec",
+  ECDH: "ec",
+  Schnorr: "ec",
+  Ed25519: "okp",
+  Ed448: "okp",
+  X25519: "okp",
+  X448: "okp",
+}
+
+const ecCurveMap: Record<NamedCurve, ECDSA> = {
+  secp256k1,
+  "P-256": p256,
+  "P-384": p384,
+  "P-521": p521,
+  brainpoolP256r1,
+  brainpoolP384r1,
+  brainpoolP512r1,
+}
+
+const edCurveMap: Record<"Ed25519" | "Ed448", EdDSA> = {
+  Ed25519: ed25519,
+  Ed448: ed448,
+}
+
+const xCurveMap = {
+  X25519: x25519,
+  X448: x448,
+} as const
 
 const paramsSchema = z.object({
   algorithm: z.enum(algorithmValues).default("RSA-PSS"),
@@ -58,6 +122,7 @@ type KeypairState = z.infer<typeof paramsSchema>
 
 const rsaAlgorithms = new Set<KeypairAlgorithm>(["RSA-PSS", "RSASSA-PKCS1-v1_5", "RSA-OAEP"])
 const ecAlgorithms = new Set<KeypairAlgorithm>(["ECDSA", "ECDH"])
+const schnorrAlgorithms = new Set<KeypairAlgorithm>(["Schnorr"])
 const edAlgorithms = new Set<KeypairAlgorithm>(["Ed25519", "Ed448"])
 const xAlgorithms = new Set<KeypairAlgorithm>(["X25519", "X448"])
 
@@ -100,6 +165,7 @@ const usageByAlgorithm: Record<KeypairAlgorithm, UsageKey[]> = {
   "RSA-OAEP": ["encrypt", "decrypt", "wrapKey", "unwrapKey"],
   ECDSA: ["sign", "verify"],
   ECDH: ["deriveKey", "deriveBits"],
+  Schnorr: ["sign", "verify"],
   Ed25519: ["sign", "verify"],
   Ed448: ["sign", "verify"],
   X25519: ["deriveKey", "deriveBits"],
@@ -112,6 +178,7 @@ const defaultUsageByAlgorithm: Record<KeypairAlgorithm, UsageKey[]> = {
   "RSA-OAEP": ["encrypt", "decrypt"],
   ECDSA: ["sign", "verify"],
   ECDH: ["deriveKey", "deriveBits"],
+  Schnorr: ["sign", "verify"],
   Ed25519: ["sign", "verify"],
   Ed448: ["sign", "verify"],
   X25519: ["deriveKey", "deriveBits"],
@@ -144,6 +211,87 @@ function parseExponent(value: string) {
     remaining = Math.floor(remaining / 256)
   }
   return new Uint8Array(bytes)
+}
+
+function encodeBase64Url(bytes: Uint8Array) {
+  return encodeBase64(bytes, { urlSafe: true, padding: false })
+}
+
+function createEcJwk(curve: NamedCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
+  const coordLength = (publicKey.length - 1) / 2
+  const x = publicKey.slice(1, 1 + coordLength)
+  const y = publicKey.slice(1 + coordLength)
+  const jwk: JsonWebKey = {
+    kty: "EC",
+    crv: curve,
+    x: encodeBase64Url(x),
+    y: encodeBase64Url(y),
+  }
+  if (privateKey) {
+    jwk.d = encodeBase64Url(privateKey)
+  }
+  return jwk
+}
+
+function createOkpJwk(curve: OkpCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
+  const jwk: JsonWebKey = {
+    kty: "OKP",
+    crv: curve,
+    x: encodeBase64Url(publicKey),
+  }
+  if (privateKey) {
+    jwk.d = encodeBase64Url(privateKey)
+  }
+  return jwk
+}
+
+function supportsPemForCurve(curve: NamedCurve) {
+  return curve === "P-256" || curve === "P-384" || curve === "P-521"
+}
+
+async function tryExportPemFromJwk({
+  jwk,
+  algorithm,
+  format,
+  usages,
+}: {
+  jwk: JsonWebKey
+  algorithm: EcKeyImportParams | AlgorithmIdentifier
+  format: "public" | "private"
+  usages: KeyUsage[]
+}) {
+  if (!globalThis.crypto?.subtle) return ""
+  try {
+    const key = await crypto.subtle.importKey("jwk", jwk, algorithm, true, usages)
+    const exported = await crypto.subtle.exportKey(format === "public" ? "spki" : "pkcs8", key)
+    return toPem(exported, format === "public" ? "PUBLIC KEY" : "PRIVATE KEY")
+  } catch {
+    return ""
+  }
+}
+
+function getAlgorithmFamily(algorithm: KeypairAlgorithm) {
+  return algorithmFamilyMap[algorithm]
+}
+
+function getPublicUsagesForAlgorithm(algorithm: KeypairAlgorithm): KeyUsage[] {
+  if (algorithm === "RSA-OAEP") return ["encrypt", "wrapKey"]
+  if (algorithm === "ECDH" || algorithm === "X25519" || algorithm === "X448") return []
+  return ["verify"]
+}
+
+function getPrivateUsagesForAlgorithm(algorithm: KeypairAlgorithm): KeyUsage[] {
+  if (algorithm === "RSA-OAEP") return ["decrypt", "unwrapKey"]
+  if (algorithm === "ECDH" || algorithm === "X25519" || algorithm === "X448") return ["deriveKey", "deriveBits"]
+  return ["sign"]
+}
+
+function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-full min-w-0 overflow-x-auto">
+      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    </div>
+  )
 }
 
 export default function KeypairGeneratorPage() {
@@ -191,7 +339,7 @@ function KeypairGeneratorContent() {
     <ToolPageWrapper
       toolId="keypair-generator"
       title="Keypair Generator"
-      description="Generate public/private keypairs with Web Crypto parameters and export PEM or JWK formats."
+      description="Generate RSA, EC, and OKP keypairs with usage controls and PEM/JWK export."
       onLoadHistory={handleLoadHistory}
     >
       <KeypairGeneratorInner
@@ -319,13 +467,17 @@ function KeypairGeneratorInner({
   }, [])
 
   const handleDownloadAll = React.useCallback(async () => {
-    if (!state.publicPem || !state.privatePem || !state.publicJwk || !state.privateJwk) return
+    if (!state.publicJwk || !state.privateJwk) return
     try {
       const { default: JSZip } = await import("jszip")
       const zip = new JSZip()
       const baseName = `keypair-${slugify(state.algorithm)}`
-      zip.file(`${baseName}-public.pem`, state.publicPem)
-      zip.file(`${baseName}-private.pem`, state.privatePem)
+      if (state.publicPem) {
+        zip.file(`${baseName}-public.pem`, state.publicPem)
+      }
+      if (state.privatePem) {
+        zip.file(`${baseName}-private.pem`, state.privatePem)
+      }
       zip.file(`${baseName}-public.jwk.json`, state.publicJwk)
       zip.file(`${baseName}-private.jwk.json`, state.privateJwk)
       const blob = await zip.generateAsync({ type: "blob" })
@@ -342,11 +494,6 @@ function KeypairGeneratorInner({
 
   const handleGenerate = React.useCallback(async () => {
     setStatus(null)
-
-    if (!globalThis.crypto?.subtle) {
-      setStatus("Web Crypto is unavailable in this browser.")
-      return
-    }
 
     const allowed = usageByAlgorithm[state.algorithm]
     const selected = allowed.filter((usage) => state[usageKeyMap[usage]])
@@ -367,40 +514,126 @@ function KeypairGeneratorInner({
       }
     }
 
+    if (rsaAlgorithms.has(state.algorithm) && !globalThis.crypto?.subtle) {
+      setStatus("Web Crypto is unavailable in this browser.")
+      return
+    }
+
     setIsGenerating(true)
 
     try {
-      let algorithm: RsaHashedKeyGenParams | EcKeyGenParams | AlgorithmIdentifier
+      let publicPem = ""
+      let privatePem = ""
+      let publicJwk = ""
+      let privateJwk = ""
+
       if (rsaAlgorithms.has(state.algorithm)) {
         const exponent = parseExponent(state.rsaPublicExponent)!
-        algorithm = {
+        const algorithm = {
           name: state.algorithm,
           modulusLength: state.rsaModulusLength,
           publicExponent: exponent,
           hash: { name: state.rsaHash },
         } as RsaHashedKeyGenParams
-      } else if (ecAlgorithms.has(state.algorithm)) {
-        algorithm = { name: state.algorithm, namedCurve: state.namedCurve } as EcKeyGenParams
-      } else if (edAlgorithms.has(state.algorithm) || xAlgorithms.has(state.algorithm)) {
-        algorithm = { name: state.algorithm }
+
+        const keyPair = (await crypto.subtle.generateKey(algorithm, true, selected)) as CryptoKeyPair
+        const publicSpki = await crypto.subtle.exportKey("spki", keyPair.publicKey)
+        const privatePkcs8 = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+        publicPem = toPem(publicSpki, "PUBLIC KEY")
+        privatePem = toPem(privatePkcs8, "PRIVATE KEY")
+        publicJwk = JSON.stringify(await crypto.subtle.exportKey("jwk", keyPair.publicKey), null, 2)
+        privateJwk = JSON.stringify(await crypto.subtle.exportKey("jwk", keyPair.privateKey), null, 2)
       } else {
-        setStatus("Unsupported algorithm.")
-        return
+        let publicJwkObject: JsonWebKey | null = null
+        let privateJwkObject: JsonWebKey | null = null
+
+        if (ecAlgorithms.has(state.algorithm)) {
+          const curve = ecCurveMap[state.namedCurve]
+          const { secretKey } = curve.keygen()
+          const publicKey = curve.getPublicKey(secretKey, false)
+          publicJwkObject = createEcJwk(state.namedCurve, publicKey)
+          privateJwkObject = createEcJwk(state.namedCurve, publicKey, secretKey)
+
+          if (supportsPemForCurve(state.namedCurve)) {
+            const importAlgorithm = {
+              name: state.algorithm,
+              namedCurve: state.namedCurve,
+            } as EcKeyImportParams
+            const publicUsages = getPublicUsagesForAlgorithm(state.algorithm)
+            const privateUsages = getPrivateUsagesForAlgorithm(state.algorithm)
+            publicPem = await tryExportPemFromJwk({
+              jwk: publicJwkObject,
+              algorithm: importAlgorithm,
+              format: "public",
+              usages: publicUsages,
+            })
+            privatePem = await tryExportPemFromJwk({
+              jwk: privateJwkObject,
+              algorithm: importAlgorithm,
+              format: "private",
+              usages: privateUsages,
+            })
+          }
+        } else if (schnorrAlgorithms.has(state.algorithm)) {
+          const { secretKey } = schnorrCurve.keygen()
+          const publicKey = secp256k1.getPublicKey(secretKey, false)
+          publicJwkObject = createEcJwk("secp256k1", publicKey)
+          privateJwkObject = createEcJwk("secp256k1", publicKey, secretKey)
+        } else if (edAlgorithms.has(state.algorithm)) {
+          const curve = edCurveMap[state.algorithm as "Ed25519" | "Ed448"]
+          const { secretKey, publicKey } = curve.keygen()
+          publicJwkObject = createOkpJwk(state.algorithm as OkpCurve, publicKey)
+          privateJwkObject = createOkpJwk(state.algorithm as OkpCurve, publicKey, secretKey)
+
+          const importAlgorithm = { name: state.algorithm } as AlgorithmIdentifier
+          const publicUsages = getPublicUsagesForAlgorithm(state.algorithm)
+          const privateUsages = getPrivateUsagesForAlgorithm(state.algorithm)
+          publicPem = await tryExportPemFromJwk({
+            jwk: publicJwkObject,
+            algorithm: importAlgorithm,
+            format: "public",
+            usages: publicUsages,
+          })
+          privatePem = await tryExportPemFromJwk({
+            jwk: privateJwkObject,
+            algorithm: importAlgorithm,
+            format: "private",
+            usages: privateUsages,
+          })
+        } else if (xAlgorithms.has(state.algorithm)) {
+          const curve = xCurveMap[state.algorithm as "X25519" | "X448"]
+          const { secretKey, publicKey } = curve.keygen()
+          publicJwkObject = createOkpJwk(state.algorithm as OkpCurve, publicKey)
+          privateJwkObject = createOkpJwk(state.algorithm as OkpCurve, publicKey, secretKey)
+
+          const importAlgorithm = { name: state.algorithm } as AlgorithmIdentifier
+          const publicUsages = getPublicUsagesForAlgorithm(state.algorithm)
+          const privateUsages = getPrivateUsagesForAlgorithm(state.algorithm)
+          publicPem = await tryExportPemFromJwk({
+            jwk: publicJwkObject,
+            algorithm: importAlgorithm,
+            format: "public",
+            usages: publicUsages,
+          })
+          privatePem = await tryExportPemFromJwk({
+            jwk: privateJwkObject,
+            algorithm: importAlgorithm,
+            format: "private",
+            usages: privateUsages,
+          })
+        } else {
+          setStatus("Unsupported algorithm.")
+          return
+        }
+
+        if (!publicJwkObject || !privateJwkObject) {
+          setStatus("Failed to generate keypair.")
+          return
+        }
+
+        publicJwk = JSON.stringify(publicJwkObject, null, 2)
+        privateJwk = JSON.stringify(privateJwkObject, null, 2)
       }
-
-      const keyPair = (await crypto.subtle.generateKey(
-        algorithm,
-        true,
-        selected,
-      )) as CryptoKeyPair
-
-      const publicSpki = await crypto.subtle.exportKey("spki", keyPair.publicKey)
-      const privatePkcs8 = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
-      const publicPem = toPem(publicSpki, "PUBLIC KEY")
-      const privatePem = toPem(privatePkcs8, "PRIVATE KEY")
-
-      const publicJwk = JSON.stringify(await crypto.subtle.exportKey("jwk", keyPair.publicKey), null, 2)
-      const privateJwk = JSON.stringify(await crypto.subtle.exportKey("jwk", keyPair.privateKey), null, 2)
 
       setState(
         (prev) => ({
@@ -430,12 +663,28 @@ function KeypairGeneratorInner({
 
   const isRsa = rsaAlgorithms.has(state.algorithm)
   const isEc = ecAlgorithms.has(state.algorithm)
+  const isPemSupported = isRsa || (isEc && supportsPemForCurve(state.namedCurve))
+  const algorithmFamily = getAlgorithmFamily(state.algorithm)
+  const activeAlgorithms = algorithmFamilies[algorithmFamily]
   const allowedUsages = usageByAlgorithm[state.algorithm]
 
   const publicValue = publicView === "pem" ? state.publicPem : state.publicJwk
   const privateValue = privateView === "pem" ? state.privatePem : state.privateJwk
   const publicName = `keypair-${slugify(state.algorithm)}-public.${publicView === "pem" ? "pem" : "jwk.json"}`
   const privateName = `keypair-${slugify(state.algorithm)}-private.${privateView === "pem" ? "pem" : "jwk.json"}`
+  const publicPemPlaceholder = isPemSupported
+    ? "Generate a keypair to see the public PEM."
+    : "PEM export is unavailable for this algorithm."
+  const privatePemPlaceholder = isPemSupported
+    ? "Generate a keypair to see the private PEM."
+    : "PEM export is unavailable for this algorithm."
+
+  React.useEffect(() => {
+    if (!isPemSupported) {
+      setPublicView("jwk")
+      setPrivateView("jwk")
+    }
+  }, [isPemSupported])
 
   return (
     <div className="flex w-full flex-col gap-4 py-4 sm:gap-6 sm:py-6">
@@ -445,24 +694,39 @@ function KeypairGeneratorInner({
             <h2 className="text-base font-semibold">Keypair Settings</h2>
           </div>
           <div className="space-y-4 sm:space-y-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-start gap-3">
               <Label className="w-28 shrink-0 text-sm">Algorithm</Label>
-              <div className="min-w-0 flex-1">
-                <Select
+              <div className="min-w-0 flex-1 space-y-2">
+                <Tabs
+                  value={algorithmFamily}
+                  onValueChange={(value) => {
+                    const family = value as AlgorithmFamily
+                    const next = algorithmFamilies[family][0] as KeypairAlgorithm
+                    if (state.algorithm !== next) {
+                      setParam("algorithm", next, true)
+                    }
+                  }}
+                >
+                  <ScrollableTabsList>
+                    {(Object.keys(algorithmFamilies) as AlgorithmFamily[]).map((family) => (
+                      <TabsTrigger key={family} value={family} className="text-xs">
+                        {algorithmFamilyLabels[family]}
+                      </TabsTrigger>
+                    ))}
+                  </ScrollableTabsList>
+                </Tabs>
+                <Tabs
                   value={state.algorithm}
                   onValueChange={(value) => setParam("algorithm", value as KeypairAlgorithm, true)}
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {algorithmValues.map((alg) => (
-                      <SelectItem key={alg} value={alg}>
+                  <ScrollableTabsList>
+                    {activeAlgorithms.map((alg) => (
+                      <TabsTrigger key={alg} value={alg} className="text-xs">
                         {alg}
-                      </SelectItem>
+                      </TabsTrigger>
                     ))}
-                  </SelectContent>
-                </Select>
+                  </ScrollableTabsList>
+                </Tabs>
               </div>
             </div>
 
@@ -512,23 +776,19 @@ function KeypairGeneratorInner({
                     </div>
                     <div className="flex items-center gap-3">
                       <Label className="w-28 shrink-0 text-xs text-muted-foreground">Hash</Label>
-                      <div className="min-w-0 flex-1">
-                        <Select
-                          value={state.rsaHash}
-                          onValueChange={(value) => setParam("rsaHash", value as HashAlgorithm, true)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {hashValues.map((hash) => (
-                              <SelectItem key={hash} value={hash}>
-                                {hash}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <Tabs
+                        value={state.rsaHash}
+                        onValueChange={(value) => setParam("rsaHash", value as HashAlgorithm, true)}
+                        className="min-w-0 flex-1"
+                      >
+                        <ScrollableTabsList>
+                          {hashValues.map((hash) => (
+                            <TabsTrigger key={hash} value={hash} className="text-xs">
+                              {hash}
+                            </TabsTrigger>
+                          ))}
+                        </ScrollableTabsList>
+                      </Tabs>
                     </div>
                   </div>
                 )}
@@ -536,23 +796,19 @@ function KeypairGeneratorInner({
                   <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
                     <div className="flex items-center gap-3">
                       <Label className="w-28 shrink-0 text-xs text-muted-foreground">Named Curve</Label>
-                      <div className="min-w-0 flex-1">
-                        <Select
-                          value={state.namedCurve}
-                          onValueChange={(value) => setParam("namedCurve", value as NamedCurve, true)}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {curveValues.map((curve) => (
-                              <SelectItem key={curve} value={curve}>
-                                {curve}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                      <Tabs
+                        value={state.namedCurve}
+                        onValueChange={(value) => setParam("namedCurve", value as NamedCurve, true)}
+                        className="min-w-0 flex-1"
+                      >
+                        <ScrollableTabsList>
+                          {curveValues.map((curve) => (
+                            <TabsTrigger key={curve} value={curve} className="text-xs">
+                              {curve}
+                            </TabsTrigger>
+                          ))}
+                        </ScrollableTabsList>
+                      </Tabs>
                     </div>
                   </div>
                 )}
@@ -575,7 +831,7 @@ function KeypairGeneratorInner({
               variant="outline"
               size="sm"
               onClick={handleDownloadAll}
-              disabled={!state.publicPem || !state.privatePem || !state.publicJwk || !state.privateJwk}
+              disabled={!state.publicJwk || !state.privateJwk}
             >
               <FileDown className="h-4 w-4" />
               Download All
@@ -617,7 +873,7 @@ function KeypairGeneratorInner({
                   <Textarea
                     readOnly
                     value={state.publicPem}
-                    placeholder="Generate a keypair to see the public PEM."
+                    placeholder={publicPemPlaceholder}
                     className="min-h-[220px] font-mono text-xs break-all"
                   />
                 </TabsContent>
@@ -667,7 +923,7 @@ function KeypairGeneratorInner({
                   <Textarea
                     readOnly
                     value={state.privatePem}
-                    placeholder="Generate a keypair to see the private PEM."
+                    placeholder={privatePemPlaceholder}
                     className="min-h-[220px] font-mono text-xs break-all"
                   />
                 </TabsContent>

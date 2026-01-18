@@ -56,6 +56,11 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
     onNavigate?.()
   }, [onNavigate])
 
+  const slugify = React.useCallback(
+    (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
+    [],
+  )
+
   return (
     <aside className={cn("flex h-full min-h-0 w-64 flex-col overflow-hidden border-r border-border bg-sidebar", className)}>
       <div className="shrink-0 flex items-center justify-between border-b border-border p-4">
@@ -149,58 +154,61 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
             )}
 
             {/* Categories */}
-            {Object.entries(groupedTools).map(([category, categoryTools]) => (
-              <Collapsible
-                key={category}
-                open={expandedCategories[category] ?? false}
-                onOpenChange={() => toggleCategory(category)}
-                className="py-1"
-              >
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    {expandedCategories[category] ? (
-                      <ChevronDown className="h-3 w-3" />
-                    ) : (
-                      <ChevronRight className="h-3 w-3" />
-                    )}
-                    {category}
-                    <span className="ml-auto text-xs opacity-50">{categoryTools.length}</span>
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-0.5 pl-2">
-                  {categoryTools.map((tool) => (
-                    <div key={tool.id} className="group relative">
-                      <Link
-                        href={tool.route}
-                        className={cn(
-                          "flex items-center rounded-md px-2 py-1.5 pr-8 text-sm transition-colors",
-                          pathname === tool.route
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                        )}
-                        onClick={handleNavigate}
-                      >
-                        {tool.name}
-                      </Link>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 group-hover:opacity-100"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          toggleFavorite(tool.id)
-                        }}
-                      >
-                        <Star className={cn("h-3 w-3", isFavorite(tool.id) && "fill-current")} />
-                      </Button>
-                    </div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
-            ))}
+            {Object.entries(groupedTools).map(([category, categoryTools]) => {
+              const contentId = `sidebar-${slugify(category)}`
+              return (
+                <Collapsible
+                  key={category}
+                  open={expandedCategories[category] ?? false}
+                  onOpenChange={() => toggleCategory(category)}
+                  className="py-1"
+                >
+                  <CollapsibleTrigger asChild aria-controls={contentId}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-1 px-2 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                    >
+                      {expandedCategories[category] ? (
+                        <ChevronDown className="h-3 w-3" />
+                      ) : (
+                        <ChevronRight className="h-3 w-3" />
+                      )}
+                      {category}
+                      <span className="ml-auto text-xs opacity-50">{categoryTools.length}</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent id={contentId} className="space-y-0.5 pl-2">
+                    {categoryTools.map((tool) => (
+                      <div key={tool.id} className="group relative">
+                        <Link
+                          href={tool.route}
+                          className={cn(
+                            "flex items-center rounded-md px-2 py-1.5 pr-8 text-sm transition-colors",
+                            pathname === tool.route
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+                          )}
+                          onClick={handleNavigate}
+                        >
+                          {tool.name}
+                        </Link>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 opacity-0 group-hover:opacity-100"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            toggleFavorite(tool.id)
+                          }}
+                        >
+                          <Star className={cn("h-3 w-3", isFavorite(tool.id) && "fill-current")} />
+                        </Button>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </Collapsible>
+              )
+            })}
           </>
         )}
       </ScrollArea>

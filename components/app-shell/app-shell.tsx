@@ -13,6 +13,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [navOpen, setNavOpen] = React.useState(false)
+  const mobileNavContentId = "mobile-navigation-sheet"
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -22,12 +23,18 @@ export function AppShell({ children }: AppShellProps) {
       <main className="flex flex-1 flex-col overflow-auto">
         <div className="flex items-center justify-between border-b border-border px-4 py-3 md:hidden">
           <Sheet open={navOpen} onOpenChange={setNavOpen}>
-            <SheetTrigger asChild>
+            <SheetTrigger asChild aria-controls={mobileNavContentId}>
               <Button variant="outline" size="icon" aria-label="Open navigation">
                 <Menu className="h-4 w-4" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0 sm:w-96" showCloseButton={false} title="Navigation">
+            <SheetContent
+              id={mobileNavContentId}
+              side="left"
+              className="w-80 p-0 sm:w-96"
+              showCloseButton={false}
+              title="Navigation"
+            >
               <Sidebar className="w-full border-r-0" onNavigate={() => setNavOpen(false)} />
             </SheetContent>
           </Sheet>
