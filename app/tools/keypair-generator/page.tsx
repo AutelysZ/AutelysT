@@ -9,8 +9,34 @@ import { p256, p384, p521 } from "@noble/curves/nist.js"
 import { ed25519, x25519 } from "@noble/curves/ed25519.js"
 import { ed448, x448 } from "@noble/curves/ed448.js"
 import { brainpoolP256r1, brainpoolP384r1, brainpoolP512r1 } from "@noble/curves/misc.js"
+import { ml_kem512, ml_kem768, ml_kem1024 } from "@noble/post-quantum/ml-kem.js"
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from "@noble/post-quantum/ml-dsa.js"
+import {
+  slh_dsa_sha2_128f,
+  slh_dsa_sha2_128s,
+  slh_dsa_sha2_192f,
+  slh_dsa_sha2_192s,
+  slh_dsa_sha2_256f,
+  slh_dsa_sha2_256s,
+  slh_dsa_shake_128f,
+  slh_dsa_shake_128s,
+  slh_dsa_shake_192f,
+  slh_dsa_shake_192s,
+  slh_dsa_shake_256f,
+  slh_dsa_shake_256s,
+} from "@noble/post-quantum/slh-dsa.js"
+import {
+  ml_kem768_x25519,
+  ml_kem768_p256,
+  ml_kem1024_p384,
+  KitchenSink_ml_kem768_x25519,
+  XWing,
+  QSF_ml_kem768_p256,
+  QSF_ml_kem1024_p384,
+} from "@noble/post-quantum/hybrid.js"
 import type { ECDSA } from "@noble/curves/abstract/weierstrass.js"
 import type { EdDSA } from "@noble/curves/abstract/edwards.js"
+import type { KEM, Signer } from "@noble/post-quantum/utils.js"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
@@ -33,12 +59,17 @@ const algorithmValues = [
   "Ed448",
   "X25519",
   "X448",
+  "ML-KEM",
+  "ML-DSA",
+  "SLH-DSA",
+  "Hybrid KEM",
 ] as const
 
 const algorithmFamilies = {
   rsa: ["RSA-PSS", "RSASSA-PKCS1-v1_5", "RSA-OAEP"],
   ec: ["ECDSA", "ECDH", "Schnorr"],
   okp: ["Ed25519", "Ed448", "X25519", "X448"],
+  pqc: ["ML-KEM", "ML-DSA", "SLH-DSA", "Hybrid KEM"],
 } as const
 
 type AlgorithmFamily = keyof typeof algorithmFamilies
@@ -53,16 +84,46 @@ const curveValues = [
   "brainpoolP384r1",
   "brainpoolP512r1",
 ] as const
+const pqcKemVariants = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"] as const
+const pqcDsaVariants = ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"] as const
+const pqcSlhVariants = [
+  "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-128s",
+  "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-192s",
+  "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHA2-256s",
+  "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-128s",
+  "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-192s",
+  "SLH-DSA-SHAKE-256f",
+  "SLH-DSA-SHAKE-256s",
+] as const
+const pqcHybridVariants = [
+  "XWing",
+  "ML-KEM-768+X25519",
+  "ML-KEM-768+P-256",
+  "ML-KEM-1024+P-384",
+  "KitchenSink ML-KEM-768+X25519",
+  "QSF ML-KEM-768+P-256",
+  "QSF ML-KEM-1024+P-384",
+] as const
 
 type KeypairAlgorithm = (typeof algorithmValues)[number]
 type HashAlgorithm = (typeof hashValues)[number]
 type NamedCurve = (typeof curveValues)[number]
 type OkpCurve = "Ed25519" | "Ed448" | "X25519" | "X448"
+type PqcKemVariant = (typeof pqcKemVariants)[number]
+type PqcDsaVariant = (typeof pqcDsaVariants)[number]
+type PqcSlhVariant = (typeof pqcSlhVariants)[number]
+type PqcHybridVariant = (typeof pqcHybridVariants)[number]
 
 const algorithmFamilyLabels: Record<AlgorithmFamily, string> = {
   rsa: "RSA",
   ec: "EC",
   okp: "OKP",
+  pqc: "PQC",
 }
 
 const algorithmFamilyMap: Record<KeypairAlgorithm, AlgorithmFamily> = {
@@ -76,6 +137,10 @@ const algorithmFamilyMap: Record<KeypairAlgorithm, AlgorithmFamily> = {
   Ed448: "okp",
   X25519: "okp",
   X448: "okp",
+  "ML-KEM": "pqc",
+  "ML-DSA": "pqc",
+  "SLH-DSA": "pqc",
+  "Hybrid KEM": "pqc",
 }
 
 const ecCurveMap: Record<NamedCurve, ECDSA> = {
@@ -98,12 +163,53 @@ const xCurveMap = {
   X448: x448,
 } as const
 
+const pqcKemMap: Record<PqcKemVariant, KEM> = {
+  "ML-KEM-512": ml_kem512,
+  "ML-KEM-768": ml_kem768,
+  "ML-KEM-1024": ml_kem1024,
+}
+
+const pqcDsaMap: Record<PqcDsaVariant, Signer> = {
+  "ML-DSA-44": ml_dsa44,
+  "ML-DSA-65": ml_dsa65,
+  "ML-DSA-87": ml_dsa87,
+}
+
+const pqcSlhMap: Record<PqcSlhVariant, Signer> = {
+  "SLH-DSA-SHA2-128f": slh_dsa_sha2_128f,
+  "SLH-DSA-SHA2-128s": slh_dsa_sha2_128s,
+  "SLH-DSA-SHA2-192f": slh_dsa_sha2_192f,
+  "SLH-DSA-SHA2-192s": slh_dsa_sha2_192s,
+  "SLH-DSA-SHA2-256f": slh_dsa_sha2_256f,
+  "SLH-DSA-SHA2-256s": slh_dsa_sha2_256s,
+  "SLH-DSA-SHAKE-128f": slh_dsa_shake_128f,
+  "SLH-DSA-SHAKE-128s": slh_dsa_shake_128s,
+  "SLH-DSA-SHAKE-192f": slh_dsa_shake_192f,
+  "SLH-DSA-SHAKE-192s": slh_dsa_shake_192s,
+  "SLH-DSA-SHAKE-256f": slh_dsa_shake_256f,
+  "SLH-DSA-SHAKE-256s": slh_dsa_shake_256s,
+}
+
+const pqcHybridMap: Record<PqcHybridVariant, KEM> = {
+  XWing,
+  "ML-KEM-768+X25519": ml_kem768_x25519,
+  "ML-KEM-768+P-256": ml_kem768_p256,
+  "ML-KEM-1024+P-384": ml_kem1024_p384,
+  "KitchenSink ML-KEM-768+X25519": KitchenSink_ml_kem768_x25519,
+  "QSF ML-KEM-768+P-256": QSF_ml_kem768_p256,
+  "QSF ML-KEM-1024+P-384": QSF_ml_kem1024_p384,
+}
+
 const paramsSchema = z.object({
   algorithm: z.enum(algorithmValues).default("RSA-PSS"),
   rsaModulusLength: z.coerce.number().int().min(1024).max(16384).default(2048),
   rsaPublicExponent: z.string().default("65537"),
   rsaHash: z.enum(hashValues).default("SHA-256"),
   namedCurve: z.enum(curveValues).default("P-256"),
+  pqcKemVariant: z.enum(pqcKemVariants).default("ML-KEM-768"),
+  pqcDsaVariant: z.enum(pqcDsaVariants).default("ML-DSA-65"),
+  pqcSlhVariant: z.enum(pqcSlhVariants).default("SLH-DSA-SHA2-128f"),
+  pqcHybridVariant: z.enum(pqcHybridVariants).default("XWing"),
   usageSign: z.boolean().default(true),
   usageVerify: z.boolean().default(true),
   usageEncrypt: z.boolean().default(true),
@@ -125,6 +231,8 @@ const ecAlgorithms = new Set<KeypairAlgorithm>(["ECDSA", "ECDH"])
 const schnorrAlgorithms = new Set<KeypairAlgorithm>(["Schnorr"])
 const edAlgorithms = new Set<KeypairAlgorithm>(["Ed25519", "Ed448"])
 const xAlgorithms = new Set<KeypairAlgorithm>(["X25519", "X448"])
+const pqcKemAlgorithms = new Set<KeypairAlgorithm>(["ML-KEM", "Hybrid KEM"])
+const pqcSignatureAlgorithms = new Set<KeypairAlgorithm>(["ML-DSA", "SLH-DSA"])
 
 type UsageKey = "sign" | "verify" | "encrypt" | "decrypt" | "wrapKey" | "unwrapKey" | "deriveKey" | "deriveBits"
 type UsageStateKey =
@@ -170,6 +278,10 @@ const usageByAlgorithm: Record<KeypairAlgorithm, UsageKey[]> = {
   Ed448: ["sign", "verify"],
   X25519: ["deriveKey", "deriveBits"],
   X448: ["deriveKey", "deriveBits"],
+  "ML-KEM": ["deriveKey", "deriveBits"],
+  "ML-DSA": ["sign", "verify"],
+  "SLH-DSA": ["sign", "verify"],
+  "Hybrid KEM": ["deriveKey", "deriveBits"],
 }
 
 const defaultUsageByAlgorithm: Record<KeypairAlgorithm, UsageKey[]> = {
@@ -183,6 +295,10 @@ const defaultUsageByAlgorithm: Record<KeypairAlgorithm, UsageKey[]> = {
   Ed448: ["sign", "verify"],
   X25519: ["deriveKey", "deriveBits"],
   X448: ["deriveKey", "deriveBits"],
+  "ML-KEM": ["deriveKey", "deriveBits"],
+  "ML-DSA": ["sign", "verify"],
+  "SLH-DSA": ["sign", "verify"],
+  "Hybrid KEM": ["deriveKey", "deriveBits"],
 }
 
 function toPem(buffer: ArrayBuffer, label: "PUBLIC KEY" | "PRIVATE KEY") {
@@ -215,6 +331,29 @@ function parseExponent(value: string) {
 
 function encodeBase64Url(bytes: Uint8Array) {
   return encodeBase64(bytes, { urlSafe: true, padding: false })
+}
+
+function encodePqcKey(bytes: Uint8Array) {
+  return encodeBase64(bytes, { urlSafe: false, padding: true })
+}
+
+function createPqcPublicKey(algorithm: string, publicKey: Uint8Array) {
+  return {
+    kty: "PQC",
+    alg: algorithm,
+    encoding: "base64",
+    publicKey: encodePqcKey(publicKey),
+  }
+}
+
+function createPqcPrivateKey(algorithm: string, publicKey: Uint8Array, secretKey: Uint8Array) {
+  return {
+    kty: "PQC",
+    alg: algorithm,
+    encoding: "base64",
+    publicKey: encodePqcKey(publicKey),
+    secretKey: encodePqcKey(secretKey),
+  }
 }
 
 function createEcJwk(curve: NamedCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
@@ -317,20 +456,24 @@ function KeypairGeneratorContent() {
       if (params.algorithm) setParam("algorithm", params.algorithm as KeypairAlgorithm)
       if (params.rsaModulusLength !== undefined) setParam("rsaModulusLength", params.rsaModulusLength as number)
       if (params.rsaPublicExponent !== undefined) setParam("rsaPublicExponent", params.rsaPublicExponent as string)
-      if (params.rsaHash) setParam("rsaHash", params.rsaHash as HashAlgorithm)
-      if (params.namedCurve) setParam("namedCurve", params.namedCurve as NamedCurve)
-      if (params.usageSign !== undefined) setParam("usageSign", params.usageSign as boolean)
-      if (params.usageVerify !== undefined) setParam("usageVerify", params.usageVerify as boolean)
-      if (params.usageEncrypt !== undefined) setParam("usageEncrypt", params.usageEncrypt as boolean)
-      if (params.usageDecrypt !== undefined) setParam("usageDecrypt", params.usageDecrypt as boolean)
-      if (params.usageWrapKey !== undefined) setParam("usageWrapKey", params.usageWrapKey as boolean)
-      if (params.usageUnwrapKey !== undefined) setParam("usageUnwrapKey", params.usageUnwrapKey as boolean)
-      if (params.usageDeriveKey !== undefined) setParam("usageDeriveKey", params.usageDeriveKey as boolean)
-      if (params.usageDeriveBits !== undefined) setParam("usageDeriveBits", params.usageDeriveBits as boolean)
-      if (inputs.publicPem !== undefined) setParam("publicPem", inputs.publicPem)
-      if (inputs.privatePem !== undefined) setParam("privatePem", inputs.privatePem)
-      if (inputs.publicJwk !== undefined) setParam("publicJwk", inputs.publicJwk)
-      if (inputs.privateJwk !== undefined) setParam("privateJwk", inputs.privateJwk)
+    if (params.rsaHash) setParam("rsaHash", params.rsaHash as HashAlgorithm)
+    if (params.namedCurve) setParam("namedCurve", params.namedCurve as NamedCurve)
+    if (params.pqcKemVariant) setParam("pqcKemVariant", params.pqcKemVariant as PqcKemVariant)
+    if (params.pqcDsaVariant) setParam("pqcDsaVariant", params.pqcDsaVariant as PqcDsaVariant)
+    if (params.pqcSlhVariant) setParam("pqcSlhVariant", params.pqcSlhVariant as PqcSlhVariant)
+    if (params.pqcHybridVariant) setParam("pqcHybridVariant", params.pqcHybridVariant as PqcHybridVariant)
+    if (params.usageSign !== undefined) setParam("usageSign", params.usageSign as boolean)
+    if (params.usageVerify !== undefined) setParam("usageVerify", params.usageVerify as boolean)
+    if (params.usageEncrypt !== undefined) setParam("usageEncrypt", params.usageEncrypt as boolean)
+    if (params.usageDecrypt !== undefined) setParam("usageDecrypt", params.usageDecrypt as boolean)
+    if (params.usageWrapKey !== undefined) setParam("usageWrapKey", params.usageWrapKey as boolean)
+    if (params.usageUnwrapKey !== undefined) setParam("usageUnwrapKey", params.usageUnwrapKey as boolean)
+    if (params.usageDeriveKey !== undefined) setParam("usageDeriveKey", params.usageDeriveKey as boolean)
+    if (params.usageDeriveBits !== undefined) setParam("usageDeriveBits", params.usageDeriveBits as boolean)
+    if (inputs.publicPem !== undefined) setParam("publicPem", inputs.publicPem)
+    if (inputs.privatePem !== undefined) setParam("privatePem", inputs.privatePem)
+    if (inputs.publicJwk !== undefined) setParam("publicJwk", inputs.publicJwk)
+    if (inputs.privateJwk !== undefined) setParam("privateJwk", inputs.privateJwk)
     },
     [setParam],
   )
@@ -339,7 +482,7 @@ function KeypairGeneratorContent() {
     <ToolPageWrapper
       toolId="keypair-generator"
       title="Keypair Generator"
-      description="Generate RSA, EC, and OKP keypairs with usage controls and PEM/JWK export."
+      description="Generate RSA, EC, OKP, and post-quantum keypairs with usage controls and PEM/JWK export."
       onLoadHistory={handleLoadHistory}
     >
       <KeypairGeneratorInner
@@ -381,6 +524,10 @@ function KeypairGeneratorInner({
       rsaPublicExponent: state.rsaPublicExponent,
       rsaHash: state.rsaHash,
       namedCurve: state.namedCurve,
+      pqcKemVariant: state.pqcKemVariant,
+      pqcDsaVariant: state.pqcDsaVariant,
+      pqcSlhVariant: state.pqcSlhVariant,
+      pqcHybridVariant: state.pqcHybridVariant,
       usageSign: state.usageSign,
       usageVerify: state.usageVerify,
       usageEncrypt: state.usageEncrypt,
@@ -527,7 +674,40 @@ function KeypairGeneratorInner({
       let publicJwk = ""
       let privateJwk = ""
 
-      if (rsaAlgorithms.has(state.algorithm)) {
+      if (pqcKemAlgorithms.has(state.algorithm) || pqcSignatureAlgorithms.has(state.algorithm)) {
+        let publicKey = new Uint8Array()
+        let secretKey = new Uint8Array()
+        let algorithmLabel = state.algorithm
+
+        if (state.algorithm === "ML-KEM") {
+          const kem = pqcKemMap[state.pqcKemVariant]
+          const keys = kem.keygen()
+          publicKey = keys.publicKey
+          secretKey = keys.secretKey
+          algorithmLabel = state.pqcKemVariant
+        } else if (state.algorithm === "Hybrid KEM") {
+          const kem = pqcHybridMap[state.pqcHybridVariant]
+          const keys = kem.keygen()
+          publicKey = keys.publicKey
+          secretKey = keys.secretKey
+          algorithmLabel = state.pqcHybridVariant
+        } else if (state.algorithm === "ML-DSA") {
+          const signer = pqcDsaMap[state.pqcDsaVariant]
+          const keys = signer.keygen()
+          publicKey = keys.publicKey
+          secretKey = keys.secretKey
+          algorithmLabel = state.pqcDsaVariant
+        } else {
+          const signer = pqcSlhMap[state.pqcSlhVariant]
+          const keys = signer.keygen()
+          publicKey = keys.publicKey
+          secretKey = keys.secretKey
+          algorithmLabel = state.pqcSlhVariant
+        }
+
+        publicJwk = JSON.stringify(createPqcPublicKey(algorithmLabel, publicKey), null, 2)
+        privateJwk = JSON.stringify(createPqcPrivateKey(algorithmLabel, publicKey, secretKey), null, 2)
+      } else if (rsaAlgorithms.has(state.algorithm)) {
         const exponent = parseExponent(state.rsaPublicExponent)!
         const algorithm = {
           name: state.algorithm,
@@ -663,6 +843,7 @@ function KeypairGeneratorInner({
 
   const isRsa = rsaAlgorithms.has(state.algorithm)
   const isEc = ecAlgorithms.has(state.algorithm)
+  const isPqc = pqcKemAlgorithms.has(state.algorithm) || pqcSignatureAlgorithms.has(state.algorithm)
   const isPemSupported = isRsa || (isEc && supportsPemForCurve(state.namedCurve))
   const algorithmFamily = getAlgorithmFamily(state.algorithm)
   const activeAlgorithms = algorithmFamilies[algorithmFamily]
@@ -810,6 +991,86 @@ function KeypairGeneratorInner({
                         </ScrollableTabsList>
                       </Tabs>
                     </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isPqc && (
+              <div className="space-y-3 sm:space-y-4">
+                {state.algorithm === "ML-KEM" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-xs text-muted-foreground">Parameter Set</Label>
+                    <Tabs
+                      value={state.pqcKemVariant}
+                      onValueChange={(value) => setParam("pqcKemVariant", value as PqcKemVariant, true)}
+                      className="min-w-0 flex-1"
+                    >
+                      <ScrollableTabsList>
+                        {pqcKemVariants.map((variant) => (
+                          <TabsTrigger key={variant} value={variant} className="text-xs">
+                            {variant}
+                          </TabsTrigger>
+                        ))}
+                      </ScrollableTabsList>
+                    </Tabs>
+                  </div>
+                )}
+
+                {state.algorithm === "ML-DSA" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-xs text-muted-foreground">Parameter Set</Label>
+                    <Tabs
+                      value={state.pqcDsaVariant}
+                      onValueChange={(value) => setParam("pqcDsaVariant", value as PqcDsaVariant, true)}
+                      className="min-w-0 flex-1"
+                    >
+                      <ScrollableTabsList>
+                        {pqcDsaVariants.map((variant) => (
+                          <TabsTrigger key={variant} value={variant} className="text-xs">
+                            {variant}
+                          </TabsTrigger>
+                        ))}
+                      </ScrollableTabsList>
+                    </Tabs>
+                  </div>
+                )}
+
+                {state.algorithm === "SLH-DSA" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-xs text-muted-foreground">Parameter Set</Label>
+                    <Tabs
+                      value={state.pqcSlhVariant}
+                      onValueChange={(value) => setParam("pqcSlhVariant", value as PqcSlhVariant, true)}
+                      className="min-w-0 flex-1"
+                    >
+                      <ScrollableTabsList>
+                        {pqcSlhVariants.map((variant) => (
+                          <TabsTrigger key={variant} value={variant} className="text-xs">
+                            {variant}
+                          </TabsTrigger>
+                        ))}
+                      </ScrollableTabsList>
+                    </Tabs>
+                  </div>
+                )}
+
+                {state.algorithm === "Hybrid KEM" && (
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-xs text-muted-foreground">Hybrid Set</Label>
+                    <Tabs
+                      value={state.pqcHybridVariant}
+                      onValueChange={(value) => setParam("pqcHybridVariant", value as PqcHybridVariant, true)}
+                      className="min-w-0 flex-1"
+                    >
+                      <ScrollableTabsList>
+                        {pqcHybridVariants.map((variant) => (
+                          <TabsTrigger key={variant} value={variant} className="text-xs">
+                            {variant}
+                          </TabsTrigger>
+                        ))}
+                      </ScrollableTabsList>
+                    </Tabs>
                   </div>
                 )}
               </div>

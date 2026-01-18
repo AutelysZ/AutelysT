@@ -13,13 +13,14 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder wi
 
 ### Crypto Tools
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
-- **Keypair Generator** - Generate RSA/EC (secp256k1/Brainpool), Schnorr, Ed, and X keypairs with PEM/JWK export
-- **Key Agreement** - Derive shared secrets with ECDH or X25519/X448 plus optional KDF
+- **Keypair Generator** - Generate RSA/EC, OKP, and post-quantum (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) keypairs with PEM/JWK export
+- **Key Agreement** - Derive shared secrets with ECDH, X25519/X448, or ML-KEM/hybrid KEM plus optional KDF
 - **Key Derivation** - Derive keys using HKDF or PBKDF2 with configurable hash and salt
 - **JWK Converter** - Convert cryptographic keys between PEM and JWK formats
 - **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
-- **Signature** - Sign and verify messages with HMAC, RSA, ECDSA, and EdDSA
+- **Signature** - Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, ML-DSA, and SLH-DSA
 - **Asymmetric Encryption** - Encrypt/decrypt using RSA-OAEP with PEM/JWK keys
+- **Hybrid Encryption** - Encrypt/decrypt using CMS, OpenPGP, JWE, and HPKE
 - **Hash** - Generate MD, SHA, SHA3, and BLAKE hash digests
 - **Non-Crypto Hash** - Generate MurmurHash, xxHash, CityHash/FarmHash, SipHash, SpookyHash, HighwayHash, FNV, and CRC32
 - **Symmetric Encryption** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES

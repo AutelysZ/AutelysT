@@ -4,7 +4,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Keypair Generator - AutelysT",
   description:
-    "Online keypair generator for RSA, EC (secp256k1/Brainpool/P-256), Schnorr, EdDSA, and X25519/X448 with PEM/JWK export.",
+    "Online keypair generator for RSA, EC, OKP, and post-quantum keys (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) with PEM/JWK export.",
   keywords: [
     "keypair generator",
     "rsa",
@@ -16,6 +16,14 @@ export const metadata: Metadata = {
     "eddsa",
     "x25519",
     "x448",
+    "ml-kem",
+    "ml-dsa",
+    "slh-dsa",
+    "kyber",
+    "dilithium",
+    "sphincs",
+    "xwing",
+    "post-quantum",
     "jwk",
     "pem",
   ],

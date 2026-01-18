@@ -15,6 +15,7 @@ This file defines how coding agents should operate in this repository. Follow it
 - Prefer reuse of existing components and helpers over new abstractions.
 - Use ASCII in edits unless the target file already uses non-ASCII and the change requires it.
 - Do not add new UI libraries unless explicitly requested.
+- For large files (>2000 lines), try to split components into multiple files when editing them.
 
 ## Tool Implementation Rules
 When adding or updating a tool:

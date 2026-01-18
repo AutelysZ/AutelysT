@@ -4,13 +4,6 @@ import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
 import { AlertCircle, Check, Copy, Download, RefreshCcw, Upload, X } from "lucide-react"
-import { secp256k1, schnorr as schnorrCurve } from "@noble/curves/secp256k1.js"
-import { p256, p384, p521 } from "@noble/curves/nist.js"
-import { ed25519 } from "@noble/curves/ed25519.js"
-import { ed448 } from "@noble/curves/ed448.js"
-import { brainpoolP256r1, brainpoolP384r1, brainpoolP512r1 } from "@noble/curves/misc.js"
-import type { ECDSA } from "@noble/curves/abstract/weierstrass.js"
-import type { EdDSA } from "@noble/curves/abstract/edwards.js"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Textarea } from "@/components/ui/textarea"
@@ -20,51 +13,72 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
-import { decodeHex, encodeHex } from "@/lib/encoding/hex"
 import type { HistoryEntry } from "@/lib/history/db"
 import { cn } from "@/lib/utils"
-
-const modeValues = ["sign", "verify"] as const
-type ModeValue = (typeof modeValues)[number]
-
-const algorithmValues = ["hmac", "rsa", "ecdsa", "eddsa", "schnorr"] as const
-type AlgorithmValue = (typeof algorithmValues)[number]
-
-const hmacHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
-type HmacHash = (typeof hmacHashes)[number]
-
-const rsaSchemes = ["RSASSA-PKCS1-v1_5", "RSA-PSS"] as const
-type RsaScheme = (typeof rsaSchemes)[number]
-
-const rsaHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
-type RsaHash = (typeof rsaHashes)[number]
-
-const ecdsaCurves = [
-  "secp256k1",
-  "P-256",
-  "P-384",
-  "P-521",
-  "brainpoolP256r1",
-  "brainpoolP384r1",
-  "brainpoolP512r1",
-] as const
-type EcdsaCurve = (typeof ecdsaCurves)[number]
-
-const ecdsaHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
-type EcdsaHash = (typeof ecdsaHashes)[number]
-
-const eddsaCurves = ["Ed25519", "Ed448"] as const
-type EddsaCurve = (typeof eddsaCurves)[number]
-
-const inputEncodings = ["utf8", "base64", "hex", "binary"] as const
-type InputEncoding = (typeof inputEncodings)[number]
-
-const signatureEncodings = ["base64", "base64url", "hex"] as const
-type SignatureEncoding = (typeof signatureEncodings)[number]
-
-const keyEncodings = ["utf8", "base64", "hex"] as const
-type KeyEncoding = (typeof keyEncodings)[number]
+import {
+  algorithmValues,
+  modeValues,
+  hmacHashes,
+  rsaSchemes,
+  rsaHashes,
+  ecdsaCurves,
+  ecdsaHashes,
+  eddsaCurves,
+  pqcDsaVariants,
+  pqcSlhVariants,
+  inputEncodings,
+  signatureEncodings,
+  keyEncodings,
+  pqcKeyEncodings,
+  encodingLabels,
+  ecdsaCurveMap,
+  eddsaCurveMap,
+  pqcDsaMap,
+  pqcSlhMap,
+  randomBytes,
+  randomAsciiString,
+  decodeInputBytes,
+  decodeKeyBytes,
+  encodeSignatureBytes,
+  decodeSignatureBytes,
+  parseJwk,
+  pemToArrayBuffer,
+  toPem,
+  parseExponent,
+  isKeyPair,
+  resolvePqcKeyBytes,
+  supportsPemForCurve,
+  getEcdsaPrivateKeyBytes,
+  getEcdsaPublicKeyBytes,
+  getEddsaPrivateKeyBytes,
+  getEddsaPublicKeyBytes,
+  getSchnorrPrivateKeyBytes,
+  getSchnorrPublicKeyBytes,
+  hashMessageBytes,
+  getHmacKeyLength,
+  getRsaSaltLength,
+  createEcJwk,
+  createOkpJwk,
+  createPqcPublicKey,
+  createPqcPrivateKey,
+  formatSignatureError,
+  secp256k1,
+  schnorrCurve,
+  type ModeValue,
+  type AlgorithmValue,
+  type HmacHash,
+  type RsaScheme,
+  type RsaHash,
+  type EcdsaCurve,
+  type EcdsaHash,
+  type EddsaCurve,
+  type PqcDsaVariant,
+  type PqcSlhVariant,
+  type InputEncoding,
+  type SignatureEncoding,
+  type KeyEncoding,
+  type PqcKeyEncoding,
+} from "./crypto"
 
 const paramsSchema = z.object({
   mode: z.enum(modeValues).default("sign"),
@@ -84,6 +98,9 @@ const paramsSchema = z.object({
   ecdsaCurve: z.enum(ecdsaCurves).default("P-256"),
   ecdsaHash: z.enum(ecdsaHashes).default("SHA-256"),
   eddsaCurve: z.enum(eddsaCurves).default("Ed25519"),
+  pqcDsaVariant: z.enum(pqcDsaVariants).default("ML-DSA-65"),
+  pqcSlhVariant: z.enum(pqcSlhVariants).default("SLH-DSA-SHA2-128f"),
+  pqcKeyEncoding: z.enum(pqcKeyEncodings).default("base64"),
   rsaPrivateKey: z.string().default(""),
   rsaPublicKey: z.string().default(""),
   ecdsaPrivateKey: z.string().default(""),
@@ -92,6 +109,8 @@ const paramsSchema = z.object({
   eddsaPublicKey: z.string().default(""),
   schnorrPrivateKey: z.string().default(""),
   schnorrPublicKey: z.string().default(""),
+  pqcPrivateKey: z.string().default(""),
+  pqcPublicKey: z.string().default(""),
 })
 
 type SignatureState = z.infer<typeof paramsSchema>
@@ -102,391 +121,8 @@ const algorithmLabels: Record<AlgorithmValue, string> = {
   ecdsa: "ECDSA",
   eddsa: "EdDSA",
   schnorr: "Schnorr",
-}
-
-const encodingLabels = {
-  utf8: "UTF-8",
-  base64: "Base64",
-  base64url: "Base64url",
-  hex: "Hex",
-  binary: "Binary",
-} as const
-
-const ecdsaCurveMap: Record<EcdsaCurve, ECDSA> = {
-  secp256k1,
-  "P-256": p256,
-  "P-384": p384,
-  "P-521": p521,
-  brainpoolP256r1,
-  brainpoolP384r1,
-  brainpoolP512r1,
-}
-
-const eddsaCurveMap: Record<EddsaCurve, EdDSA> = {
-  Ed25519: ed25519,
-  Ed448: ed448,
-}
-
-const textEncoder = new TextEncoder()
-
-function randomBytes(length: number) {
-  if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("Secure random generation is unavailable.")
-  }
-  const bytes = new Uint8Array(length)
-  crypto.getRandomValues(bytes)
-  return bytes
-}
-
-function randomAsciiString(length: number) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  const bytes = randomBytes(length)
-  let value = ""
-  for (let i = 0; i < bytes.length; i += 1) {
-    value += alphabet[bytes[i] % alphabet.length]
-  }
-  return value
-}
-
-function decodeInputBytes(value: string, encoding: InputEncoding) {
-  if (encoding === "binary") {
-    throw new Error("Binary input requires a file upload.")
-  }
-  if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
-  if (encoding === "hex") return decodeHex(value)
-  return decodeBase64(value)
-}
-
-function decodeKeyBytes(value: string, encoding: KeyEncoding) {
-  if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
-  if (encoding === "hex") return decodeHex(value)
-  return decodeBase64(value)
-}
-
-function encodeSignatureBytes(bytes: Uint8Array, encoding: SignatureEncoding) {
-  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
-  if (encoding === "base64") return encodeBase64(bytes, { urlSafe: false, padding: true })
-  return encodeBase64(bytes, { urlSafe: true, padding: false })
-}
-
-function decodeSignatureBytes(value: string, encoding: SignatureEncoding) {
-  if (!value) return new Uint8Array()
-  if (encoding === "hex") return decodeHex(value)
-  return decodeBase64(value)
-}
-
-function parseJwk(text: string) {
-  const trimmed = text.trim()
-  if (!trimmed.startsWith("{")) return null
-  try {
-    const jwk = JSON.parse(trimmed)
-    if (jwk && typeof jwk === "object" && "kty" in jwk) {
-      return jwk as JsonWebKey
-    }
-  } catch {
-    return null
-  }
-  return null
-}
-
-function extractPemBlock(pem: string) {
-  const trimmed = pem.trim()
-  if (!trimmed) return null
-  const match = trimmed.match(/-----BEGIN ([^-]+)-----([\s\S]+?)-----END \1-----/)
-  if (!match) return null
-  const label = match[1]
-  const body = match[2].replace(/\s+/g, "")
-  return { label, body }
-}
-
-function pemToArrayBuffer(pem: string) {
-  const block = extractPemBlock(pem)
-  if (!block) return null
-  const binary = atob(block.body)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return { label: block.label, buffer: bytes.buffer }
-}
-
-function toPem(buffer: ArrayBuffer, label: "PUBLIC KEY" | "PRIVATE KEY") {
-  const bytes = new Uint8Array(buffer)
-  let binary = ""
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte)
-  }
-  const base64 = btoa(binary).replace(/(.{64})/g, "$1\n")
-  return `-----BEGIN ${label}-----\n${base64}\n-----END ${label}-----`
-}
-
-function parseExponent(value: string) {
-  const trimmed = value.trim()
-  if (!/^\d+$/.test(trimmed)) return null
-  const num = Number(trimmed)
-  if (!Number.isSafeInteger(num) || num <= 0) return null
-  const bytes: number[] = []
-  let remaining = num
-  while (remaining > 0) {
-    bytes.unshift(remaining & 0xff)
-    remaining = Math.floor(remaining / 256)
-  }
-  return new Uint8Array(bytes)
-}
-
-function isKeyPair(key: CryptoKey | CryptoKeyPair): key is CryptoKeyPair {
-  return "publicKey" in key && "privateKey" in key
-}
-
-function encodeBase64Url(bytes: Uint8Array) {
-  return encodeBase64(bytes, { urlSafe: true, padding: false })
-}
-
-function decodeBase64Url(value: string) {
-  return decodeBase64(value)
-}
-
-function padBytes(bytes: Uint8Array, length: number) {
-  if (bytes.length === length) return bytes
-  if (bytes.length > length) {
-    throw new Error("Key length is invalid for the selected curve.")
-  }
-  const padded = new Uint8Array(length)
-  padded.set(bytes, length - bytes.length)
-  return padded
-}
-
-function isPemString(value: string) {
-  return value.trim().startsWith("-----BEGIN")
-}
-
-function formatSignatureError(err: unknown) {
-  if (err instanceof Error) return err.message
-  return "Failed to process signature."
-}
-
-function createEcJwk(curve: EcdsaCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
-  const uncompressed = publicKey
-  const coordLength = (uncompressed.length - 1) / 2
-  const x = uncompressed.slice(1, 1 + coordLength)
-  const y = uncompressed.slice(1 + coordLength)
-  const jwk: JsonWebKey = {
-    kty: "EC",
-    crv: curve,
-    x: encodeBase64Url(x),
-    y: encodeBase64Url(y),
-  }
-  if (privateKey) {
-    jwk.d = encodeBase64Url(privateKey)
-  }
-  return jwk
-}
-
-function createOkpJwk(curve: EddsaCurve, publicKey: Uint8Array, privateKey?: Uint8Array) {
-  const jwk: JsonWebKey = {
-    kty: "OKP",
-    crv: curve,
-    x: encodeBase64Url(publicKey),
-  }
-  if (privateKey) {
-    jwk.d = encodeBase64Url(privateKey)
-  }
-  return jwk
-}
-
-async function importPemAsJwk({
-  keyText,
-  algorithm,
-  usage,
-}: {
-  keyText: string
-  algorithm: EcKeyImportParams | RsaHashedImportParams | AlgorithmIdentifier
-  usage: KeyUsage
-}) {
-  if (!globalThis.crypto?.subtle) {
-    throw new Error("Web Crypto is unavailable in this environment.")
-  }
-  const parsed = pemToArrayBuffer(keyText)
-  if (!parsed) return null
-  const format = parsed.label.includes("PRIVATE KEY") ? "pkcs8" : "spki"
-  const key = await crypto.subtle.importKey(format, parsed.buffer, algorithm, true, [usage])
-  return crypto.subtle.exportKey("jwk", key)
-}
-
-function supportsPemForCurve(curve: EcdsaCurve) {
-  return curve === "P-256" || curve === "P-384" || curve === "P-521"
-}
-
-async function resolveEcJwk(keyText: string, curve: EcdsaCurve, usage: "sign" | "verify") {
-  const jwk = parseJwk(keyText)
-  if (jwk) return jwk
-  if (isPemString(keyText)) {
-    if (!supportsPemForCurve(curve)) {
-      throw new Error("PEM is supported for P-256/P-384/P-521 only. Use JWK for this curve.")
-    }
-    try {
-      const jwkFromPem = await importPemAsJwk({
-        keyText,
-        algorithm: { name: "ECDSA", namedCurve: curve },
-        usage,
-      })
-      if (jwkFromPem) return jwkFromPem
-    } catch {
-      throw new Error("Unable to import PEM for this curve. Use a matching EC JWK instead.")
-    }
-  }
-  return null
-}
-
-async function resolveOkpJwk(keyText: string, curve: EddsaCurve, usage: "sign" | "verify") {
-  const jwk = parseJwk(keyText)
-  if (jwk) return jwk
-  if (isPemString(keyText)) {
-    try {
-      const jwkFromPem = await importPemAsJwk({
-        keyText,
-        algorithm: { name: curve },
-        usage,
-      })
-      if (jwkFromPem) return jwkFromPem
-    } catch {
-      throw new Error("Unable to import PEM for this curve. Use an OKP JWK instead.")
-    }
-  }
-  return null
-}
-
-async function getEcdsaPrivateKeyBytes(keyText: string, curve: EcdsaCurve) {
-  const jwk = await resolveEcJwk(keyText, curve, "sign")
-  if (!jwk) {
-    throw new Error("Invalid key format. Use JWK or PEM (P-256/P-384/P-521).")
-  }
-  if (jwk.kty !== "EC" || jwk.crv !== curve) {
-    throw new Error("JWK curve does not match the selected ECDSA curve.")
-  }
-  if (!jwk.d) {
-    throw new Error("Private EC JWK (with d) is required to sign.")
-  }
-  const raw = decodeBase64Url(jwk.d)
-  const length = ecdsaCurveMap[curve].lengths.secretKey ?? raw.length
-  return padBytes(raw, length)
-}
-
-async function getEcdsaPublicKeyBytes(keyText: string, curve: EcdsaCurve) {
-  const jwk = await resolveEcJwk(keyText, curve, "verify")
-  if (!jwk) {
-    throw new Error("Invalid key format. Use JWK or PEM (P-256/P-384/P-521).")
-  }
-  if (jwk.kty !== "EC" || jwk.crv !== curve) {
-    throw new Error("JWK curve does not match the selected ECDSA curve.")
-  }
-  if (jwk.x && jwk.y) {
-    const x = decodeBase64Url(jwk.x)
-    const y = decodeBase64Url(jwk.y)
-    const publicKey = new Uint8Array(1 + x.length + y.length)
-    publicKey[0] = 4
-    publicKey.set(x, 1)
-    publicKey.set(y, 1 + x.length)
-    return publicKey
-  }
-  if (jwk.d) {
-    const secret = await getEcdsaPrivateKeyBytes(JSON.stringify(jwk), curve)
-    return ecdsaCurveMap[curve].getPublicKey(secret, false)
-  }
-  throw new Error("Public EC JWK must include x and y coordinates.")
-}
-
-async function getEddsaPrivateKeyBytes(keyText: string, curve: EddsaCurve) {
-  const jwk = await resolveOkpJwk(keyText, curve, "sign")
-  if (!jwk) {
-    throw new Error("Invalid key format. Use OKP JWK for EdDSA keys.")
-  }
-  if (jwk.kty !== "OKP" || jwk.crv !== curve) {
-    throw new Error("JWK curve does not match the selected EdDSA curve.")
-  }
-  if (!jwk.d) {
-    throw new Error("Private OKP JWK (with d) is required to sign.")
-  }
-  const raw = decodeBase64Url(jwk.d)
-  const length = eddsaCurveMap[curve].lengths.secretKey ?? raw.length
-  return padBytes(raw, length)
-}
-
-async function getEddsaPublicKeyBytes(keyText: string, curve: EddsaCurve) {
-  const jwk = await resolveOkpJwk(keyText, curve, "verify")
-  if (!jwk) {
-    throw new Error("Invalid key format. Use OKP JWK for EdDSA keys.")
-  }
-  if (jwk.kty !== "OKP" || jwk.crv !== curve) {
-    throw new Error("JWK curve does not match the selected EdDSA curve.")
-  }
-  if (jwk.x) {
-    return decodeBase64Url(jwk.x)
-  }
-  if (jwk.d) {
-    const secret = await getEddsaPrivateKeyBytes(JSON.stringify(jwk), curve)
-    return eddsaCurveMap[curve].getPublicKey(secret)
-  }
-  throw new Error("Public OKP JWK must include x.")
-}
-
-async function getSchnorrPrivateKeyBytes(keyText: string) {
-  const jwk = parseJwk(keyText)
-  if (!jwk) {
-    throw new Error("Invalid key format. Use EC JWK for Schnorr keys.")
-  }
-  if (jwk.kty !== "EC" || jwk.crv !== "secp256k1") {
-    throw new Error("Schnorr requires a secp256k1 EC JWK.")
-  }
-  if (!jwk.d) {
-    throw new Error("Private EC JWK (with d) is required to sign.")
-  }
-  const raw = decodeBase64Url(jwk.d)
-  const length = schnorrCurve.lengths.secretKey ?? raw.length
-  return padBytes(raw, length)
-}
-
-async function getSchnorrPublicKeyBytes(keyText: string) {
-  const jwk = parseJwk(keyText)
-  if (!jwk) {
-    throw new Error("Invalid key format. Use EC JWK for Schnorr keys.")
-  }
-  if (jwk.kty !== "EC" || jwk.crv !== "secp256k1") {
-    throw new Error("Schnorr requires a secp256k1 EC JWK.")
-  }
-  if (jwk.x) {
-    const raw = decodeBase64Url(jwk.x)
-    const length = schnorrCurve.lengths.publicKey ?? raw.length
-    return padBytes(raw, length)
-  }
-  if (jwk.d) {
-    const secret = await getSchnorrPrivateKeyBytes(JSON.stringify(jwk))
-    return schnorrCurve.getPublicKey(secret)
-  }
-  throw new Error("Public EC JWK must include x.")
-}
-
-async function hashMessageBytes(messageBytes: Uint8Array, hash: EcdsaHash) {
-  if (!globalThis.crypto?.subtle) {
-    throw new Error("Web Crypto is unavailable in this environment.")
-  }
-  const digest = await crypto.subtle.digest(hash, messageBytes)
-  return new Uint8Array(digest)
-}
-
-function getHmacKeyLength(hash: HmacHash) {
-  if (hash === "SHA-384") return 48
-  if (hash === "SHA-512") return 64
-  return 32
-}
-
-function getRsaSaltLength(hash: RsaHash, override: number) {
-  if (override > 0) return override
-  if (hash === "SHA-384") return 48
-  if (hash === "SHA-512") return 64
-  return 32
+  "ml-dsa": "ML-DSA",
+  "slh-dsa": "SLH-DSA",
 }
 
 function getImportAlgorithm(state: SignatureState) {
@@ -509,6 +145,9 @@ function getKeyFields(algorithm: AlgorithmValue) {
   if (algorithm === "schnorr") {
     return { privateKey: "schnorrPrivateKey", publicKey: "schnorrPublicKey" } as const
   }
+  if (algorithm === "ml-dsa" || algorithm === "slh-dsa") {
+    return { privateKey: "pqcPrivateKey", publicKey: "pqcPublicKey" } as const
+  }
   return { privateKey: "rsaPrivateKey", publicKey: "rsaPublicKey" } as const
 }
 
@@ -525,7 +164,16 @@ function getKeySelection(state: SignatureState) {
   if (state.algorithm === "schnorr") {
     return { privateKey: state.schnorrPrivateKey, publicKey: state.schnorrPublicKey }
   }
+  if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") {
+    return { privateKey: state.pqcPrivateKey, publicKey: state.pqcPublicKey }
+  }
   return { privateKey: state.rsaPrivateKey, publicKey: state.rsaPublicKey }
+}
+
+function getPqcSelectionKey(state: SignatureState) {
+  if (state.algorithm === "ml-dsa") return `ml-dsa:${state.pqcDsaVariant}`
+  if (state.algorithm === "slh-dsa") return `slh-dsa:${state.pqcSlhVariant}`
+  return state.algorithm
 }
 
 async function importAsymmetricKey({
@@ -618,6 +266,22 @@ async function signMessage({
     const secretKey = await getEddsaPrivateKeyBytes(keyText, state.eddsaCurve)
     return eddsaCurveMap[state.eddsaCurve].sign(messageBytes, secretKey)
   }
+  if (state.algorithm === "ml-dsa") {
+    const keyText = privateKeyText.trim()
+    if (!keyText) {
+      throw new Error("Private key is required to sign.")
+    }
+    const secretKey = resolvePqcKeyBytes(keyText, state.pqcKeyEncoding, "private")
+    return pqcDsaMap[state.pqcDsaVariant].sign(messageBytes, secretKey)
+  }
+  if (state.algorithm === "slh-dsa") {
+    const keyText = privateKeyText.trim()
+    if (!keyText) {
+      throw new Error("Private key is required to sign.")
+    }
+    const secretKey = resolvePqcKeyBytes(keyText, state.pqcKeyEncoding, "private")
+    return pqcSlhMap[state.pqcSlhVariant].sign(messageBytes, secretKey)
+  }
   const keyText = privateKeyText.trim()
   if (!keyText) {
     throw new Error("Private key is required to sign.")
@@ -704,6 +368,28 @@ async function verifyMessage({
         )
     return eddsaCurveMap[state.eddsaCurve].verify(signatureBytes, messageBytes, publicKey)
   }
+  if (state.algorithm === "ml-dsa") {
+    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    if (!keyText) {
+      throw new Error("Public or private key is required to verify.")
+    }
+    const signer = pqcDsaMap[state.pqcDsaVariant]
+    const publicKey = publicKeyText.trim()
+      ? resolvePqcKeyBytes(publicKeyText.trim(), state.pqcKeyEncoding, "public")
+      : signer.getPublicKey(resolvePqcKeyBytes(privateKeyText.trim(), state.pqcKeyEncoding, "private"))
+    return signer.verify(signatureBytes, messageBytes, publicKey)
+  }
+  if (state.algorithm === "slh-dsa") {
+    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    if (!keyText) {
+      throw new Error("Public or private key is required to verify.")
+    }
+    const signer = pqcSlhMap[state.pqcSlhVariant]
+    const publicKey = publicKeyText.trim()
+      ? resolvePqcKeyBytes(publicKeyText.trim(), state.pqcKeyEncoding, "public")
+      : signer.getPublicKey(resolvePqcKeyBytes(privateKeyText.trim(), state.pqcKeyEncoding, "private"))
+    return signer.verify(signatureBytes, messageBytes, publicKey)
+  }
   const keyText = publicKeyText.trim() || privateKeyText.trim()
   if (!keyText) {
     throw new Error("Public or private key is required to verify.")
@@ -717,6 +403,26 @@ async function verifyMessage({
 async function generateKeypair(state: SignatureState) {
   if (state.algorithm === "hmac") {
     throw new Error("Keypair generation is not available for HMAC.")
+  }
+  if (state.algorithm === "ml-dsa") {
+    const signer = pqcDsaMap[state.pqcDsaVariant]
+    const { publicKey, secretKey } = signer.keygen()
+    const publicPayload = createPqcPublicKey(state.pqcDsaVariant, publicKey)
+    const privatePayload = createPqcPrivateKey(state.pqcDsaVariant, publicKey, secretKey)
+    return {
+      publicPem: JSON.stringify(publicPayload, null, 2),
+      privatePem: JSON.stringify(privatePayload, null, 2),
+    }
+  }
+  if (state.algorithm === "slh-dsa") {
+    const signer = pqcSlhMap[state.pqcSlhVariant]
+    const { publicKey, secretKey } = signer.keygen()
+    const publicPayload = createPqcPublicKey(state.pqcSlhVariant, publicKey)
+    const privatePayload = createPqcPrivateKey(state.pqcSlhVariant, publicKey, secretKey)
+    return {
+      publicPem: JSON.stringify(publicPayload, null, 2),
+      privatePem: JSON.stringify(privatePayload, null, 2),
+    }
   }
   if (state.algorithm === "rsa") {
     if (!globalThis.crypto?.subtle) {
@@ -824,7 +530,7 @@ function SignatureContent() {
     <ToolPageWrapper
       toolId="signature"
       title="Signature"
-      description="Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, and Schnorr curves."
+      description="Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, Schnorr, ML-DSA, and SLH-DSA."
       onLoadHistory={handleLoadHistory}
     >
       <SignatureInner
@@ -871,8 +577,10 @@ function SignatureInner({
   const publicKeyInputRef = React.useRef<HTMLInputElement>(null)
   const ecdsaKeyCacheRef = React.useRef<Partial<Record<EcdsaCurve, { privateKey: string; publicKey: string }>>>({})
   const eddsaKeyCacheRef = React.useRef<Partial<Record<EddsaCurve, { privateKey: string; publicKey: string }>>>({})
+  const pqcKeyCacheRef = React.useRef<Partial<Record<string, { privateKey: string; publicKey: string }>>>({})
   const prevEcdsaCurveRef = React.useRef<EcdsaCurve>(state.ecdsaCurve)
   const prevEddsaCurveRef = React.useRef<EddsaCurve>(state.eddsaCurve)
+  const prevPqcSelectionRef = React.useRef(getPqcSelectionKey(state))
   const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false)
   const lastInputRef = React.useRef<string>("")
   const hasHydratedInputRef = React.useRef(false)
@@ -895,6 +603,9 @@ function SignatureInner({
     ecdsaCurve: state.ecdsaCurve,
     ecdsaHash: state.ecdsaHash,
     eddsaCurve: state.eddsaCurve,
+    pqcDsaVariant: state.pqcDsaVariant,
+    pqcSlhVariant: state.pqcSlhVariant,
+    pqcKeyEncoding: state.pqcKeyEncoding,
     rsaPrivateKey: state.rsaPrivateKey,
     rsaPublicKey: state.rsaPublicKey,
     ecdsaPrivateKey: state.ecdsaPrivateKey,
@@ -903,6 +614,8 @@ function SignatureInner({
     eddsaPublicKey: state.eddsaPublicKey,
     schnorrPrivateKey: state.schnorrPrivateKey,
     schnorrPublicKey: state.schnorrPublicKey,
+    pqcPrivateKey: state.pqcPrivateKey,
+    pqcPublicKey: state.pqcPublicKey,
     fileName,
   })
   const hasInitializedParamsRef = React.useRef(false)
@@ -926,6 +639,9 @@ function SignatureInner({
       ecdsaCurve: state.ecdsaCurve,
       ecdsaHash: state.ecdsaHash,
       eddsaCurve: state.eddsaCurve,
+      pqcDsaVariant: state.pqcDsaVariant,
+      pqcSlhVariant: state.pqcSlhVariant,
+      pqcKeyEncoding: state.pqcKeyEncoding,
       rsaPrivateKey: state.rsaPrivateKey,
       rsaPublicKey: state.rsaPublicKey,
       ecdsaPrivateKey: state.ecdsaPrivateKey,
@@ -934,6 +650,8 @@ function SignatureInner({
       eddsaPublicKey: state.eddsaPublicKey,
       schnorrPrivateKey: state.schnorrPrivateKey,
       schnorrPublicKey: state.schnorrPublicKey,
+      pqcPrivateKey: state.pqcPrivateKey,
+      pqcPublicKey: state.pqcPublicKey,
       fileName,
     }),
     [
@@ -952,6 +670,9 @@ function SignatureInner({
       state.ecdsaCurve,
       state.ecdsaHash,
       state.eddsaCurve,
+      state.pqcDsaVariant,
+      state.pqcSlhVariant,
+      state.pqcKeyEncoding,
       state.rsaPrivateKey,
       state.rsaPublicKey,
       state.ecdsaPrivateKey,
@@ -960,6 +681,8 @@ function SignatureInner({
       state.eddsaPublicKey,
       state.schnorrPrivateKey,
       state.schnorrPublicKey,
+      state.pqcPrivateKey,
+      state.pqcPublicKey,
       fileName,
     ],
   )
@@ -1005,6 +728,36 @@ function SignatureInner({
       publicKey: state.eddsaPublicKey,
     }
   }, [state.eddsaCurve, state.eddsaPrivateKey, state.eddsaPublicKey, setParam])
+
+  React.useEffect(() => {
+    if (state.algorithm !== "ml-dsa" && state.algorithm !== "slh-dsa") return
+    const selectionKey = getPqcSelectionKey(state)
+    const prevKey = prevPqcSelectionRef.current
+    if (prevKey !== selectionKey) {
+      pqcKeyCacheRef.current[prevKey] = {
+        privateKey: state.pqcPrivateKey,
+        publicKey: state.pqcPublicKey,
+      }
+      const cached = pqcKeyCacheRef.current[selectionKey]
+      const nextPrivate = cached?.privateKey ?? ""
+      const nextPublic = cached?.publicKey ?? ""
+      if (nextPrivate !== state.pqcPrivateKey) setParam("pqcPrivateKey", nextPrivate)
+      if (nextPublic !== state.pqcPublicKey) setParam("pqcPublicKey", nextPublic)
+      prevPqcSelectionRef.current = selectionKey
+      return
+    }
+    pqcKeyCacheRef.current[selectionKey] = {
+      privateKey: state.pqcPrivateKey,
+      publicKey: state.pqcPublicKey,
+    }
+  }, [
+    state.algorithm,
+    state.pqcDsaVariant,
+    state.pqcSlhVariant,
+    state.pqcPrivateKey,
+    state.pqcPublicKey,
+    setParam,
+  ])
 
   React.useEffect(() => {
     if (hasHydratedInputRef.current) return
@@ -1079,6 +832,9 @@ function SignatureInner({
       paramsRef.current.ecdsaCurve === nextParams.ecdsaCurve &&
       paramsRef.current.ecdsaHash === nextParams.ecdsaHash &&
       paramsRef.current.eddsaCurve === nextParams.eddsaCurve &&
+      paramsRef.current.pqcDsaVariant === nextParams.pqcDsaVariant &&
+      paramsRef.current.pqcSlhVariant === nextParams.pqcSlhVariant &&
+      paramsRef.current.pqcKeyEncoding === nextParams.pqcKeyEncoding &&
       paramsRef.current.rsaPrivateKey === nextParams.rsaPrivateKey &&
       paramsRef.current.rsaPublicKey === nextParams.rsaPublicKey &&
       paramsRef.current.ecdsaPrivateKey === nextParams.ecdsaPrivateKey &&
@@ -1087,6 +843,8 @@ function SignatureInner({
       paramsRef.current.eddsaPublicKey === nextParams.eddsaPublicKey &&
       paramsRef.current.schnorrPrivateKey === nextParams.schnorrPrivateKey &&
       paramsRef.current.schnorrPublicKey === nextParams.schnorrPublicKey &&
+      paramsRef.current.pqcPrivateKey === nextParams.pqcPrivateKey &&
+      paramsRef.current.pqcPublicKey === nextParams.pqcPublicKey &&
       paramsRef.current.fileName === nextParams.fileName
     ) {
       return
@@ -1317,6 +1075,7 @@ function SignatureInner({
     }
     if (state.algorithm === "eddsa") return "JWK (OKP)"
     if (state.algorithm === "schnorr") return "JWK (EC secp256k1)"
+    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") return "PQC JSON or raw key"
     return ""
   }, [state.algorithm, state.ecdsaCurve])
 
@@ -1327,6 +1086,7 @@ function SignatureInner({
     }
     if (state.algorithm === "eddsa") return "JWK (OKP)"
     if (state.algorithm === "schnorr") return "JWK (EC secp256k1)"
+    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") return "PQC JSON or raw key"
     return ""
   }, [state.algorithm, state.ecdsaCurve])
 
@@ -1335,6 +1095,9 @@ function SignatureInner({
   const showEcdsa = state.algorithm === "ecdsa"
   const showEddsa = state.algorithm === "eddsa"
   const showSchnorr = state.algorithm === "schnorr"
+  const showPqcDsa = state.algorithm === "ml-dsa"
+  const showPqcSlh = state.algorithm === "slh-dsa"
+  const showPqc = showPqcDsa || showPqcSlh
 
   return (
     <div className="flex flex-col gap-4">
@@ -1545,6 +1308,44 @@ function SignatureInner({
             </div>
           )}
 
+          {showPqcDsa && (
+            <div className="flex items-center gap-3">
+              <Label className="w-20 text-sm sm:w-28">Parameter Set</Label>
+              <Tabs
+                value={state.pqcDsaVariant}
+                onValueChange={(value) => setParam("pqcDsaVariant", value as PqcDsaVariant, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {pqcDsaVariants.map((variant) => (
+                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                      {variant}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+          )}
+
+          {showPqcSlh && (
+            <div className="flex items-center gap-3">
+              <Label className="w-20 text-sm sm:w-28">Parameter Set</Label>
+              <Tabs
+                value={state.pqcSlhVariant}
+                onValueChange={(value) => setParam("pqcSlhVariant", value as PqcSlhVariant, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {pqcSlhVariants.map((variant) => (
+                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                      {variant}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+          )}
+
           {!showHmac && (
             <div className="space-y-3">
               {state.mode === "sign" ? (
@@ -1584,6 +1385,23 @@ function SignatureInner({
                         </Button>
                       </div>
                     </div>
+                    {showPqc && (
+                      <div className="mt-2 flex items-center justify-end">
+                        <Tabs
+                          value={state.pqcKeyEncoding}
+                          onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                          className="flex-row gap-0"
+                        >
+                          <TabsList className="h-6 gap-1">
+                            {pqcKeyEncodings.map((encoding) => (
+                              <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                                {encodingLabels[encoding]}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                        </Tabs>
+                      </div>
+                    )}
                     {oversizeKeys.includes(getKeyFields(state.algorithm).privateKey) && (
                       <p className="text-xs text-muted-foreground">
                         Private key exceeds 2 KB and is not synced to the URL.
@@ -1628,6 +1446,23 @@ function SignatureInner({
                         </Button>
                       </div>
                     </div>
+                    {showPqc && (
+                      <div className="mt-2 flex items-center justify-end">
+                        <Tabs
+                          value={state.pqcKeyEncoding}
+                          onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                          className="flex-row gap-0"
+                        >
+                          <TabsList className="h-6 gap-1">
+                            {pqcKeyEncodings.map((encoding) => (
+                              <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                                {encodingLabels[encoding]}
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                        </Tabs>
+                      </div>
+                    )}
                     {oversizeKeys.includes(getKeyFields(state.algorithm).publicKey) && (
                       <p className="text-xs text-muted-foreground">
                         Public key exceeds 2 KB and is not synced to the URL.

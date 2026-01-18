@@ -1,16 +1,17 @@
 # Keypair Generator
 
-Generate public/private keypairs across RSA, EC, and OKP curves with algorithm-specific parameters. Export JWK for every curve, plus PEM when supported.
+Generate public/private keypairs across RSA, EC, OKP, and post-quantum algorithms with algorithm-specific parameters. Export JWK for classical curves and PQC JSON for lattice/hash-based keys, plus PEM when supported.
 
 ## Features
-- RSA, ECDSA/ECDH, Schnorr, Ed25519/Ed448, and X25519/X448 keypair generation
+- RSA, ECDSA/ECDH, Schnorr, Ed25519/Ed448, X25519/X448, plus ML-KEM, ML-DSA, SLH-DSA, and hybrid KEM keypair generation
 - Curve selection including P-256/P-384/P-521, secp256k1, and Brainpool curves
-- Algorithm-specific parameters (modulus length, exponent, hash, curve)
+- Algorithm-specific parameters (modulus length, exponent, hash, curve, PQC parameter sets)
 - Select key usages per algorithm
-- Export JWK for all keys and PEM when available, with copy/download helpers and ZIP export
+- Export JWK for classical keys, PQC JSON for post-quantum keys, and PEM when available, with copy/download helpers and ZIP export
 
 ## Parameters
 - Algorithm
+- Post-quantum parameter sets (ML-KEM/ML-DSA/SLH-DSA/hybrid KEM)
 - RSA modulus length, exponent, hash
 - EC named curve (P-256/P-384/P-521, secp256k1, Brainpool)
 - Key usages (sign/verify, encrypt/decrypt, derive, wrap/unwrap)

@@ -7,6 +7,17 @@ import { AlertCircle, Check, Copy, Download, RefreshCcw, Upload } from "lucide-r
 import { secp256k1, schnorr as schnorrCurve } from "@noble/curves/secp256k1.js"
 import { x25519 } from "@noble/curves/ed25519.js"
 import { x448 } from "@noble/curves/ed448.js"
+import { ml_kem512, ml_kem768, ml_kem1024 } from "@noble/post-quantum/ml-kem.js"
+import {
+  ml_kem768_x25519,
+  ml_kem768_p256,
+  ml_kem1024_p384,
+  KitchenSink_ml_kem768_x25519,
+  XWing,
+  QSF_ml_kem768_p256,
+  QSF_ml_kem1024_p384,
+} from "@noble/post-quantum/hybrid.js"
+import type { KEM } from "@noble/post-quantum/utils.js"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Textarea } from "@/components/ui/textarea"
@@ -22,21 +33,37 @@ import { decodeHex, encodeHex } from "@/lib/encoding/hex"
 import type { HistoryEntry } from "@/lib/history/db"
 import { cn } from "@/lib/utils"
 
-const algorithmValues = ["ECDH", "Schnorr", "X25519", "X448"] as const
+const algorithmValues = ["ECDH", "Schnorr", "X25519", "X448", "ML-KEM", "Hybrid KEM"] as const
 const ecdhCurves = ["P-256", "P-384", "P-521", "secp256k1"] as const
 const outputEncodings = ["base64", "base64url", "hex"] as const
 const paramEncodings = ["utf8", "base64", "hex"] as const
+const pqcKeyEncodings = ["base64", "base64url", "hex"] as const
 const kdfAlgorithms = ["HKDF", "PBKDF2"] as const
 const kdfHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
 const lengthPresets = ["256", "384", "512", "custom"] as const
+const kemModes = ["encapsulate", "decapsulate"] as const
+const pqcKemVariants = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"] as const
+const pqcHybridVariants = [
+  "XWing",
+  "ML-KEM-768+X25519",
+  "ML-KEM-768+P-256",
+  "ML-KEM-1024+P-384",
+  "KitchenSink ML-KEM-768+X25519",
+  "QSF ML-KEM-768+P-256",
+  "QSF ML-KEM-1024+P-384",
+] as const
 
 type AgreementAlgorithm = (typeof algorithmValues)[number]
 type EcdhCurve = (typeof ecdhCurves)[number]
 type OutputEncoding = (typeof outputEncodings)[number]
 type ParamEncoding = (typeof paramEncodings)[number]
+type PqcKeyEncoding = (typeof pqcKeyEncodings)[number]
 type KdfAlgorithm = (typeof kdfAlgorithms)[number]
 type KdfHash = (typeof kdfHashes)[number]
 type LengthPreset = (typeof lengthPresets)[number]
+type KemMode = (typeof kemModes)[number]
+type PqcKemVariant = (typeof pqcKemVariants)[number]
+type PqcHybridVariant = (typeof pqcHybridVariants)[number]
 
 const encodingLabels = {
   utf8: "UTF-8",
@@ -45,11 +72,32 @@ const encodingLabels = {
   hex: "Hex",
 } as const
 
+const pqcKemMap: Record<PqcKemVariant, KEM> = {
+  "ML-KEM-512": ml_kem512,
+  "ML-KEM-768": ml_kem768,
+  "ML-KEM-1024": ml_kem1024,
+}
+
+const pqcHybridMap: Record<PqcHybridVariant, KEM> = {
+  XWing,
+  "ML-KEM-768+X25519": ml_kem768_x25519,
+  "ML-KEM-768+P-256": ml_kem768_p256,
+  "ML-KEM-1024+P-384": ml_kem1024_p384,
+  "KitchenSink ML-KEM-768+X25519": KitchenSink_ml_kem768_x25519,
+  "QSF ML-KEM-768+P-256": QSF_ml_kem768_p256,
+  "QSF ML-KEM-1024+P-384": QSF_ml_kem1024_p384,
+}
+
 const paramsSchema = z.object({
   algorithm: z.enum(algorithmValues).default("ECDH"),
   ecdhCurve: z.enum(ecdhCurves).default("P-256"),
   localPrivateKey: z.string().default(""),
   peerPublicKey: z.string().default(""),
+  kemMode: z.enum(kemModes).default("encapsulate"),
+  pqcKemVariant: z.enum(pqcKemVariants).default("ML-KEM-768"),
+  pqcHybridVariant: z.enum(pqcHybridVariants).default("XWing"),
+  pqcKeyEncoding: z.enum(pqcKeyEncodings).default("base64"),
+  kemCiphertext: z.string().default(""),
   outputEncoding: z.enum(outputEncodings).default("base64"),
   useKdf: z.boolean().default(false),
   kdfAlgorithm: z.enum(kdfAlgorithms).default("HKDF"),
@@ -109,6 +157,12 @@ function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
   if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
   if (encoding === "base64") return encodeBase64(bytes, { urlSafe: false, padding: true })
   return encodeBase64(bytes, { urlSafe: true, padding: false })
+}
+
+function decodeOutputBytes(value: string, encoding: OutputEncoding) {
+  if (!value) return new Uint8Array()
+  if (encoding === "hex") return decodeHex(value)
+  return decodeBase64(value)
 }
 
 function encodeBase64Url(bytes: Uint8Array) {
@@ -178,6 +232,83 @@ function createOkpJwk(curve: "X25519" | "X448", publicKey: Uint8Array, privateKe
   return jwk
 }
 
+type PqcKeyPayload = {
+  publicKey?: string
+  secretKey?: string
+  privateKey?: string
+  encoding?: string
+}
+
+function parsePqcKeyPayload(text: string) {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith("{")) return null
+  try {
+    const parsed = JSON.parse(trimmed)
+    if (parsed && typeof parsed === "object") return parsed as PqcKeyPayload
+  } catch {
+    return null
+  }
+  return null
+}
+
+function normalizePqcEncoding(value?: string): PqcKeyEncoding | null {
+  if (value === "base64" || value === "base64url" || value === "hex") return value
+  return null
+}
+
+function decodePqcKeyBytes(value: string, encoding: PqcKeyEncoding) {
+  if (!value) return new Uint8Array()
+  if (encoding === "hex") return decodeHex(value)
+  return decodeBase64(value)
+}
+
+function resolvePqcKeyBytes(keyText: string, encoding: PqcKeyEncoding, type: "public" | "private") {
+  const trimmed = keyText.trim()
+  if (!trimmed) {
+    throw new Error(`${type === "public" ? "Public" : "Private"} key is required.`)
+  }
+  const payload = parsePqcKeyPayload(trimmed)
+  if (payload) {
+    const keyEncoding = normalizePqcEncoding(payload.encoding) ?? encoding
+    const keyValue = type === "public" ? payload.publicKey : payload.secretKey || payload.privateKey
+    if (!keyValue) {
+      throw new Error(`${type === "public" ? "Public" : "Private"} key is required.`)
+    }
+    return decodePqcKeyBytes(keyValue, keyEncoding)
+  }
+  return decodePqcKeyBytes(trimmed, encoding)
+}
+
+function encodePqcKey(bytes: Uint8Array, encoding: PqcKeyEncoding) {
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
+  if (encoding === "base64url") return encodeBase64(bytes, { urlSafe: true, padding: false })
+  return encodeBase64(bytes, { urlSafe: false, padding: true })
+}
+
+function createPqcPublicKey(algorithm: string, publicKey: Uint8Array, encoding: PqcKeyEncoding) {
+  return {
+    kty: "PQC",
+    alg: algorithm,
+    encoding,
+    publicKey: encodePqcKey(publicKey, encoding),
+  }
+}
+
+function createPqcPrivateKey(
+  algorithm: string,
+  publicKey: Uint8Array,
+  secretKey: Uint8Array,
+  encoding: PqcKeyEncoding,
+) {
+  return {
+    kty: "PQC",
+    alg: algorithm,
+    encoding,
+    publicKey: encodePqcKey(publicKey, encoding),
+    secretKey: encodePqcKey(secretKey, encoding),
+  }
+}
+
 function extractPemBlock(pem: string) {
   const trimmed = pem.trim()
   if (!trimmed) return null
@@ -224,9 +355,11 @@ function getDeriveParams(publicKey: CryptoKey): EcdhKeyDeriveParams {
   return { name: "ECDH", public: publicKey }
 }
 
-function getAgreementKeyId(algorithm: AgreementAlgorithm, curve: EcdhCurve) {
-  if (algorithm === "ECDH") return `ECDH:${curve}`
-  return algorithm
+function getAgreementKeyId(state: KeyAgreementState) {
+  if (state.algorithm === "ECDH") return `ECDH:${state.ecdhCurve}`
+  if (state.algorithm === "ML-KEM") return `ML-KEM:${state.pqcKemVariant}`
+  if (state.algorithm === "Hybrid KEM") return `Hybrid KEM:${state.pqcHybridVariant}`
+  return state.algorithm
 }
 
 function getSharedSecretBits(algorithm: AgreementAlgorithm, curve: EcdhCurve) {
@@ -235,6 +368,7 @@ function getSharedSecretBits(algorithm: AgreementAlgorithm, curve: EcdhCurve) {
     if (curve === "P-521") return 528
     return 256
   }
+  if (algorithm === "ML-KEM" || algorithm === "Hybrid KEM") return 256
   if (algorithm === "Schnorr") return 256
   if (algorithm === "X448") return 448
   return 256
@@ -401,6 +535,28 @@ async function generateKeypair(state: KeyAgreementState) {
     }
   }
 
+  if (state.algorithm === "ML-KEM") {
+    const kem = pqcKemMap[state.pqcKemVariant]
+    const { publicKey, secretKey } = kem.keygen()
+    const publicPayload = createPqcPublicKey(state.pqcKemVariant, publicKey, state.pqcKeyEncoding)
+    const privatePayload = createPqcPrivateKey(state.pqcKemVariant, publicKey, secretKey, state.pqcKeyEncoding)
+    return {
+      publicPem: JSON.stringify(publicPayload, null, 2),
+      privatePem: JSON.stringify(privatePayload, null, 2),
+    }
+  }
+
+  if (state.algorithm === "Hybrid KEM") {
+    const kem = pqcHybridMap[state.pqcHybridVariant]
+    const { publicKey, secretKey } = kem.keygen()
+    const publicPayload = createPqcPublicKey(state.pqcHybridVariant, publicKey, state.pqcKeyEncoding)
+    const privatePayload = createPqcPrivateKey(state.pqcHybridVariant, publicKey, secretKey, state.pqcKeyEncoding)
+    return {
+      publicPem: JSON.stringify(publicPayload, null, 2),
+      privatePem: JSON.stringify(privatePayload, null, 2),
+    }
+  }
+
   if (state.algorithm === "ECDH") {
     const { secretKey } = secp256k1.keygen()
     const publicKey = secp256k1.getPublicKey(secretKey, false)
@@ -486,7 +642,7 @@ function KeyAgreementContent() {
     <ToolPageWrapper
       toolId="key-agreement"
       title="Key Agreement"
-      description="Derive shared secrets with ECDH (P-256/P-384/P-521/secp256k1), Schnorr (secp256k1), or X25519/X448, plus optional HKDF/PBKDF2 key derivation."
+      description="Derive shared secrets with ECDH, X25519/X448, or post-quantum KEMs (ML-KEM/hybrid), plus optional HKDF/PBKDF2 key derivation."
       onLoadHistory={handleLoadHistory}
     >
       <KeyAgreementInner
@@ -519,16 +675,17 @@ function KeyAgreementInner({
   const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const [sharedSecret, setSharedSecret] = React.useState("")
   const [derivedSecret, setDerivedSecret] = React.useState("")
+  const [kemCiphertextOutput, setKemCiphertextOutput] = React.useState("")
   const [error, setError] = React.useState<string | null>(null)
   const [isWorking, setIsWorking] = React.useState(false)
-  const [copied, setCopied] = React.useState<"shared" | "derived" | null>(null)
+  const [copied, setCopied] = React.useState<"shared" | "derived" | "ciphertext" | null>(null)
   const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false)
   const [isGeneratingPeerKey, setIsGeneratingPeerKey] = React.useState(false)
   const [lengthMode, setLengthMode] = React.useState<LengthPreset>(() => getLengthPreset(state.kdfLength) ?? "custom")
   const keyCacheRef = React.useRef<
     Partial<Record<string, { localPrivateKey: string; peerPublicKey: string }>>
   >({})
-  const selectionRef = React.useRef(getAgreementKeyId(state.algorithm, state.ecdhCurve))
+  const selectionRef = React.useRef(getAgreementKeyId(state))
   const localPrivateKeyRef = React.useRef<HTMLInputElement>(null)
   const peerPublicKeyRef = React.useRef<HTMLInputElement>(null)
   const hasHydratedInputRef = React.useRef(false)
@@ -539,6 +696,11 @@ function KeyAgreementInner({
     ecdhCurve: state.ecdhCurve,
     localPrivateKey: state.localPrivateKey,
     peerPublicKey: state.peerPublicKey,
+    kemMode: state.kemMode,
+    pqcKemVariant: state.pqcKemVariant,
+    pqcHybridVariant: state.pqcHybridVariant,
+    pqcKeyEncoding: state.pqcKeyEncoding,
+    kemCiphertext: state.kemCiphertext,
     outputEncoding: state.outputEncoding,
     useKdf: state.useKdf,
     kdfAlgorithm: state.kdfAlgorithm,
@@ -574,6 +736,11 @@ function KeyAgreementInner({
       ecdhCurve: state.ecdhCurve,
       localPrivateKey: state.localPrivateKey,
       peerPublicKey: state.peerPublicKey,
+      kemMode: state.kemMode,
+      pqcKemVariant: state.pqcKemVariant,
+      pqcHybridVariant: state.pqcHybridVariant,
+      pqcKeyEncoding: state.pqcKeyEncoding,
+      kemCiphertext: state.kemCiphertext,
       outputEncoding: state.outputEncoding,
       useKdf: state.useKdf,
       kdfAlgorithm: state.kdfAlgorithm,
@@ -590,6 +757,11 @@ function KeyAgreementInner({
       state.ecdhCurve,
       state.localPrivateKey,
       state.peerPublicKey,
+      state.kemMode,
+      state.pqcKemVariant,
+      state.pqcHybridVariant,
+      state.pqcKeyEncoding,
+      state.kemCiphertext,
       state.outputEncoding,
       state.useKdf,
       state.kdfAlgorithm,
@@ -604,7 +776,7 @@ function KeyAgreementInner({
   )
 
   React.useEffect(() => {
-    const selectionKey = getAgreementKeyId(state.algorithm, state.ecdhCurve)
+    const selectionKey = getAgreementKeyId(state)
     const prevKey = selectionRef.current
     if (prevKey !== selectionKey) {
       keyCacheRef.current[prevKey] = {
@@ -626,6 +798,8 @@ function KeyAgreementInner({
   }, [
     state.algorithm,
     state.ecdhCurve,
+    state.pqcKemVariant,
+    state.pqcHybridVariant,
     state.localPrivateKey,
     state.peerPublicKey,
     setParam,
@@ -634,13 +808,13 @@ function KeyAgreementInner({
   React.useEffect(() => {
     if (hasHydratedInputRef.current) return
     if (hydrationSource === "default") return
-    const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+    const signature = `${state.localPrivateKey}|${state.peerPublicKey}|${state.kemCiphertext}`
     lastInputRef.current = signature
     hasHydratedInputRef.current = true
-  }, [hydrationSource, state.localPrivateKey, state.peerPublicKey])
+  }, [hydrationSource, state.localPrivateKey, state.peerPublicKey, state.kemCiphertext])
 
   React.useEffect(() => {
-    const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+    const signature = `${state.localPrivateKey}|${state.peerPublicKey}|${state.kemCiphertext}`
     if (!signature.trim() || signature === lastInputRef.current) return
 
     const timer = setTimeout(() => {
@@ -651,6 +825,7 @@ function KeyAgreementInner({
         {
           localPrivateKey: state.localPrivateKey,
           peerPublicKey: state.peerPublicKey,
+          kemCiphertext: state.kemCiphertext,
         },
         historyParams,
         "left",
@@ -659,12 +834,12 @@ function KeyAgreementInner({
     }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
 
     return () => clearTimeout(timer)
-  }, [state.localPrivateKey, state.peerPublicKey, historyParams, upsertInputEntry])
+  }, [state.localPrivateKey, state.peerPublicKey, state.kemCiphertext, historyParams, upsertInputEntry])
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
       hasHandledUrlRef.current = true
-      const signature = `${state.localPrivateKey}|${state.peerPublicKey}`
+    const signature = `${state.localPrivateKey}|${state.peerPublicKey}|${state.kemCiphertext}`
       if (signature.trim()) {
         const previewBase = state.peerPublicKey || state.localPrivateKey
         const preview = previewBase ? previewBase.slice(0, 100) : "Key agreement"
@@ -672,6 +847,7 @@ function KeyAgreementInner({
           {
             localPrivateKey: state.localPrivateKey,
             peerPublicKey: state.peerPublicKey,
+            kemCiphertext: state.kemCiphertext,
           },
           historyParams,
           "left",
@@ -681,7 +857,15 @@ function KeyAgreementInner({
         upsertParams(historyParams, "interpretation")
       }
     }
-  }, [hasUrlParams, state.localPrivateKey, state.peerPublicKey, historyParams, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.localPrivateKey,
+    state.peerPublicKey,
+    state.kemCiphertext,
+    historyParams,
+    upsertInputEntry,
+    upsertParams,
+  ])
 
   React.useEffect(() => {
     const nextParams = historyParams
@@ -695,6 +879,11 @@ function KeyAgreementInner({
       paramsRef.current.ecdhCurve === nextParams.ecdhCurve &&
       paramsRef.current.localPrivateKey === nextParams.localPrivateKey &&
       paramsRef.current.peerPublicKey === nextParams.peerPublicKey &&
+      paramsRef.current.kemMode === nextParams.kemMode &&
+      paramsRef.current.pqcKemVariant === nextParams.pqcKemVariant &&
+      paramsRef.current.pqcHybridVariant === nextParams.pqcHybridVariant &&
+      paramsRef.current.pqcKeyEncoding === nextParams.pqcKeyEncoding &&
+      paramsRef.current.kemCiphertext === nextParams.kemCiphertext &&
       paramsRef.current.outputEncoding === nextParams.outputEncoding &&
       paramsRef.current.useKdf === nextParams.useKdf &&
       paramsRef.current.kdfAlgorithm === nextParams.kdfAlgorithm &&
@@ -715,9 +904,19 @@ function KeyAgreementInner({
   React.useEffect(() => {
     const privateKeyText = state.localPrivateKey.trim()
     const peerKeyText = state.peerPublicKey.trim()
-    if (!privateKeyText || !peerKeyText) {
+    const isKem = state.algorithm === "ML-KEM" || state.algorithm === "Hybrid KEM"
+    const requiresPrivate = !isKem || state.kemMode === "decapsulate"
+    const requiresPeer = !isKem || state.kemMode === "encapsulate"
+    const requiresCiphertext = isKem && state.kemMode === "decapsulate"
+
+    if (
+      (requiresPrivate && !privateKeyText) ||
+      (requiresPeer && !peerKeyText) ||
+      (requiresCiphertext && !state.kemCiphertext.trim())
+    ) {
       setSharedSecret("")
       setDerivedSecret("")
+      setKemCiphertextOutput("")
       setError(null)
       setIsWorking(false)
       return
@@ -735,8 +934,22 @@ function KeyAgreementInner({
         }
 
         let sharedBytes: Uint8Array
+        let kemCiphertextBytes: Uint8Array | null = null
 
-        if (webCryptoAlgorithm) {
+        if (isKem) {
+          const kem = state.algorithm === "ML-KEM" ? pqcKemMap[state.pqcKemVariant] : pqcHybridMap[state.pqcHybridVariant]
+          if (state.kemMode === "encapsulate") {
+            const publicKey = resolvePqcKeyBytes(peerKeyText, state.pqcKeyEncoding, "public")
+            const { cipherText, sharedSecret } = kem.encapsulate(publicKey)
+            sharedBytes = sharedSecret
+            kemCiphertextBytes = cipherText
+          } else {
+            const secretKey = resolvePqcKeyBytes(privateKeyText, state.pqcKeyEncoding, "private")
+            const cipherText = decodeOutputBytes(state.kemCiphertext, state.outputEncoding)
+            sharedBytes = kem.decapsulate(cipherText, secretKey)
+            kemCiphertextBytes = null
+          }
+        } else if (webCryptoAlgorithm) {
           const privateKey = await importWebCryptoAgreementKey({ keyText: privateKeyText, algorithm: webCryptoAlgorithm, type: "private" })
           if (!privateKey) {
             throw new Error("Invalid private key format. Use PKCS8 PEM or JWK.")
@@ -771,15 +984,18 @@ function KeyAgreementInner({
         const sharedText = encodeOutputBytes(sharedBytes, state.outputEncoding)
         const kdfBytes = state.useKdf ? await deriveKdfBytes(sharedBytes, state) : null
         const derivedText = kdfBytes ? encodeOutputBytes(kdfBytes, state.outputEncoding) : ""
+        const kemCipherText = kemCiphertextBytes ? encodeOutputBytes(kemCiphertextBytes, state.outputEncoding) : ""
         if (runRef.current !== runId) return
         setSharedSecret(sharedText)
         setDerivedSecret(derivedText)
+        setKemCiphertextOutput(kemCipherText)
         setError(null)
       } catch (err) {
         if (runRef.current !== runId) return
         setError(err instanceof Error ? err.message : "Failed to derive shared secret.")
         setSharedSecret("")
         setDerivedSecret("")
+        setKemCiphertextOutput("")
       } finally {
         if (runRef.current === runId) {
           setIsWorking(false)
@@ -791,6 +1007,11 @@ function KeyAgreementInner({
   }, [
     state.algorithm,
     state.ecdhCurve,
+    state.kemMode,
+    state.pqcKemVariant,
+    state.pqcHybridVariant,
+    state.pqcKeyEncoding,
+    state.kemCiphertext,
     state.localPrivateKey,
     state.peerPublicKey,
     state.outputEncoding,
@@ -848,7 +1069,7 @@ function KeyAgreementInner({
     }
   }
 
-  const handleCopy = async (value: string, target: "shared" | "derived") => {
+  const handleCopy = async (value: string, target: "shared" | "derived" | "ciphertext") => {
     if (!value) return
     await navigator.clipboard.writeText(value)
     setCopied(target)
@@ -898,10 +1119,17 @@ function KeyAgreementInner({
     resetToDefaults()
     setSharedSecret("")
     setDerivedSecret("")
+    setKemCiphertextOutput("")
     setError(null)
     setIsWorking(false)
     setCopied(null)
   }, [resetToDefaults])
+
+  const isKem = state.algorithm === "ML-KEM" || state.algorithm === "Hybrid KEM"
+  const isKemEncapsulate = isKem && state.kemMode === "encapsulate"
+  const isKemDecapsulate = isKem && state.kemMode === "decapsulate"
+  const showLocalPrivateKey = !isKem || isKemDecapsulate
+  const showPeerPublicKey = !isKem || isKemEncapsulate
 
   const localKeyHint = React.useMemo(() => {
     if (state.algorithm === "ECDH") {
@@ -909,6 +1137,9 @@ function KeyAgreementInner({
     }
     if (state.algorithm === "Schnorr") {
       return "JWK (EC secp256k1)"
+    }
+    if (state.algorithm === "ML-KEM" || state.algorithm === "Hybrid KEM") {
+      return "PQC JSON or raw key"
     }
     return state.algorithm === "X448" ? "JWK (OKP X448)" : "JWK (OKP X25519)"
   }, [state.algorithm, state.ecdhCurve])
@@ -919,6 +1150,9 @@ function KeyAgreementInner({
     }
     if (state.algorithm === "Schnorr") {
       return "JWK (EC secp256k1, x-only ok)"
+    }
+    if (state.algorithm === "ML-KEM" || state.algorithm === "Hybrid KEM") {
+      return "PQC JSON or raw key"
     }
     return state.algorithm === "X448" ? "JWK (OKP X448)" : "JWK (OKP X25519)"
   }, [state.algorithm, state.ecdhCurve])
@@ -951,6 +1185,63 @@ function KeyAgreementInner({
             </Tabs>
           </div>
 
+          {isKem && (
+            <div className="flex items-center gap-3">
+              <Label className="w-24 text-sm sm:w-32">Mode</Label>
+              <Tabs
+                value={state.kemMode}
+                onValueChange={(value) => setParam("kemMode", value as KemMode, true)}
+                className="min-w-0 flex-1"
+              >
+                <TabsList className="h-8">
+                  {kemModes.map((mode) => (
+                    <TabsTrigger key={mode} value={mode} className="text-xs">
+                      {mode === "encapsulate" ? "Encapsulate" : "Decapsulate"}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+          )}
+
+          {state.algorithm === "ML-KEM" && (
+            <div className="flex items-center gap-3">
+              <Label className="w-24 text-sm sm:w-32">Parameter Set</Label>
+              <Tabs
+                value={state.pqcKemVariant}
+                onValueChange={(value) => setParam("pqcKemVariant", value as PqcKemVariant, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {pqcKemVariants.map((variant) => (
+                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                      {variant}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+          )}
+
+          {state.algorithm === "Hybrid KEM" && (
+            <div className="flex items-center gap-3">
+              <Label className="w-24 text-sm sm:w-32">Parameter Set</Label>
+              <Tabs
+                value={state.pqcHybridVariant}
+                onValueChange={(value) => setParam("pqcHybridVariant", value as PqcHybridVariant, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {pqcHybridVariants.map((variant) => (
+                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                      {variant}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+          )}
+
           {state.algorithm === "ECDH" && (
             <div className="flex items-center gap-3">
               <Label className="w-24 text-sm sm:w-32">Curve</Label>
@@ -975,89 +1266,154 @@ function KeyAgreementInner({
             </div>
           )}
 
-          <div className="flex items-start gap-3">
-            <Label className="w-24 text-sm sm:w-32 pt-2">Local Private Key</Label>
-            <div className="min-w-0 flex-1">
-              <Textarea
-                value={state.localPrivateKey}
-                onChange={(event) => setParam("localPrivateKey", event.target.value)}
-                placeholder="-----BEGIN PRIVATE KEY-----"
-                className={cn(
-                  "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
-                  oversizeKeys.includes("localPrivateKey") && "border-destructive",
-                )}
-              />
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">{localKeyHint}</p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleKeyUploadClick("localPrivate")}
-                    className="h-7 gap-1 px-2 text-xs"
-                  >
-                    <Upload className="h-3 w-3" />
-                    Upload
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleGenerateKeypair}
-                    className="h-7 gap-1 px-2 text-xs"
-                    disabled={isGeneratingKeys}
-                  >
-                    <RefreshCcw className="h-3 w-3" />
-                    {isGeneratingKeys ? "Generating..." : "Generate"}
-                  </Button>
+          {showLocalPrivateKey && (
+            <div className="flex items-start gap-3">
+              <Label className="w-24 text-sm sm:w-32 pt-2">
+                {isKem ? "Recipient Private Key" : "Local Private Key"}
+              </Label>
+              <div className="min-w-0 flex-1">
+                <Textarea
+                  value={state.localPrivateKey}
+                  onChange={(event) => setParam("localPrivateKey", event.target.value)}
+                  placeholder={isKem ? "Paste recipient private key..." : "-----BEGIN PRIVATE KEY-----"}
+                  className={cn(
+                    "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
+                    oversizeKeys.includes("localPrivateKey") && "border-destructive",
+                  )}
+                />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">{localKeyHint}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleKeyUploadClick("localPrivate")}
+                      className="h-7 gap-1 px-2 text-xs"
+                    >
+                      <Upload className="h-3 w-3" />
+                      Upload
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGenerateKeypair}
+                      className="h-7 gap-1 px-2 text-xs"
+                      disabled={isGeneratingKeys}
+                    >
+                      <RefreshCcw className="h-3 w-3" />
+                      {isGeneratingKeys ? "Generating..." : "Generate"}
+                    </Button>
+                  </div>
                 </div>
+                {isKem && (
+                  <div className="mt-2 flex items-center justify-end">
+                    <Tabs
+                      value={state.pqcKeyEncoding}
+                      onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                      className="flex-row gap-0"
+                    >
+                      <TabsList className="h-6 gap-1">
+                        {pqcKeyEncodings.map((encoding) => (
+                          <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                            {encodingLabels[encoding]}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                )}
+                {oversizeKeys.includes("localPrivateKey") && (
+                  <p className="text-xs text-muted-foreground">Private key exceeds 2 KB and is not synced to the URL.</p>
+                )}
               </div>
-              {oversizeKeys.includes("localPrivateKey") && (
-                <p className="text-xs text-muted-foreground">Private key exceeds 2 KB and is not synced to the URL.</p>
-              )}
             </div>
-          </div>
+          )}
 
-          <div className="flex items-start gap-3">
-            <Label className="w-24 text-sm sm:w-32 pt-2">Peer Public Key</Label>
-            <div className="min-w-0 flex-1">
-              <Textarea
-                value={state.peerPublicKey}
-                onChange={(event) => setParam("peerPublicKey", event.target.value)}
-                placeholder="-----BEGIN PUBLIC KEY-----"
-                className={cn(
-                  "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
-                  oversizeKeys.includes("peerPublicKey") && "border-destructive",
-                )}
-              />
-              <div className="mt-2 flex items-center justify-between gap-2">
-                <p className="text-xs text-muted-foreground">{peerPublicHint}</p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleKeyUploadClick("peerPublic")}
-                    className="h-7 gap-1 px-2 text-xs"
-                  >
-                    <Upload className="h-3 w-3" />
-                    Upload
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleGeneratePeerKey}
-                    className="h-7 gap-1 px-2 text-xs"
-                    disabled={isGeneratingPeerKey}
-                  >
-                    <RefreshCcw className="h-3 w-3" />
-                    {isGeneratingPeerKey ? "Generating..." : "Generate"}
-                  </Button>
+          {showPeerPublicKey && (
+            <div className="flex items-start gap-3">
+              <Label className="w-24 text-sm sm:w-32 pt-2">
+                {isKem ? "Recipient Public Key" : "Peer Public Key"}
+              </Label>
+              <div className="min-w-0 flex-1">
+                <Textarea
+                  value={state.peerPublicKey}
+                  onChange={(event) => setParam("peerPublicKey", event.target.value)}
+                  placeholder={isKem ? "Paste recipient public key..." : "-----BEGIN PUBLIC KEY-----"}
+                  className={cn(
+                    "min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs",
+                    oversizeKeys.includes("peerPublicKey") && "border-destructive",
+                  )}
+                />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">{peerPublicHint}</p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleKeyUploadClick("peerPublic")}
+                      className="h-7 gap-1 px-2 text-xs"
+                    >
+                      <Upload className="h-3 w-3" />
+                      Upload
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGeneratePeerKey}
+                      className="h-7 gap-1 px-2 text-xs"
+                      disabled={isGeneratingPeerKey}
+                    >
+                      <RefreshCcw className="h-3 w-3" />
+                      {isGeneratingPeerKey ? "Generating..." : "Generate"}
+                    </Button>
+                  </div>
                 </div>
+                {isKem && (
+                  <div className="mt-2 flex items-center justify-end">
+                    <Tabs
+                      value={state.pqcKeyEncoding}
+                      onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                      className="flex-row gap-0"
+                    >
+                      <TabsList className="h-6 gap-1">
+                        {pqcKeyEncodings.map((encoding) => (
+                          <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                            {encodingLabels[encoding]}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
+                )}
+                {oversizeKeys.includes("peerPublicKey") && (
+                  <p className="text-xs text-muted-foreground">Peer key exceeds 2 KB and is not synced to the URL.</p>
+                )}
               </div>
-              {oversizeKeys.includes("peerPublicKey") && (
-                <p className="text-xs text-muted-foreground">Peer key exceeds 2 KB and is not synced to the URL.</p>
-              )}
             </div>
-          </div>
+          )}
+
+          {isKemDecapsulate && (
+            <div className="flex items-start gap-3">
+              <Label className="w-24 text-sm sm:w-32 pt-2">Ciphertext</Label>
+              <div className="min-w-0 flex-1">
+                <Textarea
+                  value={state.kemCiphertext}
+                  onChange={(event) => setParam("kemCiphertext", event.target.value)}
+                  placeholder="Paste encapsulated ciphertext..."
+                  className={cn(
+                    "min-h-[120px] max-h-[200px] overflow-auto break-all font-mono text-xs",
+                    oversizeKeys.includes("kemCiphertext") && "border-destructive",
+                  )}
+                />
+                <div className="mt-2 flex items-center justify-between gap-2">
+                  <p className="text-xs text-muted-foreground">Uses the shared secret encoding.</p>
+                </div>
+                {oversizeKeys.includes("kemCiphertext") && (
+                  <p className="text-xs text-muted-foreground">Ciphertext exceeds 2 KB and is not synced to the URL.</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <input
             ref={localPrivateKeyRef}
@@ -1120,6 +1476,42 @@ function KeyAgreementInner({
               className="min-h-[160px] max-h-[240px] overflow-auto break-all font-mono text-xs"
             />
           </div>
+
+          {isKemEncapsulate && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Label className="text-sm">Encapsulated Ciphertext</Label>
+                <div className="flex shrink-0 items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(kemCiphertextOutput, "ciphertext")}
+                    className="h-7 w-7 p-0"
+                    aria-label="Copy ciphertext"
+                    disabled={!kemCiphertextOutput}
+                  >
+                    {copied === "ciphertext" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDownload(kemCiphertextOutput, "key-agreement-ciphertext.txt")}
+                    className="h-7 w-7 p-0"
+                    aria-label="Download ciphertext"
+                    disabled={!kemCiphertextOutput}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <Textarea
+                value={kemCiphertextOutput}
+                readOnly
+                placeholder="Encapsulated ciphertext will appear here..."
+                className="min-h-[120px] max-h-[200px] overflow-auto break-all font-mono text-xs"
+              />
+            </div>
+          )}
 
           <div className="rounded-md border p-3">
             <div className="flex items-center justify-between gap-3">

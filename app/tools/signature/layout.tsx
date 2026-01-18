@@ -4,7 +4,7 @@ import type { Metadata } from "next"
 export const metadata: Metadata = {
   title: "Signature Generator/Verifier - AutelysT",
   description:
-    "Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, and Schnorr using PEM/JWK keys and flexible encodings.",
+    "Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, Schnorr, ML-DSA, and SLH-DSA using PEM/JWK/PQC JSON keys.",
   keywords: [
     "signature",
     "sign",
@@ -18,6 +18,11 @@ export const metadata: Metadata = {
     "brainpool",
     "ed25519",
     "ed448",
+    "ml-dsa",
+    "slh-dsa",
+    "dilithium",
+    "sphincs",
+    "pqc",
     "pem",
     "jwk",
   ],
