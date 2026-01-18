@@ -16,6 +16,7 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder wi
 - **Keypair Generator** - Generate RSA/EC/Ed keypairs with PEM and JWK export
 - **JWK Converter** - Convert cryptographic keys between PEM and JWK formats
 - **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
+- **Signature** - Sign and verify messages with HMAC, RSA, ECDSA, and EdDSA
 - **Hash** - Generate MD, SHA, SHA3, and BLAKE hash digests
 - **Symmetric Encryption** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES
 
