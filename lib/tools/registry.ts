@@ -186,6 +186,28 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "asymmetric-encryption",
+    name: "Asymmetric Encryption",
+    description: "Encrypt and decrypt with RSA-OAEP using PEM/JWK keys and configurable hashing.",
+    category: "Crypto",
+    route: "/tools/asymmetric-encryption",
+    keywords: ["asymmetric", "encrypt", "decrypt", "rsa-oaep", "public key", "private key", "pem", "jwk"],
+    seo: {
+      title: "Asymmetric Encryption (RSA-OAEP) - AutelysT",
+      description: "Online RSA-OAEP encryption/decryption with PEM/JWK keys, configurable hash, and keypair generation.",
+      keywords: [
+        "asymmetric encryption",
+        "rsa-oaep",
+        "public key encryption",
+        "private key decryption",
+        "pem",
+        "jwk",
+        "keypair",
+        "web crypto",
+      ],
+    },
+  },
+  {
     id: "hash-generator",
     name: "Hash",
     description: "Generate cryptographic hash digests from text or files with MD, SHA, SHA-3, and BLAKE.",

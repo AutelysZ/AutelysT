@@ -1146,7 +1146,7 @@ function SignatureInner({
                       onChange={(event) => setParam(getKeyFields(state.algorithm).privateKey, event.target.value)}
                       placeholder="-----BEGIN PRIVATE KEY-----"
                       className={cn(
-                        "min-h-[160px] font-mono text-xs",
+                        "min-h-[160px] font-mono text-xs break-all",
                         oversizeKeys.includes(getKeyFields(state.algorithm).privateKey) && "border-destructive",
                       )}
                     />
@@ -1190,7 +1190,7 @@ function SignatureInner({
                       onChange={(event) => setParam(getKeyFields(state.algorithm).publicKey, event.target.value)}
                       placeholder="-----BEGIN PUBLIC KEY-----"
                       className={cn(
-                        "min-h-[160px] font-mono text-xs",
+                        "min-h-[160px] break-all font-mono text-xs max-h-[300px]",
                         oversizeKeys.includes(getKeyFields(state.algorithm).publicKey) && "border-destructive",
                       )}
                     />
