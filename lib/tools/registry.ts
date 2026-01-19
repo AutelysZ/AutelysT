@@ -245,16 +245,17 @@ export const tools: Tool[] = [
     },
   },
   {
-    id: "jwk-converter",
-    name: "JWK Converter",
-    description: "Convert PEM (SPKI/PKCS8) and JWK keys with algorithm auto-detection and file support.",
+    id: "key-extractor",
+    name: "Key Extractor",
+    description: "Parse and convert PEM, JWK, and DER keys with algorithm detection, key details, and downloads.",
     category: "Crypto",
-    route: "/tools/jwk-converter",
-    keywords: ["pem", "jwk", "converter", "key", "rsa", "ecdsa", "ed25519", "web crypto"],
+    route: "/tools/key-extractor",
+    keywords: ["key extractor", "key parser", "pem", "jwk", "der", "key converter", "rsa", "ec", "okp"],
     seo: {
-      title: "JWK Converter - AutelysT",
-      description: "Online JWK converter with PEM (SPKI/PKCS8) support, RSA/EC/OKP auto-detection, and file handling.",
-      keywords: ["pem", "jwk", "pem to jwk", "jwk to pem", "rsa", "ec", "okp", "key converter"],
+      title: "Key Extractor (PEM/JWK/DER) - AutelysT",
+      description:
+        "Online key extractor to parse and convert PEM, JWK, and DER keys with algorithm detection, key parameter details, and downloads.",
+      keywords: ["key extractor", "pem", "jwk", "der", "key conversion", "rsa", "ec", "okp", "key parameters"],
     },
   },
   {

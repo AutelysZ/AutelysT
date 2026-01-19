@@ -16,7 +16,7 @@ Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder wi
 - **Keypair Generator** - Generate RSA/EC, OKP, and post-quantum (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) keypairs with PEM/JWK export
 - **Key Exchange** - Derive shared secrets with ECDH, X25519/X448, or ML-KEM/hybrid KEM plus optional KDF
 - **Key Derivation** - Derive keys using HKDF or PBKDF2 with configurable hash and salt
-- **JWK Converter** - Convert cryptographic keys between PEM and JWK formats
+- **Key Extractor** - Parse and convert cryptographic keys across PEM, JWK, and DER formats
 - **JWT** - Parse, edit, and generate JSON Web Tokens with signature validation
 - **Signature** - Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, ML-DSA, and SLH-DSA
 - **Asymmetric Encryption** - Encrypt/decrypt using RSA-OAEP with PEM/JWK keys
