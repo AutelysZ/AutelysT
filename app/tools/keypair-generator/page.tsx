@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
-import { Check, Copy, Download, FileDown } from "lucide-react"
+import { Check, Copy, FileDown } from "lucide-react"
 import { secp256k1, schnorr as schnorrCurve } from "@noble/curves/secp256k1.js"
 import { p256, p384, p521 } from "@noble/curves/nist.js"
 import { ed25519, x25519 } from "@noble/curves/ed25519.js"
@@ -43,9 +43,10 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { encodeBase64 } from "@/lib/encoding/base64"
+import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
+import { encodeHex } from "@/lib/encoding/hex"
 import type { HistoryEntry } from "@/lib/history/db"
 
 const algorithmValues = [
@@ -109,6 +110,24 @@ const pqcHybridVariants = [
   "QSF ML-KEM-768+P-256",
   "QSF ML-KEM-1024+P-384",
 ] as const
+
+const keyEncodings = ["pem", "jwk", "der-base64", "der-hex"] as const
+
+type KeyEncoding = (typeof keyEncodings)[number]
+
+const keyEncodingLabels: Record<KeyEncoding, string> = {
+  pem: "PEM",
+  jwk: "JWK",
+  "der-base64": "DER Base64",
+  "der-hex": "DER Hex",
+}
+
+const keyEncodingExtensions: Record<KeyEncoding, string> = {
+  pem: "pem",
+  jwk: "jwk.json",
+  "der-base64": "der.base64",
+  "der-hex": "der.hex",
+}
 
 type KeypairAlgorithm = (typeof algorithmValues)[number]
 type HashAlgorithm = (typeof hashValues)[number]
@@ -337,6 +356,19 @@ function encodePqcKey(bytes: Uint8Array) {
   return encodeBase64(bytes, { urlSafe: false, padding: true })
 }
 
+function decodePemToDer(pem: string) {
+  if (!pem) return null
+  const match = pem.trim().match(/-----BEGIN[^-]+-----([\s\S]*?)-----END[^-]+-----/)
+  if (!match) return null
+  const body = match[1]?.replace(/\s+/g, "") ?? ""
+  if (!body) return null
+  try {
+    return decodeBase64(body)
+  } catch {
+    return null
+  }
+}
+
 function createPqcPublicKey(algorithm: string, publicKey: Uint8Array) {
   return {
     kty: "PQC",
@@ -509,8 +541,7 @@ function KeypairGeneratorInner({
   hasUrlParams: boolean
 }) {
   const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [publicView, setPublicView] = React.useState<"pem" | "jwk">("pem")
-  const [privateView, setPrivateView] = React.useState<"pem" | "jwk">("pem")
+  const [keyEncoding, setKeyEncoding] = React.useState<KeyEncoding>("pem")
   const [status, setStatus] = React.useState<string | null>(null)
   const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
   const [isGenerating, setIsGenerating] = React.useState(false)
@@ -603,43 +634,6 @@ function KeypairGeneratorInner({
     setCopiedKey(id)
     window.setTimeout(() => setCopiedKey(null), 1500)
   }, [])
-
-  const handleDownload = React.useCallback((filename: string, value: string) => {
-    if (!value) return
-    const blob = new Blob([value], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = filename
-    link.click()
-    URL.revokeObjectURL(url)
-  }, [])
-
-  const handleDownloadAll = React.useCallback(async () => {
-    if (!state.publicJwk || !state.privateJwk) return
-    try {
-      const { default: JSZip } = await import("jszip")
-      const zip = new JSZip()
-      const baseName = `keypair-${slugify(state.algorithm)}`
-      if (state.publicPem) {
-        zip.file(`${baseName}-public.pem`, state.publicPem)
-      }
-      if (state.privatePem) {
-        zip.file(`${baseName}-private.pem`, state.privatePem)
-      }
-      zip.file(`${baseName}-public.jwk.json`, state.publicJwk)
-      zip.file(`${baseName}-private.jwk.json`, state.privateJwk)
-      const blob = await zip.generateAsync({ type: "blob" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `${baseName}.zip`
-      link.click()
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Failed to generate zip file.")
-    }
-  }, [state])
 
   const handleGenerate = React.useCallback(async () => {
     setStatus(null)
@@ -847,27 +841,102 @@ function KeypairGeneratorInner({
   const isEc = ecAlgorithms.has(state.algorithm)
   const isPqc = pqcKemAlgorithms.has(state.algorithm) || pqcSignatureAlgorithms.has(state.algorithm)
   const isPemSupported = isRsa || (isEc && supportsPemForCurve(state.namedCurve))
+  const pemAvailable = Boolean(state.publicPem || state.privatePem) || isPemSupported
+  const availableEncodings = React.useMemo(
+    () => keyEncodings.filter((encoding) => encoding === "jwk" || pemAvailable),
+    [pemAvailable],
+  )
   const algorithmFamily = getAlgorithmFamily(state.algorithm)
   const activeAlgorithms = algorithmFamilies[algorithmFamily]
   const allowedUsages = usageByAlgorithm[state.algorithm]
+  const getKeyValue = React.useCallback(
+    (kind: "public" | "private", encoding: KeyEncoding) => {
+      if (encoding === "jwk") {
+        return kind === "public" ? state.publicJwk : state.privateJwk
+      }
+      if (encoding === "pem") {
+        return kind === "public" ? state.publicPem : state.privatePem
+      }
+      const pemValue = kind === "public" ? state.publicPem : state.privatePem
+      const derBytes = decodePemToDer(pemValue)
+      if (!derBytes) return ""
+      return encoding === "der-base64"
+        ? encodeBase64(derBytes, { urlSafe: false, padding: true })
+        : encodeHex(derBytes, { upperCase: false })
+    },
+    [state],
+  )
 
-  const publicValue = publicView === "pem" ? state.publicPem : state.publicJwk
-  const privateValue = privateView === "pem" ? state.privatePem : state.privateJwk
-  const publicName = `keypair-${slugify(state.algorithm)}-public.${publicView === "pem" ? "pem" : "jwk.json"}`
-  const privateName = `keypair-${slugify(state.algorithm)}-private.${privateView === "pem" ? "pem" : "jwk.json"}`
-  const publicPemPlaceholder = isPemSupported
-    ? "Generate a keypair to see the public PEM."
-    : "PEM export is unavailable for this algorithm."
-  const privatePemPlaceholder = isPemSupported
-    ? "Generate a keypair to see the private PEM."
-    : "PEM export is unavailable for this algorithm."
+  const publicValue = getKeyValue("public", keyEncoding)
+  const privateValue = getKeyValue("private", keyEncoding)
+
+  const publicPlaceholder = React.useMemo(() => {
+    if (keyEncoding === "jwk") return "Generate a keypair to see the public JWK."
+    if (!pemAvailable) {
+      return keyEncoding === "pem"
+        ? "PEM export is unavailable for this algorithm."
+        : "DER export is unavailable for this algorithm."
+    }
+    if (keyEncoding === "pem") return "Generate a keypair to see the public PEM."
+    return keyEncoding === "der-base64"
+      ? "Generate a keypair to see the public DER (Base64)."
+      : "Generate a keypair to see the public DER (Hex)."
+  }, [keyEncoding, pemAvailable])
+
+  const privatePlaceholder = React.useMemo(() => {
+    if (keyEncoding === "jwk") return "Generate a keypair to see the private JWK."
+    if (!pemAvailable) {
+      return keyEncoding === "pem"
+        ? "PEM export is unavailable for this algorithm."
+        : "DER export is unavailable for this algorithm."
+    }
+    if (keyEncoding === "pem") return "Generate a keypair to see the private PEM."
+    return keyEncoding === "der-base64"
+      ? "Generate a keypair to see the private DER (Base64)."
+      : "Generate a keypair to see the private DER (Hex)."
+  }, [keyEncoding, pemAvailable])
 
   React.useEffect(() => {
-    if (!isPemSupported) {
-      setPublicView("jwk")
-      setPrivateView("jwk")
+    if (availableEncodings.includes(keyEncoding)) return
+    setKeyEncoding(availableEncodings[0] ?? "jwk")
+  }, [availableEncodings, keyEncoding])
+
+  const handleDownloadAll = React.useCallback(async () => {
+    if (!state.publicJwk || !state.privateJwk) return
+    try {
+      const { default: JSZip } = await import("jszip")
+      const zip = new JSZip()
+      const baseName = `keypair-${slugify(state.algorithm)}`
+      availableEncodings.forEach((encoding) => {
+        const publicValue = getKeyValue("public", encoding)
+        const privateValue = getKeyValue("private", encoding)
+        const extension = keyEncodingExtensions[encoding]
+        if (publicValue) {
+          zip.file(`${baseName}-public.${extension}`, publicValue)
+        }
+        if (privateValue) {
+          zip.file(`${baseName}-private.${extension}`, privateValue)
+        }
+      })
+      const publicDer = decodePemToDer(state.publicPem)
+      const privateDer = decodePemToDer(state.privatePem)
+      if (publicDer) {
+        zip.file(`${baseName}-public.der`, publicDer)
+      }
+      if (privateDer) {
+        zip.file(`${baseName}-private.der`, privateDer)
+      }
+      const blob = await zip.generateAsync({ type: "blob" })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `${baseName}.zip`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Failed to generate zip file.")
     }
-  }, [isPemSupported])
+  }, [availableEncodings, getKeyValue, state])
 
   return (
     <div className="flex w-full flex-col gap-4 py-4 sm:gap-6 sm:py-6">
@@ -1088,120 +1157,78 @@ function KeypairGeneratorInner({
 
         {hasGenerated && (
           <section className="flex flex-col gap-4 sm:gap-6">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-base font-semibold">Generated Keys</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadAll}
-              disabled={!state.publicJwk || !state.privateJwk}
-            >
-              <FileDown className="h-4 w-4" />
-              Download All
-            </Button>
-          </div>
-          <div className="space-y-4 sm:space-y-6">
-            <div className="space-y-2 sm:space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Public Key</Label>
-                <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">Generated Keys</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadAll}
+                disabled={!state.publicJwk || !state.privateJwk}
+              >
+                <FileDown className="h-4 w-4" />
+                Download All
+              </Button>
+            </div>
+            <div className="flex items-center gap-3">
+              <Label className="w-28 shrink-0 text-xs text-muted-foreground">Encoding</Label>
+              <Tabs value={keyEncoding} onValueChange={(value) => setKeyEncoding(value as KeyEncoding)}>
+                <ScrollableTabsList>
+                  {availableEncodings.map((encoding) => (
+                    <TabsTrigger key={encoding} value={encoding} className="text-xs">
+                      {keyEncodingLabels[encoding]}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+            <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Public Key</Label>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-xs"
+                    className="h-7 w-7 p-0"
                     onClick={() => handleCopy("public", publicValue)}
+                    aria-label="Copy public key"
                     disabled={!publicValue}
                   >
                     {copiedKey === "public" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copiedKey === "public" ? "Copied" : "Copy"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => handleDownload(publicName, publicValue)}
-                    disabled={!publicValue}
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
                   </Button>
                 </div>
+                <Textarea
+                  readOnly
+                  rows={15}
+                  value={publicValue}
+                  placeholder={publicPlaceholder}
+                  className="max-h-[360px] overflow-auto break-all font-mono text-xs"
+                />
               </div>
-              <Tabs value={publicView} onValueChange={(value) => setPublicView(value as "pem" | "jwk")}>
-                <TabsList className="inline-flex flex-nowrap items-center">
-                  <TabsTrigger value="pem">PEM</TabsTrigger>
-                  <TabsTrigger value="jwk">JWK</TabsTrigger>
-                </TabsList>
-                <TabsContent value="pem">
-                  <Textarea
-                    readOnly
-                    value={state.publicPem}
-                    placeholder={publicPemPlaceholder}
-                    className="min-h-[220px] font-mono text-xs break-all"
-                  />
-                </TabsContent>
-                <TabsContent value="jwk">
-                  <Textarea
-                    readOnly
-                    value={state.publicJwk}
-                    placeholder="Generate a keypair to see the public JWK."
-                    className="min-h-[220px] font-mono text-xs break-all"
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
 
-            <div className="space-y-2 sm:space-y-3">
-              <div className="flex items-center justify-between">
-                <Label>Private Key</Label>
-                <div className="flex items-center gap-2">
+              <div className="space-y-2 sm:space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label>Private Key</Label>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 px-2 text-xs"
+                    className="h-7 w-7 p-0"
                     onClick={() => handleCopy("private", privateValue)}
+                    aria-label="Copy private key"
                     disabled={!privateValue}
                   >
                     {copiedKey === "private" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    {copiedKey === "private" ? "Copied" : "Copy"}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-2 text-xs"
-                    onClick={() => handleDownload(privateName, privateValue)}
-                    disabled={!privateValue}
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
                   </Button>
                 </div>
+                <Textarea
+                  readOnly
+                  rows={15}
+                  value={privateValue}
+                  placeholder={privatePlaceholder}
+                  className="max-h-[360px] overflow-auto break-all font-mono text-xs"
+                />
               </div>
-              <Tabs value={privateView} onValueChange={(value) => setPrivateView(value as "pem" | "jwk")}>
-                <TabsList className="inline-flex flex-nowrap items-center">
-                  <TabsTrigger value="pem">PEM</TabsTrigger>
-                  <TabsTrigger value="jwk">JWK</TabsTrigger>
-                </TabsList>
-                <TabsContent value="pem">
-                  <Textarea
-                    readOnly
-                    value={state.privatePem}
-                    placeholder={privatePemPlaceholder}
-                    className="min-h-[220px] font-mono text-xs break-all"
-                  />
-                </TabsContent>
-                <TabsContent value="jwk">
-                  <Textarea
-                    readOnly
-                    value={state.privateJwk}
-                    placeholder="Generate a keypair to see the private JWK."
-                    className="min-h-[220px] font-mono text-xs break-all"
-                  />
-                </TabsContent>
-              </Tabs>
             </div>
-          </div>
-        </section>
+          </section>
         )}
       </div>
     </div>

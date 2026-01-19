@@ -7,7 +7,7 @@ Generate public/private keypairs across RSA, EC, OKP, and post-quantum algorithm
 - Curve selection including P-256/P-384/P-521, secp256k1, and Brainpool curves
 - Algorithm-specific parameters (modulus length, exponent, hash, curve, PQC parameter sets)
 - Select key usages per algorithm
-- Export JWK for classical keys, PQC JSON for post-quantum keys, and PEM when available, with copy/download helpers and ZIP export
+- Export JWK for classical keys, PQC JSON for post-quantum keys, and PEM/DER (including raw DER in ZIP) when available, with copy helpers and ZIP export for all encodings
 
 ## Parameters
 - Algorithm
