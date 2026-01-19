@@ -1,4 +1,4 @@
-# Key Agreement
+# Key Exchange
 
 Derive shared secrets using ECDH, X25519/X448, or post-quantum KEMs and optionally run HKDF or PBKDF2 to produce a final key.
 
@@ -6,7 +6,7 @@ Derive shared secrets using ECDH, X25519/X448, or post-quantum KEMs and optional
 - ECDH (P-256/P-384/P-521/secp256k1), Schnorr (secp256k1), X25519/X448, ML-KEM, and hybrid KEM support
 - secp256k1, Schnorr, X448, plus ML-KEM/hybrid KEM handled with noble-curves and noble-post-quantum
 - PEM (SPKI/PKCS8) and JWK key inputs with upload and generation helpers
-- Encapsulate/decapsulate modes for PQC KEMs with ciphertext input/output
+- Encapsulate action for PQC KEMs with ciphertext input/output and auto-decapsulation on edits
 - Shared secret output with Base64/Base64url/Hex encodings
 - Optional HKDF or PBKDF2 to derive a final key with length presets and custom slider
 - Salt generation helpers for KDF flows

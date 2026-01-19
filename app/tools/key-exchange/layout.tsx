@@ -2,11 +2,11 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Key Agreement (ECDH/X25519/ML-KEM) - AutelysT",
+  title: "Key Exchange (ECDH/X25519/ML-KEM) - AutelysT",
   description:
     "Derive shared secrets with ECDH, X25519/X448, or ML-KEM/hybrid KEMs plus optional HKDF/PBKDF2 key derivation.",
   keywords: [
-    "key agreement",
+    "key exchange",
     "ecdh",
     "secp256k1",
     "schnorr",
@@ -24,6 +24,6 @@ export const metadata: Metadata = {
   ],
 }
 
-export default function KeyAgreementLayout({ children }: { children: React.ReactNode }) {
+export default function KeyExchangeLayout({ children }: { children: React.ReactNode }) {
   return children
 }

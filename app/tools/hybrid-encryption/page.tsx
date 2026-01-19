@@ -133,6 +133,20 @@ function decodeOutputBytes(value: string, encoding: HpkeEncoding) {
   return decodeBase64(value)
 }
 
+function toPem(buffer: ArrayBuffer, label: "PUBLIC KEY" | "PRIVATE KEY") {
+  const bytes = new Uint8Array(buffer)
+  let binary = ""
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte)
+  }
+  const base64 = btoa(binary).replace(/(.{64})/g, "$1\n")
+  return `-----BEGIN ${label}-----\n${base64}\n-----END ${label}-----`
+}
+
+function isKeyPair(key: CryptoKey | CryptoKeyPair): key is CryptoKeyPair {
+  return "publicKey" in key && "privateKey" in key
+}
+
 function parseJwk(text: string) {
   const trimmed = text.trim()
   if (!trimmed.startsWith("{")) return null
@@ -164,7 +178,7 @@ async function importHpkeKey(keyText: string, type: "public" | "private", kem: H
     throw new Error(`HPKE key must be an EC JWK with ${kem}.`)
   }
   const algorithm = { name: "ECDH", namedCurve: kem }
-  const usages = type === "private" ? ["deriveBits"] : []
+  const usages: KeyUsage[] = type === "private" ? ["deriveBits"] : []
   return crypto.subtle.importKey("jwk", jwk, algorithm, true, usages)
 }
 
@@ -188,9 +202,24 @@ function isPemBlock(value: string) {
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-w-0 w-full overflow-x-auto">
-      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    <div className="w-full min-w-0">
+      <TabsList className="inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+        {children}
+      </TabsList>
     </div>
+  )
+}
+
+function InlineTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <TabsList
+      className={cn(
+        "inline-flex h-7 flex-nowrap items-center gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-xs [&_[data-slot=tabs-trigger][data-state=active]]:border-border",
+        className,
+      )}
+    >
+      {children}
+    </TabsList>
   )
 }
 
@@ -265,6 +294,9 @@ function HybridEncryptionInner({
   const [error, setError] = React.useState<string | null>(null)
   const [isWorking, setIsWorking] = React.useState(false)
   const [copied, setCopied] = React.useState<"output" | "hpkeEnc" | null>(null)
+  const [isGeneratingCms, setIsGeneratingCms] = React.useState(false)
+  const [isGeneratingPgp, setIsGeneratingPgp] = React.useState(false)
+  const [isGeneratingJwe, setIsGeneratingJwe] = React.useState(false)
   const [isGeneratingHpke, setIsGeneratingHpke] = React.useState(false)
   const lastInputRef = React.useRef("")
   const hasHydratedInputRef = React.useRef(false)
@@ -556,6 +588,95 @@ function HybridEncryptionInner({
     setParam("jweKey", encodeKeyBytes(bytes, state.jweKeyEncoding))
   }
 
+  const handleGenerateJweKeypair = async () => {
+    try {
+      if (!globalThis.crypto?.subtle) {
+        throw new Error("Web Crypto is unavailable in this environment.")
+      }
+      setIsGeneratingJwe(true)
+      setError(null)
+      const keyPair = await crypto.subtle.generateKey(
+        {
+          name: "RSA-OAEP",
+          modulusLength: 2048,
+          publicExponent: new Uint8Array([1, 0, 1]),
+          hash: "SHA-256",
+        },
+        true,
+        ["encrypt", "decrypt"],
+      )
+      if (!isKeyPair(keyPair)) {
+        throw new Error("Keypair generation failed.")
+      }
+      const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey)
+      const privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+      setParam("jwePublicKey", toPem(publicKey, "PUBLIC KEY"))
+      setParam("jwePrivateKey", toPem(privateKey, "PRIVATE KEY"))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate JWE keypair.")
+    } finally {
+      setIsGeneratingJwe(false)
+    }
+  }
+
+  const handleGenerateCmsCertificate = async () => {
+    try {
+      setIsGeneratingCms(true)
+      setError(null)
+      const forgeModule = await import("node-forge")
+      const forge = forgeModule.default ?? forgeModule
+      const keypair = await new Promise<{ publicKey: unknown; privateKey: unknown }>((resolve, reject) => {
+        forge.pki.rsa.generateKeyPair(
+          { bits: 2048, e: 0x10001 },
+          (err: unknown, keys: { publicKey: unknown; privateKey: unknown } | null) => {
+            if (err || !keys) {
+              reject(err ?? new Error("Certificate generation failed."))
+              return
+            }
+            resolve(keys)
+          },
+        )
+      })
+      const cert = forge.pki.createCertificate()
+      cert.publicKey = keypair.publicKey
+      cert.serialNumber = String(Math.floor(Math.random() * 1e12))
+      cert.validity.notBefore = new Date()
+      cert.validity.notAfter = new Date()
+      cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1)
+      const attrs = [{ name: "commonName", value: "Hybrid Encryption" }]
+      cert.setSubject(attrs)
+      cert.setIssuer(attrs)
+      cert.sign(keypair.privateKey, forge.md.sha256.create())
+      setParam("cmsRecipientCert", forge.pki.certificateToPem(cert))
+      setParam("cmsRecipientKey", forge.pki.privateKeyToPem(keypair.privateKey))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate certificate.")
+    } finally {
+      setIsGeneratingCms(false)
+    }
+  }
+
+  const handleGeneratePgpKeypair = async () => {
+    try {
+      setIsGeneratingPgp(true)
+      setError(null)
+      const openpgp = await import("openpgp")
+      const { privateKey, publicKey } = await openpgp.generateKey({
+        type: "rsa",
+        rsaBits: 2048,
+        userIDs: [{ name: "Hybrid Encryption", email: "user@example.com" }],
+        passphrase: state.pgpPassphrase || undefined,
+        format: "armored",
+      })
+      setParam("pgpPublicKey", publicKey)
+      setParam("pgpPrivateKey", privateKey)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate OpenPGP keypair.")
+    } finally {
+      setIsGeneratingPgp(false)
+    }
+  }
+
   const handleGenerateHpkeKeypair = async () => {
     try {
       setIsGeneratingHpke(true)
@@ -603,7 +724,7 @@ function HybridEncryptionInner({
             >
               <ScrollableTabsList>
                 {standardValues.map((value) => (
-                  <TabsTrigger key={value} value={value} className="text-xs">
+                  <TabsTrigger key={value} value={value} className="text-xs flex-none">
                     {value}
                   </TabsTrigger>
                 ))}
@@ -614,13 +735,13 @@ function HybridEncryptionInner({
           <div className="flex items-center gap-3">
             <Label className="w-24 text-sm sm:w-32">Mode</Label>
             <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as ModeValue, true)}>
-              <TabsList className="h-8">
+              <ScrollableTabsList>
                 {modeValues.map((value) => (
-                  <TabsTrigger key={value} value={value} className="text-xs">
+                  <TabsTrigger key={value} value={value} className="text-xs flex-none">
                     {value === "encrypt" ? "Encrypt" : "Decrypt"}
                   </TabsTrigger>
                 ))}
-              </TabsList>
+              </ScrollableTabsList>
             </Tabs>
           </div>
 
@@ -634,14 +755,14 @@ function HybridEncryptionInner({
                     onValueChange={(value) => setParam("cmsOutputFormat", value as CmsOutputFormat, true)}
                     className="min-w-0 flex-1"
                   >
-                    <TabsList className="h-8">
-                      <TabsTrigger value="pem" className="text-xs">
+                    <ScrollableTabsList>
+                      <TabsTrigger value="pem" className="text-xs flex-none">
                         PEM
                       </TabsTrigger>
-                      <TabsTrigger value="base64" className="text-xs">
+                      <TabsTrigger value="base64" className="text-xs flex-none">
                         Base64 DER
                       </TabsTrigger>
-                    </TabsList>
+                    </ScrollableTabsList>
                   </Tabs>
                 </div>
               )}
@@ -658,6 +779,19 @@ function HybridEncryptionInner({
                         oversizeKeys.includes("cmsRecipientCert") && "border-destructive",
                       )}
                     />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Self-signed certificate.</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateCmsCertificate}
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={isGeneratingCms}
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        {isGeneratingCms ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                     {oversizeKeys.includes("cmsRecipientCert") && (
                       <p className="text-xs text-muted-foreground">
                         Certificate exceeds 2 KB and is not synced to the URL.
@@ -678,6 +812,19 @@ function HybridEncryptionInner({
                         oversizeKeys.includes("cmsRecipientKey") && "border-destructive",
                       )}
                     />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Includes matching certificate.</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateCmsCertificate}
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={isGeneratingCms}
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        {isGeneratingCms ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                     {oversizeKeys.includes("cmsRecipientKey") && (
                       <p className="text-xs text-muted-foreground">
                         Private key exceeds 2 KB and is not synced to the URL.
@@ -704,6 +851,19 @@ function HybridEncryptionInner({
                         oversizeKeys.includes("pgpPublicKey") && "border-destructive",
                       )}
                     />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Generates a new public/private keypair.</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGeneratePgpKeypair}
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={isGeneratingPgp}
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        {isGeneratingPgp ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                     {oversizeKeys.includes("pgpPublicKey") && (
                       <p className="text-xs text-muted-foreground">
                         Public key exceeds 2 KB and is not synced to the URL.
@@ -725,6 +885,19 @@ function HybridEncryptionInner({
                           oversizeKeys.includes("pgpPrivateKey") && "border-destructive",
                         )}
                       />
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">Generates a new public/private keypair.</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleGeneratePgpKeypair}
+                          className="h-7 gap-1 px-2 text-xs"
+                          disabled={isGeneratingPgp}
+                        >
+                          <RefreshCcw className="h-3 w-3" />
+                          {isGeneratingPgp ? "Generating..." : "Generate"}
+                        </Button>
+                      </div>
                       {oversizeKeys.includes("pgpPrivateKey") && (
                         <p className="text-xs text-muted-foreground">
                           Private key exceeds 2 KB and is not synced to the URL.
@@ -752,14 +925,14 @@ function HybridEncryptionInner({
               <div className="flex items-center gap-3">
                 <Label className="w-24 text-sm sm:w-32">Key Alg</Label>
                 <Tabs value={state.jweAlg} onValueChange={(value) => setParam("jweAlg", value as JweKeyAlg, true)}>
-                  <TabsList className="h-8">
-                    <TabsTrigger value="dir" className="text-xs">
+                  <ScrollableTabsList>
+                    <TabsTrigger value="dir" className="text-xs flex-none">
                       Direct
                     </TabsTrigger>
-                    <TabsTrigger value="RSA-OAEP-256" className="text-xs">
+                    <TabsTrigger value="RSA-OAEP-256" className="text-xs flex-none">
                       RSA-OAEP-256
                     </TabsTrigger>
-                  </TabsList>
+                  </ScrollableTabsList>
                 </Tabs>
               </div>
               {state.jweAlg === "dir" ? (
@@ -781,13 +954,13 @@ function HybridEncryptionInner({
                         onValueChange={(value) => setParam("jweKeyEncoding", value as KeyEncoding, true)}
                         className="flex-row gap-0"
                       >
-                        <TabsList className="h-6 gap-1">
+                        <InlineTabsList className="h-6 gap-1">
                           {keyEncodings.map((encoding) => (
                             <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
                               {encodingLabels[encoding]}
                             </TabsTrigger>
                           ))}
-                        </TabsList>
+                        </InlineTabsList>
                       </Tabs>
                       <Button
                         variant="ghost"
@@ -817,6 +990,19 @@ function HybridEncryptionInner({
                         oversizeKeys.includes("jwePublicKey") && "border-destructive",
                       )}
                     />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Generate a new RSA keypair.</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateJweKeypair}
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={isGeneratingJwe}
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        {isGeneratingJwe ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                     {oversizeKeys.includes("jwePublicKey") && (
                       <p className="text-xs text-muted-foreground">
                         Public key exceeds 2 KB and is not synced to the URL.
@@ -837,6 +1023,19 @@ function HybridEncryptionInner({
                         oversizeKeys.includes("jwePrivateKey") && "border-destructive",
                       )}
                     />
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">Generate a new RSA keypair.</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateJweKeypair}
+                        className="h-7 gap-1 px-2 text-xs"
+                        disabled={isGeneratingJwe}
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                        {isGeneratingJwe ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                     {oversizeKeys.includes("jwePrivateKey") && (
                       <p className="text-xs text-muted-foreground">
                         Private key exceeds 2 KB and is not synced to the URL.
@@ -853,13 +1052,13 @@ function HybridEncryptionInner({
               <div className="flex items-center gap-3">
                 <Label className="w-24 text-sm sm:w-32">KEM</Label>
                 <Tabs value={state.hpkeKem} onValueChange={(value) => setParam("hpkeKem", value as HpkeKem, true)}>
-                  <TabsList className="h-8">
+                  <ScrollableTabsList>
                     {hpkeKems.map((kem) => (
-                      <TabsTrigger key={kem} value={kem} className="text-xs">
+                      <TabsTrigger key={kem} value={kem} className="text-xs flex-none">
                         {kem}
                       </TabsTrigger>
                     ))}
-                  </TabsList>
+                  </ScrollableTabsList>
                 </Tabs>
               </div>
               <div className="flex items-center gap-3">
@@ -867,7 +1066,7 @@ function HybridEncryptionInner({
                 <Tabs value={state.hpkeKdf} onValueChange={(value) => setParam("hpkeKdf", value as HpkeKdf, true)}>
                   <ScrollableTabsList>
                     {hpkeKdfs.map((kdf) => (
-                      <TabsTrigger key={kdf} value={kdf} className="text-xs">
+                      <TabsTrigger key={kdf} value={kdf} className="text-xs flex-none">
                         {kdf}
                       </TabsTrigger>
                     ))}
@@ -877,13 +1076,13 @@ function HybridEncryptionInner({
               <div className="flex items-center gap-3">
                 <Label className="w-24 text-sm sm:w-32">AEAD</Label>
                 <Tabs value={state.hpkeAead} onValueChange={(value) => setParam("hpkeAead", value as HpkeAead, true)}>
-                  <TabsList className="h-8">
+                  <ScrollableTabsList>
                     {hpkeAeads.map((aead) => (
-                      <TabsTrigger key={aead} value={aead} className="text-xs">
+                      <TabsTrigger key={aead} value={aead} className="text-xs flex-none">
                         {aead}
                       </TabsTrigger>
                     ))}
-                  </TabsList>
+                  </ScrollableTabsList>
                 </Tabs>
               </div>
               {isEncrypt ? (
@@ -986,13 +1185,13 @@ function HybridEncryptionInner({
                   onValueChange={(value) => setParam("hpkeOutputEncoding", value as HpkeEncoding, true)}
                   className="min-w-0 flex-1"
                 >
-                  <ScrollableTabsList>
+                  <InlineTabsList>
                     {hpkeEncodings.map((encoding) => (
                       <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
                         {encodingLabels[encoding]}
                       </TabsTrigger>
                     ))}
-                  </ScrollableTabsList>
+                  </InlineTabsList>
                 </Tabs>
               )}
             </div>

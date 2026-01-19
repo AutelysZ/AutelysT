@@ -141,10 +141,10 @@ async function deriveKeyBytes(inputBytes: Uint8Array, state: KeyDerivationState)
   return new Uint8Array(bits)
 }
 
-function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+function ScrollableTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <div className="min-w-0 w-full overflow-x-auto">
-      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+      <TabsList className={cn("inline-flex w-max justify-start", className)}>{children}</TabsList>
     </div>
   )
 }
@@ -435,37 +435,6 @@ function KeyDerivationInner({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <Label className="text-sm">Input</Label>
-              <Tabs
-                value={state.inputEncoding}
-                onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
-                className="min-w-0 flex-1"
-              >
-                <ScrollableTabsList>
-                  {inputEncodings.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
-                      {encodingLabels[encoding]}
-                    </TabsTrigger>
-                  ))}
-                </ScrollableTabsList>
-              </Tabs>
-            </div>
-            <Textarea
-              value={state.input}
-              onChange={(event) => setParam("input", event.target.value)}
-              placeholder="Enter input material..."
-              className={cn(
-                "min-h-[200px] max-h-[320px] overflow-auto break-all font-mono text-sm",
-                oversizeKeys.includes("input") && "border-destructive",
-              )}
-            />
-            {oversizeKeys.includes("input") && (
-              <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
-            )}
-          </div>
-
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <Label className="w-24 text-sm sm:w-32">Algorithm</Label>
@@ -547,51 +516,18 @@ function KeyDerivationInner({
             <div className="flex items-center gap-3">
               <Label className="w-24 text-sm sm:w-32">Salt</Label>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <Tabs
-                  value={state.saltEncoding}
-                  onValueChange={(value) => setParam("saltEncoding", value as ParamEncoding, true)}
-                >
-                  <TabsList className="h-7">
-                    {paramEncodings.map((encoding) => (
-                      <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
-                        {encodingLabels[encoding]}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
-                <div className="relative">
-                  <Input
-                    value={state.salt}
-                    onChange={(event) => setParam("salt", event.target.value)}
-                    placeholder="Enter salt..."
-                    className={cn(
-                      "h-9 pr-10 font-mono text-xs",
-                      oversizeKeys.includes("salt") && "border-destructive",
-                    )}
-                  />
-                  <div className="absolute right-1 top-1/2 -translate-y-1/2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleGenerateSalt}
-                      className="h-7 w-7 p-0"
-                      aria-label="Generate salt"
-                    >
-                      <RefreshCcw className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {state.kdfAlgorithm === "HKDF" && (
-              <div className="flex items-center gap-3">
-                <Label className="w-24 text-sm sm:w-32">Info</Label>
-                <div className="flex min-w-0 flex-1 flex-col gap-2">
+                <Input
+                  value={state.salt}
+                  onChange={(event) => setParam("salt", event.target.value)}
+                  placeholder="Enter salt..."
+                  className={cn("h-8 font-mono text-xs", oversizeKeys.includes("salt") && "border-destructive")}
+                />
+                <div className="flex items-center gap-2">
                   <Tabs
-                    value={state.infoEncoding}
-                    onValueChange={(value) => setParam("infoEncoding", value as ParamEncoding, true)}
+                    value={state.saltEncoding}
+                    onValueChange={(value) => setParam("saltEncoding", value as ParamEncoding, true)}
                   >
-                    <TabsList className="h-7">
+                    <TabsList className="h-6">
                       {paramEncodings.map((encoding) => (
                         <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
                           {encodingLabels[encoding]}
@@ -599,12 +535,43 @@ function KeyDerivationInner({
                       ))}
                     </TabsList>
                   </Tabs>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleGenerateSalt}
+                    className="ml-auto h-6 gap-1 px-2 text-[10px] sm:text-xs"
+                    aria-label="Generate salt"
+                  >
+                    <RefreshCcw className="h-3 w-3" />
+                    Generate
+                  </Button>
+                </div>
+              </div>
+            </div>
+            {state.kdfAlgorithm === "HKDF" && (
+              <div className="flex items-center gap-3">
+                <Label className="w-24 text-sm sm:w-32">Info</Label>
+                <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <Input
                     value={state.info}
                     onChange={(event) => setParam("info", event.target.value)}
                     placeholder="Enter info..."
-                    className={cn("h-9 font-mono text-xs", oversizeKeys.includes("info") && "border-destructive")}
+                    className={cn("h-8 font-mono text-xs", oversizeKeys.includes("info") && "border-destructive")}
                   />
+                  <div className="flex items-center">
+                    <Tabs
+                      value={state.infoEncoding}
+                      onValueChange={(value) => setParam("infoEncoding", value as ParamEncoding, true)}
+                    >
+                      <TabsList className="h-6">
+                        {paramEncodings.map((encoding) => (
+                          <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                            {encodingLabels[encoding]}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                    </Tabs>
+                  </div>
                 </div>
               </div>
             )}
@@ -614,15 +581,46 @@ function KeyDerivationInner({
         <div className="flex flex-col gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
+              <Label className="text-sm">Input</Label>
+              <Tabs
+                value={state.inputEncoding}
+                onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList className="h-6">
+                  {inputEncodings.map((encoding) => (
+                    <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs flex-none">
+                      {encodingLabels[encoding]}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+            <Textarea
+              value={state.input}
+              onChange={(event) => setParam("input", event.target.value)}
+              placeholder="Enter input material..."
+              className={cn(
+                "min-h-[200px] max-h-[320px] overflow-auto break-all font-mono text-sm",
+                oversizeKeys.includes("input") && "border-destructive",
+              )}
+            />
+            {oversizeKeys.includes("input") && (
+              <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
               <Label className="text-sm">Derived Key</Label>
               <Tabs
                 value={state.outputEncoding}
                 onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
                 className="min-w-0 flex-1"
               >
-                <ScrollableTabsList>
+                <ScrollableTabsList className="h-6">
                   {outputEncodings.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
+                    <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs flex-none">
                       {encodingLabels[encoding]}
                     </TabsTrigger>
                   ))}

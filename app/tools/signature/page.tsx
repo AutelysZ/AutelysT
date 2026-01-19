@@ -15,6 +15,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import type { HistoryEntry } from "@/lib/history/db"
 import { cn } from "@/lib/utils"
+import { encodeBase64 } from "@/lib/encoding/base64"
+import { encodeHex } from "@/lib/encoding/hex"
 import {
   algorithmValues,
   modeValues,
@@ -407,8 +409,8 @@ async function generateKeypair(state: SignatureState) {
   if (state.algorithm === "ml-dsa") {
     const signer = pqcDsaMap[state.pqcDsaVariant]
     const { publicKey, secretKey } = signer.keygen()
-    const publicPayload = createPqcPublicKey(state.pqcDsaVariant, publicKey)
-    const privatePayload = createPqcPrivateKey(state.pqcDsaVariant, publicKey, secretKey)
+    const publicPayload = createPqcPublicKey(state.pqcDsaVariant, publicKey, state.pqcKeyEncoding)
+    const privatePayload = createPqcPrivateKey(state.pqcDsaVariant, publicKey, secretKey, state.pqcKeyEncoding)
     return {
       publicPem: JSON.stringify(publicPayload, null, 2),
       privatePem: JSON.stringify(privatePayload, null, 2),
@@ -417,8 +419,8 @@ async function generateKeypair(state: SignatureState) {
   if (state.algorithm === "slh-dsa") {
     const signer = pqcSlhMap[state.pqcSlhVariant]
     const { publicKey, secretKey } = signer.keygen()
-    const publicPayload = createPqcPublicKey(state.pqcSlhVariant, publicKey)
-    const privatePayload = createPqcPrivateKey(state.pqcSlhVariant, publicKey, secretKey)
+    const publicPayload = createPqcPublicKey(state.pqcSlhVariant, publicKey, state.pqcKeyEncoding)
+    const privatePayload = createPqcPrivateKey(state.pqcSlhVariant, publicKey, secretKey, state.pqcKeyEncoding)
     return {
       publicPem: JSON.stringify(publicPayload, null, 2),
       privatePem: JSON.stringify(privatePayload, null, 2),
@@ -482,9 +484,24 @@ async function generateKeypair(state: SignatureState) {
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-w-0 w-full overflow-x-auto">
-      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    <div className="w-full min-w-0">
+      <TabsList className="inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+        {children}
+      </TabsList>
     </div>
+  )
+}
+
+function InlineTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <TabsList
+      className={cn(
+        "inline-flex h-7 flex-nowrap items-center gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-xs [&_[data-slot=tabs-trigger][data-state=active]]:border-border",
+        className,
+      )}
+    >
+      {children}
+    </TabsList>
   )
 }
 
@@ -1098,19 +1115,21 @@ function SignatureInner({
   const showPqcDsa = state.algorithm === "ml-dsa"
   const showPqcSlh = state.algorithm === "slh-dsa"
   const showPqc = showPqcDsa || showPqcSlh
+  const privateKeyPlaceholder = showPqc ? "PQC JSON or raw key" : "-----BEGIN PRIVATE KEY-----"
+  const publicKeyPlaceholder = showPqc ? "PQC JSON or raw key" : "-----BEGIN PUBLIC KEY-----"
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as ModeValue, true)}>
-          <TabsList>
-            <TabsTrigger value="sign" className="px-5 text-base">
+          <ScrollableTabsList>
+            <TabsTrigger value="sign" className="px-5 text-base flex-none">
               Sign
             </TabsTrigger>
-            <TabsTrigger value="verify" className="px-5 text-base">
+            <TabsTrigger value="verify" className="px-5 text-base flex-none">
               Verify
             </TabsTrigger>
-          </TabsList>
+          </ScrollableTabsList>
         </Tabs>
         <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
           Clear
@@ -1168,7 +1187,7 @@ function SignatureInner({
                       onValueChange={(value) => setParam("hmacKeyEncoding", value as KeyEncoding, true)}
                       className="flex-row gap-0"
                     >
-                      <TabsList className="h-6 gap-1">
+                      <InlineTabsList className="h-6 gap-1">
                         <TabsTrigger value="utf8" className="text-[10px] sm:text-xs px-2">
                           {encodingLabels.utf8}
                         </TabsTrigger>
@@ -1178,7 +1197,7 @@ function SignatureInner({
                         <TabsTrigger value="hex" className="text-[10px] sm:text-xs px-2">
                           {encodingLabels.hex}
                         </TabsTrigger>
-                      </TabsList>
+                      </InlineTabsList>
                     </Tabs>
                     <Button
                       variant="ghost"
@@ -1214,13 +1233,13 @@ function SignatureInner({
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Scheme</Label>
                 <Tabs value={state.rsaScheme} onValueChange={(value) => setParam("rsaScheme", value as RsaScheme, true)}>
-                  <TabsList className="h-8">
+                  <ScrollableTabsList>
                     {rsaSchemes.map((scheme) => (
-                      <TabsTrigger key={scheme} value={scheme} className="text-xs">
+                      <TabsTrigger key={scheme} value={scheme} className="text-xs flex-none">
                         {scheme}
                       </TabsTrigger>
                     ))}
-                  </TabsList>
+                  </ScrollableTabsList>
                 </Tabs>
               </div>
               <div className="flex items-center gap-3">
@@ -1290,13 +1309,13 @@ function SignatureInner({
             <div className="flex items-center gap-3">
               <Label className="w-20 text-sm sm:w-28">Curve</Label>
               <Tabs value={state.eddsaCurve} onValueChange={(value) => setParam("eddsaCurve", value as EddsaCurve, true)}>
-                <TabsList className="h-8">
+                <ScrollableTabsList>
                   {eddsaCurves.map((curve) => (
-                    <TabsTrigger key={curve} value={curve} className="text-xs">
+                    <TabsTrigger key={curve} value={curve} className="text-xs flex-none">
                       {curve}
                     </TabsTrigger>
                   ))}
-                </TabsList>
+                </ScrollableTabsList>
               </Tabs>
             </div>
           )}
@@ -1353,11 +1372,12 @@ function SignatureInner({
                   <Label className="w-20 text-sm sm:w-28 pt-2">Private Key</Label>
                   <div className="min-w-0 flex-1">
                     <Textarea
+                      rows={10}
                       value={keySelection.privateKey}
                       onChange={(event) => setParam(getKeyFields(state.algorithm).privateKey, event.target.value)}
-                      placeholder="-----BEGIN PRIVATE KEY-----"
+                      placeholder={privateKeyPlaceholder}
                       className={cn(
-                        "min-h-[160px] font-mono text-xs break-all",
+                        "min-h-[160px] max-h-[160px] overflow-auto break-all font-mono text-xs",
                         oversizeKeys.includes(getKeyFields(state.algorithm).privateKey) && "border-destructive",
                       )}
                     />
@@ -1392,13 +1412,13 @@ function SignatureInner({
                           onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
                           className="flex-row gap-0"
                         >
-                          <TabsList className="h-6 gap-1">
+                          <InlineTabsList className="h-6 gap-1">
                             {pqcKeyEncodings.map((encoding) => (
                               <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
                                 {encodingLabels[encoding]}
                               </TabsTrigger>
                             ))}
-                          </TabsList>
+                          </InlineTabsList>
                         </Tabs>
                       </div>
                     )}
@@ -1414,11 +1434,12 @@ function SignatureInner({
                   <Label className="w-20 text-sm sm:w-28 pt-2">Public Key</Label>
                   <div className="min-w-0 flex-1">
                     <Textarea
+                      rows={10}
                       value={keySelection.publicKey}
                       onChange={(event) => setParam(getKeyFields(state.algorithm).publicKey, event.target.value)}
-                      placeholder="-----BEGIN PUBLIC KEY-----"
+                      placeholder={publicKeyPlaceholder}
                       className={cn(
-                        "min-h-[160px] break-all font-mono text-xs max-h-[300px]",
+                        "min-h-[160px] max-h-[160px] overflow-auto break-all font-mono text-xs",
                         oversizeKeys.includes(getKeyFields(state.algorithm).publicKey) && "border-destructive",
                       )}
                     />
@@ -1453,13 +1474,13 @@ function SignatureInner({
                           onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
                           className="flex-row gap-0"
                         >
-                          <TabsList className="h-6 gap-1">
+                          <InlineTabsList className="h-6 gap-1">
                             {pqcKeyEncodings.map((encoding) => (
                               <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
                                 {encodingLabels[encoding]}
                               </TabsTrigger>
                             ))}
-                          </TabsList>
+                          </InlineTabsList>
                         </Tabs>
                       </div>
                     )}
@@ -1496,13 +1517,13 @@ function SignatureInner({
                 onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
                 className="min-w-0 flex-1"
               >
-                <ScrollableTabsList>
+                <InlineTabsList>
                   {inputEncodingOptions.map((encoding) => (
                     <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
                       {encodingLabels[encoding]}
                     </TabsTrigger>
                   ))}
-                </ScrollableTabsList>
+                </InlineTabsList>
               </Tabs>
               <Button variant="ghost" size="sm" onClick={handleUploadClick} className="h-7 gap-1 px-2 text-xs">
                 <Upload className="h-3 w-3" />
@@ -1551,13 +1572,13 @@ function SignatureInner({
                   onValueChange={(value) => setParam("signatureEncoding", value as SignatureEncoding, true)}
                   className="min-w-0 flex-1"
                 >
-                  <ScrollableTabsList>
+                  <InlineTabsList>
                     {signatureEncodings.map((encoding) => (
                       <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
                         {encodingLabels[encoding]}
                       </TabsTrigger>
                     ))}
-                  </ScrollableTabsList>
+                  </InlineTabsList>
                 </Tabs>
               </div>
               <Textarea
@@ -1601,14 +1622,14 @@ function SignatureInner({
                   onValueChange={(value) => setParam("signatureEncoding", value as SignatureEncoding, true)}
                   className="min-w-0 flex-1"
                 >
-                  <ScrollableTabsList>
-                    {signatureEncodings.map((encoding) => (
-                      <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
-                        {encodingLabels[encoding]}
-                      </TabsTrigger>
-                    ))}
-                  </ScrollableTabsList>
-                </Tabs>
+                <InlineTabsList>
+                  {signatureEncodings.map((encoding) => (
+                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
+                      {encodingLabels[encoding]}
+                    </TabsTrigger>
+                  ))}
+                </InlineTabsList>
+              </Tabs>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
                     variant="ghost"

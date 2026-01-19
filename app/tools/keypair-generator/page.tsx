@@ -427,8 +427,10 @@ function getPrivateUsagesForAlgorithm(algorithm: KeypairAlgorithm): KeyUsage[] {
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto">
-      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    <div className="w-full min-w-0">
+      <TabsList className="inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+        {children}
+      </TabsList>
     </div>
   )
 }
@@ -677,7 +679,7 @@ function KeypairGeneratorInner({
       if (pqcKemAlgorithms.has(state.algorithm) || pqcSignatureAlgorithms.has(state.algorithm)) {
         let publicKey = new Uint8Array()
         let secretKey = new Uint8Array()
-        let algorithmLabel = state.algorithm
+        let algorithmLabel: string = state.algorithm
 
         if (state.algorithm === "ML-KEM") {
           const kem = pqcKemMap[state.pqcKemVariant]
@@ -869,7 +871,7 @@ function KeypairGeneratorInner({
 
   return (
     <div className="flex w-full flex-col gap-4 py-4 sm:gap-6 sm:py-6">
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-[1.1fr_1fr]">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <section className="flex flex-col gap-4 sm:gap-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold">Keypair Settings</h2>
@@ -932,28 +934,30 @@ function KeypairGeneratorInner({
             {(isRsa || isEc) && (
               <div className="space-y-3 sm:space-y-4">
                 {isRsa && (
-                  <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-                    <div className="flex items-center gap-3">
-                      <Label className="w-28 shrink-0 text-xs text-muted-foreground">Modulus Length</Label>
-                      <Input
-                        type="number"
-                        min={1024}
-                        max={16384}
-                        value={state.rsaModulusLength}
-                        onChange={(event) =>
-                          setParam("rsaModulusLength", Number(event.target.value) || 1024, true)
-                        }
-                        className="min-w-0 flex-1"
-                      />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Label className="w-28 shrink-0 text-xs text-muted-foreground">Public Exponent</Label>
-                      <Input
-                        value={state.rsaPublicExponent}
-                        onChange={(event) => setParam("rsaPublicExponent", event.target.value, true)}
-                        placeholder="65537"
-                        className="min-w-0 flex-1"
-                      />
+                  <div className="space-y-3 sm:space-y-4">
+                    <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
+                      <div className="flex items-center gap-3">
+                        <Label className="w-28 shrink-0 text-xs text-muted-foreground">Modulus Length</Label>
+                        <Input
+                          type="number"
+                          min={1024}
+                          max={16384}
+                          value={state.rsaModulusLength}
+                          onChange={(event) =>
+                            setParam("rsaModulusLength", Number(event.target.value) || 1024, true)
+                          }
+                          className="min-w-0 flex-1"
+                        />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Label className="w-28 shrink-0 text-xs text-muted-foreground">Public Exponent</Label>
+                        <Input
+                          value={state.rsaPublicExponent}
+                          onChange={(event) => setParam("rsaPublicExponent", event.target.value, true)}
+                          placeholder="65537"
+                          className="min-w-0 flex-1"
+                        />
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <Label className="w-28 shrink-0 text-xs text-muted-foreground">Hash</Label>
@@ -974,23 +978,21 @@ function KeypairGeneratorInner({
                   </div>
                 )}
                 {isEc && (
-                  <div className="grid gap-3 sm:gap-4 md:grid-cols-2">
-                    <div className="flex items-center gap-3">
-                      <Label className="w-28 shrink-0 text-xs text-muted-foreground">Named Curve</Label>
-                      <Tabs
-                        value={state.namedCurve}
-                        onValueChange={(value) => setParam("namedCurve", value as NamedCurve, true)}
-                        className="min-w-0 flex-1"
-                      >
-                        <ScrollableTabsList>
-                          {curveValues.map((curve) => (
-                            <TabsTrigger key={curve} value={curve} className="text-xs">
-                              {curve}
-                            </TabsTrigger>
-                          ))}
-                        </ScrollableTabsList>
-                      </Tabs>
-                    </div>
+                  <div className="flex items-center gap-3">
+                    <Label className="w-28 shrink-0 text-xs text-muted-foreground">Named Curve</Label>
+                    <Tabs
+                      value={state.namedCurve}
+                      onValueChange={(value) => setParam("namedCurve", value as NamedCurve, true)}
+                      className="min-w-0 flex-1"
+                    >
+                      <ScrollableTabsList>
+                        {curveValues.map((curve) => (
+                          <TabsTrigger key={curve} value={curve} className="text-xs">
+                            {curve}
+                          </TabsTrigger>
+                        ))}
+                      </ScrollableTabsList>
+                    </Tabs>
                   </div>
                 )}
               </div>
@@ -1126,7 +1128,7 @@ function KeypairGeneratorInner({
                 </div>
               </div>
               <Tabs value={publicView} onValueChange={(value) => setPublicView(value as "pem" | "jwk")}>
-                <TabsList className="w-full sm:w-auto">
+                <TabsList className="inline-flex flex-nowrap items-center">
                   <TabsTrigger value="pem">PEM</TabsTrigger>
                   <TabsTrigger value="jwk">JWK</TabsTrigger>
                 </TabsList>
@@ -1176,7 +1178,7 @@ function KeypairGeneratorInner({
                 </div>
               </div>
               <Tabs value={privateView} onValueChange={(value) => setPrivateView(value as "pem" | "jwk")}>
-                <TabsList className="w-full sm:w-auto">
+                <TabsList className="inline-flex flex-nowrap items-center">
                   <TabsTrigger value="pem">PEM</TabsTrigger>
                   <TabsTrigger value="jwk">JWK</TabsTrigger>
                 </TabsList>

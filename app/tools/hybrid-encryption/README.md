@@ -7,6 +7,7 @@ Encrypt or decrypt messages with CMS, OpenPGP, JWE, or HPKE using browser-based 
 - OpenPGP armored message encryption and decryption
 - JWE compact serialization with Direct (A256GCM) or RSA-OAEP-256 key management
 - HPKE with selectable KEM/KDF/AEAD suites and EC JWK keys
+- In-tool generation for CMS certificates, OpenPGP keypairs, JWE RSA keypairs, and HPKE keypairs
 - URL-synced inputs and parameters (output excluded)
 
 ## Parameters

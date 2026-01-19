@@ -3,11 +3,10 @@
 import * as React from "react"
 import { Suspense } from "react"
 import { z } from "zod"
-import { AlertCircle, Check, Copy, Download, RefreshCcw, Upload, X } from "lucide-react"
+import { AlertCircle, RefreshCcw } from "lucide-react"
 import CryptoJS from "crypto-js"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -18,6 +17,7 @@ import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
 import { decodeHex, encodeHex } from "@/lib/encoding/hex"
 import type { HistoryEntry } from "@/lib/history/db"
 import { cn } from "@/lib/utils"
+import { SymmetricIoPanel } from "./symmetric-io-panel"
 
 const algorithmValues = ["aes", "chacha20", "salsa20", "twofish", "blowfish", "des", "3des"] as const
 type AlgorithmValue = (typeof algorithmValues)[number]
@@ -416,9 +416,29 @@ function ScrollableTabsList({
   className?: string
 }) {
   return (
-    <div className="min-w-0 w-full overflow-x-auto">
-      <TabsList className={cn("inline-flex w-max justify-start", className)}>{children}</TabsList>
+    <div className="w-full min-w-0">
+      <TabsList
+        className={cn(
+          "inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border",
+          className,
+        )}
+      >
+        {children}
+      </TabsList>
     </div>
+  )
+}
+
+function InlineTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <TabsList
+      className={cn(
+        "inline-flex h-7 flex-nowrap items-center gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-xs [&_[data-slot=tabs-trigger][data-state=active]]:border-border",
+        className,
+      )}
+    >
+      {children}
+    </TabsList>
   )
 }
 
@@ -1159,22 +1179,22 @@ function SymmetricCryptoInner({
     : []
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as "encrypt" | "decrypt", true)}>
-          <TabsList>
-            <TabsTrigger value="encrypt" className="px-5 text-base">
+      <div className="flex h-full flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as "encrypt" | "decrypt", true)}>
+          <ScrollableTabsList>
+            <TabsTrigger value="encrypt" className="px-5 text-base flex-none">
               Encrypt
             </TabsTrigger>
-            <TabsTrigger value="decrypt" className="px-5 text-base">
+            <TabsTrigger value="decrypt" className="px-5 text-base flex-none">
               Decrypt
             </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
-          Clear
-        </Button>
-      </div>
+          </ScrollableTabsList>
+          </Tabs>
+          <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
+            Clear
+          </Button>
+        </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4 overflow-x-hidden">
@@ -1354,7 +1374,7 @@ function SymmetricCryptoInner({
                   onValueChange={(value) => setParam("keyEncoding", value as ParamEncoding, true)}
                   className="min-w-0 flex-1"
                 >
-                  <ScrollableTabsList>
+                  <InlineTabsList>
                     <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                       {encodingLabels.utf8}
                     </TabsTrigger>
@@ -1364,7 +1384,7 @@ function SymmetricCryptoInner({
                     <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                       {encodingLabels.hex}
                     </TabsTrigger>
-                  </ScrollableTabsList>
+                  </InlineTabsList>
                 </Tabs>
                 <Button
                   variant="ghost"
@@ -1454,7 +1474,7 @@ function SymmetricCryptoInner({
                         onValueChange={(value) => setParam("saltEncoding", value as ParamEncoding, true)}
                         className="min-w-0 flex-1"
                       >
-                        <ScrollableTabsList>
+                        <InlineTabsList>
                           <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.utf8}
                           </TabsTrigger>
@@ -1464,7 +1484,7 @@ function SymmetricCryptoInner({
                           <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.hex}
                           </TabsTrigger>
-                        </ScrollableTabsList>
+                        </InlineTabsList>
                       </Tabs>
                       <Button
                         variant="ghost"
@@ -1497,7 +1517,7 @@ function SymmetricCryptoInner({
                         onValueChange={(value) => setParam("kdfInfoEncoding", value as ParamEncoding, true)}
                         className="min-w-0 flex-1"
                       >
-                        <ScrollableTabsList>
+                        <InlineTabsList>
                           <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.utf8}
                           </TabsTrigger>
@@ -1507,7 +1527,7 @@ function SymmetricCryptoInner({
                           <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.hex}
                           </TabsTrigger>
-                        </ScrollableTabsList>
+                        </InlineTabsList>
                       </Tabs>
                     </div>
                     {kdfInfoWarning && <p className="text-xs text-muted-foreground">{kdfInfoWarning}</p>}
@@ -1558,7 +1578,7 @@ function SymmetricCryptoInner({
                           onValueChange={(value) => setParam("aesIvEncoding", value as ParamEncoding, true)}
                           className="min-w-0 flex-1"
                         >
-                          <ScrollableTabsList>
+                          <InlineTabsList>
                             <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.utf8}
                             </TabsTrigger>
@@ -1568,7 +1588,7 @@ function SymmetricCryptoInner({
                             <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.hex}
                             </TabsTrigger>
-                          </ScrollableTabsList>
+                          </InlineTabsList>
                         </Tabs>
                         <Button
                           variant="ghost"
@@ -1624,7 +1644,7 @@ function SymmetricCryptoInner({
                           onValueChange={(value) => setParam("desIvEncoding", value as ParamEncoding, true)}
                           className="min-w-0 flex-1"
                         >
-                          <ScrollableTabsList>
+                          <InlineTabsList>
                             <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.utf8}
                             </TabsTrigger>
@@ -1634,7 +1654,7 @@ function SymmetricCryptoInner({
                             <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.hex}
                             </TabsTrigger>
-                          </ScrollableTabsList>
+                          </InlineTabsList>
                         </Tabs>
                         <Button
                           variant="ghost"
@@ -1690,7 +1710,7 @@ function SymmetricCryptoInner({
                           onValueChange={(value) => setParam("blowfishIvEncoding", value as ParamEncoding, true)}
                           className="min-w-0 flex-1"
                         >
-                          <ScrollableTabsList>
+                          <InlineTabsList>
                             <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.utf8}
                             </TabsTrigger>
@@ -1700,7 +1720,7 @@ function SymmetricCryptoInner({
                             <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.hex}
                             </TabsTrigger>
-                          </ScrollableTabsList>
+                          </InlineTabsList>
                         </Tabs>
                         <Button
                           variant="ghost"
@@ -1756,7 +1776,7 @@ function SymmetricCryptoInner({
                           onValueChange={(value) => setParam("twofishIvEncoding", value as ParamEncoding, true)}
                           className="min-w-0 flex-1"
                         >
-                          <ScrollableTabsList>
+                          <InlineTabsList>
                             <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.utf8}
                             </TabsTrigger>
@@ -1766,7 +1786,7 @@ function SymmetricCryptoInner({
                             <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.hex}
                             </TabsTrigger>
-                          </ScrollableTabsList>
+                          </InlineTabsList>
                         </Tabs>
                         <Button
                           variant="ghost"
@@ -1806,7 +1826,7 @@ function SymmetricCryptoInner({
                           onValueChange={(value) => setParam("chachaNonceEncoding", value as ParamEncoding, true)}
                           className="min-w-0 flex-1"
                         >
-                          <ScrollableTabsList>
+                          <InlineTabsList>
                             <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.utf8}
                             </TabsTrigger>
@@ -1816,7 +1836,7 @@ function SymmetricCryptoInner({
                             <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                               {encodingLabels.hex}
                             </TabsTrigger>
-                          </ScrollableTabsList>
+                          </InlineTabsList>
                         </Tabs>
                         <Button
                           variant="ghost"
@@ -1867,7 +1887,7 @@ function SymmetricCryptoInner({
                         onValueChange={(value) => setParam("salsaNonceEncoding", value as ParamEncoding, true)}
                         className="min-w-0 flex-1"
                       >
-                        <ScrollableTabsList>
+                        <InlineTabsList>
                           <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.utf8}
                           </TabsTrigger>
@@ -1877,7 +1897,7 @@ function SymmetricCryptoInner({
                           <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
                             {encodingLabels.hex}
                           </TabsTrigger>
-                        </ScrollableTabsList>
+                        </InlineTabsList>
                       </Tabs>
                       <Button
                         variant="ghost"
@@ -1908,171 +1928,27 @@ function SymmetricCryptoInner({
 
         </div>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <Label className="text-sm font-medium">Input</Label>
-                {showInputEncodingSelect ? (
-                  <Tabs
-                    value={state.inputEncoding}
-                    onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
-                    className="min-w-0 flex-1"
-                  >
-                    <ScrollableTabsList>
-                      {inputEncodingOptions.map((option) => (
-                        <TabsTrigger key={option.value} value={option.value} className="whitespace-nowrap text-xs flex-none">
-                          {option.label}
-                        </TabsTrigger>
-                      ))}
-                    </ScrollableTabsList>
-                  </Tabs>
-                ) : (
-                  <span className="rounded-md border px-2 py-1 text-xs">{encodingLabels.binary}</span>
-                )}
-              </div>
-              <div className="flex shrink-0 items-center gap-1">
-                <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="h-7 gap-1 px-2 text-xs"
-                >
-                  <Upload className="h-3 w-3" />
-                  File
-                </Button>
-                {fileName && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearFile}
-                    className="h-7 w-7 p-0"
-                    aria-label="Clear file"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-            <div className="relative">
-              <Textarea
-                value={state.input}
-                onChange={(e) => handleInputChange(e.target.value)}
-                readOnly={Boolean(fileName) || state.inputEncoding === "binary"}
-                placeholder={
-                  state.inputEncoding === "binary"
-                    ? "Upload a file for binary input..."
-                    : state.mode === "encrypt"
-                      ? "Paste input data to encrypt..."
-                      : "Paste input data to decrypt..."
-                }
-                className={cn(
-                  "max-h-[320px] min-h-[200px] overflow-auto overflow-x-hidden break-all whitespace-pre-wrap font-mono text-sm",
-                  error && "border-destructive",
-                )}
-              />
-              {fileName && (
-                <div className="absolute inset-0 flex items-center justify-center gap-3 rounded-md border bg-background/95 text-sm text-muted-foreground">
-                  <span className="max-w-[70%] truncate font-medium text-foreground">{fileName}</span>
-                  <button
-                    type="button"
-                    className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-muted/60"
-                    onClick={handleClearFile}
-                    aria-label="Clear file"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              )}
-            </div>
-            {inputWarning && <p className="text-xs text-muted-foreground">{inputWarning}</p>}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex min-w-0 flex-1 items-center gap-2">
-                <Label className="text-sm font-medium">Result</Label>
-                <Tabs
-                  value={state.outputEncoding}
-                  onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
-                  className="min-w-0 flex-1"
-                >
-                  <ScrollableTabsList>
-                    <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
-                      {encodingLabels.base64}
-                    </TabsTrigger>
-                    <TabsTrigger value="base64url" className="whitespace-nowrap text-xs flex-none">
-                      {encodingLabels.base64url}
-                    </TabsTrigger>
-                    <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
-                      {encodingLabels.hex}
-                    </TabsTrigger>
-                    <TabsTrigger value="binary" className="whitespace-nowrap text-xs flex-none">
-                      {encodingLabels.binary}
-                    </TabsTrigger>
-                  </ScrollableTabsList>
-                </Tabs>
-              </div>
-              {state.outputEncoding !== "binary" && (
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCopyResult}
-                    className="h-7 w-7 p-0"
-                    aria-label="Copy result"
-                    disabled={!output}
-                  >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleDownloadTextResult}
-                    className="h-7 w-7 p-0"
-                    aria-label="Download result"
-                    disabled={!output}
-                  >
-                    <Download className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
-            </div>
-            <div className="relative">
-              <Textarea
-                value={output}
-                readOnly
-                placeholder="Result will appear here..."
-                className="max-h-[320px] min-h-[200px] overflow-auto overflow-x-hidden break-all whitespace-pre-wrap font-mono text-sm"
-              />
-              {state.outputEncoding === "binary" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md border bg-background/95 px-4 text-center text-sm text-muted-foreground">
-                  <span>Binary output cannot be displayed. Download to use it.</span>
-                  {binaryMeta && (
-                    <>
-                      <div className="flex w-full items-center justify-between gap-3 text-xs">
-                        <span className="truncate font-medium text-foreground">{binaryMeta.name}</span>
-                        <span className="shrink-0 text-muted-foreground">{binaryMeta.size} bytes</span>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={handleDownloadOutput} className="h-7 gap-1 px-2 text-xs">
-                        <Download className="h-3 w-3" />
-                        Download
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            {isWorking && <p className="text-xs text-muted-foreground">Processing...</p>}
-            {error && (
-              <Alert variant="destructive" className="py-2">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="text-xs">{error}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </div>
+        <SymmetricIoPanel
+          state={state}
+          setParam={setParam}
+          output={output}
+          error={error}
+          isWorking={isWorking}
+          binaryMeta={binaryMeta}
+          copied={copied}
+          fileName={fileName}
+          fileInputRef={fileInputRef}
+          inputWarning={inputWarning}
+          inputEncodingOptions={inputEncodingOptions}
+          showInputEncodingSelect={showInputEncodingSelect}
+          encodingLabels={encodingLabels}
+          onFileUpload={handleFileUpload}
+          onClearFile={handleClearFile}
+          onInputChange={handleInputChange}
+          onCopyResult={handleCopyResult}
+          onDownloadTextResult={handleDownloadTextResult}
+          onDownloadBinaryResult={handleDownloadOutput}
+        />
       </div>
     </div>
   )

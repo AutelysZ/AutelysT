@@ -3,14 +3,16 @@
 Generate fast, non-cryptographic hashes from text or uploaded files with support for MurmurHash, xxHash, CityHash/FarmHash, SipHash, SpookyHash, HighwayHash, FNV, and CRC32.
 
 ## Features
-- Algorithm tabs covering MurmurHash, xxHash, CityHash/FarmHash, SipHash, SpookyHash, HighwayHash, FNV, and CRC32
+- Algorithm families with variant/parameter tabs for MurmurHash3, xxHash, CityHash/FarmHash, SipHash, SpookyHash, HighwayHash, FNV, and CRC32/CRC64
+- Seed and round controls for algorithms that support them (MurmurHash3, xxHash, FarmHash, SipHash, SpookyHash)
 - UTF-8, Base64, or Hex input decoding with optional file upload
-- Hex, Base64, and Base64url digest output
+- Hex, Base64, Base64url, and decimal digest output (decimal for 32/64-bit results)
 - Keyed hashing for SipHash and HighwayHash with encoding control
 - URL-synced inputs and history tracking
 
 ## Parameters
-- Algorithm selection
+- Algorithm family and variant selection
+- Seeds, rounds, and output sizes as supported per algorithm
 - Input encoding
 - Output encoding
 - Optional key and key encoding (SipHash/HighwayHash)

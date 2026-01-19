@@ -352,26 +352,33 @@ export function createOkpJwk(curve: EddsaCurve, publicKey: Uint8Array, privateKe
   return jwk
 }
 
-export function encodePqcKey(bytes: Uint8Array) {
+export function encodePqcKey(bytes: Uint8Array, encoding: PqcKeyEncoding) {
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
+  if (encoding === "base64url") return encodeBase64(bytes, { urlSafe: true, padding: false })
   return encodeBase64(bytes, { urlSafe: false, padding: true })
 }
 
-export function createPqcPublicKey(algorithm: string, publicKey: Uint8Array) {
+export function createPqcPublicKey(algorithm: string, publicKey: Uint8Array, encoding: PqcKeyEncoding) {
   return {
     kty: "PQC",
     alg: algorithm,
-    encoding: "base64",
-    publicKey: encodePqcKey(publicKey),
+    encoding,
+    publicKey: encodePqcKey(publicKey, encoding),
   }
 }
 
-export function createPqcPrivateKey(algorithm: string, publicKey: Uint8Array, secretKey: Uint8Array) {
+export function createPqcPrivateKey(
+  algorithm: string,
+  publicKey: Uint8Array,
+  secretKey: Uint8Array,
+  encoding: PqcKeyEncoding,
+) {
   return {
     kty: "PQC",
     alg: algorithm,
-    encoding: "base64",
-    publicKey: encodePqcKey(publicKey),
-    secretKey: encodePqcKey(secretKey),
+    encoding,
+    publicKey: encodePqcKey(publicKey, encoding),
+    secretKey: encodePqcKey(secretKey, encoding),
   }
 }
 
@@ -409,7 +416,7 @@ export async function resolveEcJwk(keyText: string, curve: EcdsaCurve, usage: "s
   if (jwk) return jwk
   if (!supportsPemForCurve(curve)) return null
   const algorithm = { name: "ECDSA", namedCurve: curve }
-  const usages = usage === "sign" ? ["sign"] : ["verify"]
+  const usages: KeyUsage[] = usage === "sign" ? ["sign"] : ["verify"]
   return importPemAsJwk({ keyText, algorithm, format: usage === "sign" ? "private" : "public", usages })
 }
 
@@ -417,7 +424,7 @@ export async function resolveOkpJwk(keyText: string, curve: EddsaCurve, usage: "
   const jwk = parseJwk(keyText)
   if (jwk) return jwk
   const algorithm = { name: curve }
-  const usages = usage === "sign" ? ["sign"] : ["verify"]
+  const usages: KeyUsage[] = usage === "sign" ? ["sign"] : ["verify"]
   return importPemAsJwk({ keyText, algorithm, format: usage === "sign" ? "private" : "public", usages })
 }
 

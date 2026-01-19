@@ -194,9 +194,19 @@ async function createHasher(algorithm: HashAlgorithm) {
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full min-w-0 overflow-x-auto">
-      <TabsList className="inline-flex w-max justify-start">{children}</TabsList>
+    <div className="w-full min-w-0">
+      <TabsList className="inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+        {children}
+      </TabsList>
     </div>
+  )
+}
+
+function InlineTabsList({ children }: { children: React.ReactNode }) {
+  return (
+    <TabsList className="inline-flex h-7 flex-nowrap items-center gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-xs [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+      {children}
+    </TabsList>
   )
 }
 
@@ -480,7 +490,7 @@ function HashInner({
             >
               <ScrollableTabsList>
                 {(Object.keys(algorithmFamilies) as AlgorithmFamily[]).map((family) => (
-                  <TabsTrigger key={family} value={family} className="text-xs">
+                  <TabsTrigger key={family} value={family} className="text-xs flex-none">
                     {algorithmFamilyLabels[family]}
                   </TabsTrigger>
                 ))}
@@ -489,7 +499,7 @@ function HashInner({
             <Tabs value={state.algorithm} onValueChange={(value) => setParam("algorithm", value as HashAlgorithm, true)}>
               <ScrollableTabsList>
                 {activeAlgorithms.map((alg) => (
-                  <TabsTrigger key={alg} value={alg} className="text-xs">
+                  <TabsTrigger key={alg} value={alg} className="text-xs flex-none">
                     {algorithmLabels[alg]}
                   </TabsTrigger>
                 ))}
@@ -508,7 +518,7 @@ function HashInner({
                 value={state.inputEncoding}
                 onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
               >
-                <ScrollableTabsList>
+                <InlineTabsList>
                   <TabsTrigger value="utf8" className="text-xs">
                     UTF-8
                   </TabsTrigger>
@@ -518,7 +528,7 @@ function HashInner({
                   <TabsTrigger value="hex" className="text-xs">
                     Hex
                   </TabsTrigger>
-                </ScrollableTabsList>
+                </InlineTabsList>
               </Tabs>
             </div>
             <div className="flex items-center gap-1">
@@ -593,7 +603,7 @@ function HashInner({
                 value={state.outputEncoding}
                 onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
               >
-                <ScrollableTabsList>
+                <InlineTabsList>
                   <TabsTrigger value="hex" className="text-xs">
                     Hex
                   </TabsTrigger>
@@ -603,7 +613,7 @@ function HashInner({
                   <TabsTrigger value="base64url" className="text-xs">
                     Base64url
                   </TabsTrigger>
-                </ScrollableTabsList>
+                </InlineTabsList>
               </Tabs>
             </div>
             <div className="flex items-center gap-1">

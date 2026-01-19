@@ -6,7 +6,7 @@ Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, Schnorr, and post-quantum
 - Sign and verify modes with HMAC/RSA/ECDSA/EdDSA/Schnorr/ML-DSA/SLH-DSA algorithms
 - Curve support via noble-curves: secp256k1, Schnorr, P-256/P-384/P-521, Ed25519/Ed448, brainpoolP256r1/384r1/512r1
 - PEM (SPKI/PKCS8) for RSA plus JWK (EC/OKP) support for curve signatures
-- ML-DSA and SLH-DSA parameter sets via noble-post-quantum (PQC JSON or raw key inputs)
+- ML-DSA and SLH-DSA parameter sets via noble-post-quantum (PQC JSON or raw keys with encoding metadata)
 - Keypair upload and in-browser generation for supported algorithms
 - Base64/Base64url/Hex signature encodings
 - File upload support for binary message signing

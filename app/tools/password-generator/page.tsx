@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Check, Copy, RefreshCw } from "lucide-react"
 import {
   DEFAULT_SYMBOLS,
@@ -55,6 +54,16 @@ const serializationOptions = [
   { value: "base45", label: "Base45" },
   { value: "base32", label: "Base32" },
 ]
+
+function ScrollableTabsList({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="w-full min-w-0">
+      <TabsList className="inline-flex h-auto max-w-full flex-wrap items-center justify-start gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-sm [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
+        {children}
+      </TabsList>
+    </div>
+  )
+}
 
 export default function PasswordGeneratorPage() {
   return (
@@ -269,384 +278,257 @@ function PasswordGeneratorInner({
   }, [paramsForHistory, upsertParams])
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-180px)] w-full max-w-5xl flex-col justify-start gap-6 py-6 lg:min-h-[calc(100vh-220px)] lg:justify-center">
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-nowrap items-center gap-3">
-          <Label className="w-28 text-sm font-medium">Serialization</Label>
-          <div className="min-w-0 flex-1 lg:hidden">
-            <Select
-              value={state.serialization}
-              onValueChange={(value) =>
-                setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {serializationOptions.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+    <div className="flex w-full flex-col gap-4 py-4 sm:gap-6 sm:py-6">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        <section className="flex flex-col gap-4 sm:gap-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">Password Settings</h2>
           </div>
-          <RadioGroup
-            value={state.serialization}
-            onValueChange={(value) =>
-              setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
-            }
-            className="hidden flex-nowrap lg:flex"
-          >
-            {serializationOptions.map((item) => (
-              <div key={item.value} className="mr-5 flex items-center gap-2">
-                <RadioGroupItem id={`serialization-${item.value}`} value={item.value} />
-                <Label htmlFor={`serialization-${item.value}`} className="text-sm cursor-pointer">
-                  {item.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-        </div>
-
-        {state.serialization === "base64" && (
-          <div className="flex flex-nowrap items-center gap-3">
-            <div className="w-28 shrink-0" />
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="base64NoPadding"
-                checked={state.base64NoPadding}
-                onCheckedChange={(checked) => setParam("base64NoPadding", checked === true, true)}
-              />
-              <Label htmlFor="base64NoPadding" className="text-sm cursor-pointer">
-                No Padding
-              </Label>
-            </div>
-            <div className="ml-5 flex items-center gap-2">
-              <Checkbox
-                id="base64UrlSafe"
-                checked={state.base64UrlSafe}
-                onCheckedChange={(checked) => setParam("base64UrlSafe", checked === true, true)}
-              />
-              <Label htmlFor="base64UrlSafe" className="text-sm cursor-pointer">
-                URL Safe
-              </Label>
-            </div>
-          </div>
-        )}
-
-        {["hex", "base45", "base32"].includes(state.serialization) && (
-          <div className="flex flex-nowrap items-center gap-3">
-            <div className="w-28 shrink-0" />
-            <RadioGroup
-              value={state.caseMode}
-              onValueChange={(value) =>
-                setParam("caseMode", value as z.infer<typeof paramsSchema>["caseMode"], true)
-              }
-              className="flex flex-nowrap"
-            >
-              <div className="mr-5 flex items-center gap-2">
-                <RadioGroupItem id="case-lower" value="lower" />
-                <Label htmlFor="case-lower" className="text-sm cursor-pointer">
-                  Lower case
-                </Label>
-              </div>
-              <div className="mr-5 flex items-center gap-2">
-                <RadioGroupItem id="case-upper" value="upper" />
-                <Label htmlFor="case-upper" className="text-sm cursor-pointer">
-                  Upper case
-                </Label>
-              </div>
-            </RadioGroup>
-            {state.serialization === "base32" && (
-              <div className="mr-5 flex items-center gap-2">
-                <Checkbox
-                  id="base32NoPadding"
-                  checked={state.base32NoPadding}
-                  onCheckedChange={(checked) => setParam("base32NoPadding", checked === true, true)}
-                />
-                <Label htmlFor="base32NoPadding" className="text-sm cursor-pointer">
-                  No Padding
-                </Label>
-              </div>
-            )}
-          </div>
-        )}
-
-        {state.serialization === "graphic-ascii" && (
-          <>
-            <div className="flex flex-col gap-2 lg:hidden">
-              <div className="flex items-center gap-3">
-                <div className="w-28 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="includeUpper"
-                    checked={state.includeUpper}
-                    onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
-                  />
-                  <Label htmlFor="includeUpper" className="text-sm cursor-pointer">
-                    Upper letters
-                  </Label>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-28 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="includeLower"
-                    checked={state.includeLower}
-                    onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
-                  />
-                  <Label htmlFor="includeLower" className="text-sm cursor-pointer">
-                    Lower letters
-                  </Label>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-28 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="includeNumbers"
-                    checked={state.includeNumbers}
-                    onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
-                  />
-                  <Label htmlFor="includeNumbers" className="text-sm cursor-pointer">
-                    Numbers
-                  </Label>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-28 shrink-0" />
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="includeSymbols"
-                    checked={state.includeSymbols}
-                    onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
-                  />
-                  <Label htmlFor="includeSymbols" className="text-sm cursor-pointer">
-                    Symbols
-                  </Label>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-28 shrink-0" />
-                <div className="relative flex min-w-0 flex-1 items-center">
-                  <Input
-                    id="symbols"
-                    value={state.symbols}
-                    onChange={(e) => setParam("symbols", e.target.value)}
-                    disabled={!state.includeSymbols}
-                    className="h-9 w-full min-w-0 pr-16 font-mono"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
-                    disabled={!state.includeSymbols}
-                    className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
-                  >
-                    Reset
-                  </Button>
-                </div>
-              </div>
-              {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
-            </div>
-            <div className="hidden items-center gap-3 lg:flex">
-              <div className="w-28 shrink-0" />
-              <div className="mr-5 flex items-center gap-2">
-                <Checkbox
-                  id="includeUpper-lg"
-                  checked={state.includeUpper}
-                  onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
-                />
-                <Label htmlFor="includeUpper-lg" className="text-sm cursor-pointer">
-                  Upper letters
-                </Label>
-              </div>
-              <div className="mr-5 flex items-center gap-2">
-                <Checkbox
-                  id="includeLower-lg"
-                  checked={state.includeLower}
-                  onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
-                />
-                <Label htmlFor="includeLower-lg" className="text-sm cursor-pointer">
-                  Lower letters
-                </Label>
-              </div>
-              <div className="mr-5 flex items-center gap-2">
-                <Checkbox
-                  id="includeNumbers-lg"
-                  checked={state.includeNumbers}
-                  onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
-                />
-                <Label htmlFor="includeNumbers-lg" className="text-sm cursor-pointer">
-                  Numbers
-                </Label>
-              </div>
-              <div className="mr-5 flex min-w-0 flex-nowrap items-center gap-2 whitespace-nowrap">
-                <Checkbox
-                  id="includeSymbols-lg"
-                  checked={state.includeSymbols}
-                  onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
-                />
-                <Label htmlFor="includeSymbols-lg" className="text-sm cursor-pointer">
-                  Symbols
-                </Label>
-              </div>
-              <div className="mr-5 flex min-w-0 items-center">
-                <div className="relative flex min-w-0 flex-1 items-center">
-                  <Input
-                    id="symbols-lg"
-                    value={state.symbols}
-                    onChange={(e) => setParam("symbols", e.target.value)}
-                    disabled={!state.includeSymbols}
-                    className="h-9 w-full min-w-0 pr-16 font-mono"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
-                    disabled={!state.includeSymbols}
-                    className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
-                  >
-                    Reset
-                  </Button>
-                </div>
-              </div>
-              {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
-            </div>
-          </>
-        )}
-
-        <div className="flex flex-nowrap items-center gap-3">
-          <Label className="w-28 text-sm font-medium">Length Type</Label>
-          <RadioGroup
-            value={state.lengthType}
-            onValueChange={(value) =>
-              setParam("lengthType", value as z.infer<typeof paramsSchema>["lengthType"], true)
-            }
-            className="flex flex-nowrap"
-          >
-            <div className="mr-5 flex items-center gap-2">
-              <RadioGroupItem id="length-bytes" value="bytes" />
-              <Label htmlFor="length-bytes" className="text-sm cursor-pointer">
-                Bytes
-              </Label>
-            </div>
-            <div className="mr-5 flex items-center gap-2">
-              <RadioGroupItem id="length-chars" value="chars" />
-              <Label htmlFor="length-chars" className="text-sm cursor-pointer">
-                Chars
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
-        <div className="flex flex-nowrap items-center gap-3">
-          <Label className="w-28 text-sm font-medium">Length</Label>
-          <div className="min-w-0 flex-1 lg:hidden">
-            <Select
-              value={state.lengthPreset}
-              onValueChange={(value) => {
-                setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
-                if (value !== "custom") {
-                  setParam("lengthValue", Number(value), true)
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex items-start gap-3">
+              <Label className="w-28 shrink-0 text-sm">Serialization</Label>
+              <Tabs
+                value={state.serialization}
+                onValueChange={(value) =>
+                  setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
                 }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {lengthPresets.map((preset) => (
-                  <SelectItem key={preset.value} value={preset.value}>
-                    {preset.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <RadioGroup
-            value={state.lengthPreset}
-            onValueChange={(value) => {
-              setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
-              if (value !== "custom") {
-                setParam("lengthValue", Number(value), true)
-              }
-            }}
-            className="hidden flex-nowrap lg:flex"
-          >
-            {lengthPresets.map((preset) => (
-              <div key={preset.value} className="mr-4 flex items-center gap-2">
-                <RadioGroupItem id={`length-${preset.value}`} value={preset.value} />
-                <Label htmlFor={`length-${preset.value}`} className="text-sm cursor-pointer">
-                  {preset.label}
-                </Label>
-              </div>
-            ))}
-          </RadioGroup>
-          {state.lengthPreset === "custom" && (
-            <div className="mr-4 flex items-center gap-2 flex-nowrap">
-              <Input
-                type="number"
-                min={1}
-                max={1024}
-                value={state.lengthValue}
-                onChange={(e) => {
-                  const nextValue = Math.max(1, Math.min(1024, Number(e.target.value) || 1))
-                  setParam("lengthValue", nextValue, true)
-                }}
-                className="h-9 w-20 lg:w-20"
-              />
-              <span className="text-sm text-muted-foreground">1-1024</span>
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  {serializationOptions.map((item) => (
+                    <TabsTrigger key={item.value} value={item.value} className="text-xs flex-none">
+                      {item.label}
+                    </TabsTrigger>
+                  ))}
+                </ScrollableTabsList>
+              </Tabs>
             </div>
-          )}
-        </div>
-      </div>
 
-      <div className="flex flex-col items-center justify-center gap-4 border-y border-border py-5">
-        <div className="flex items-center gap-3">
-          <div
-            className="max-w-[80ch] font-mono text-lg font-semibold tracking-tight break-all"
-            style={{
-              display: "-webkit-box",
-              WebkitBoxOrient: "vertical",
-              WebkitLineClamp: 3,
-              overflow: "hidden",
-            }}
-          >
-            {result || "-"}
-          </div>
-          <Button variant="ghost" size="icon" onClick={onRegenerate} aria-label="Regenerate password">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex w-full flex-col items-stretch gap-3 lg:flex-row lg:items-center lg:justify-center">
-          <Input
-            id="label"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Optional label for history"
-            className="h-9 w-full lg:w-[20ch]"
-          />
-          <Button onClick={handleCopy} disabled={!result || !!error}>
-            {copied ? (
-              <>
-                <Check className="h-4 w-4" />
-                Saved and Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" />
-                Save and Copy
-              </>
+            {state.serialization === "base64" && (
+              <div className="flex items-start gap-3">
+                <Label className="w-28 shrink-0 text-sm">Base64</Label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      id="base64NoPadding"
+                      checked={state.base64NoPadding}
+                      onCheckedChange={(checked) => setParam("base64NoPadding", checked === true, true)}
+                    />
+                    <span>No Padding</span>
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Checkbox
+                      id="base64UrlSafe"
+                      checked={state.base64UrlSafe}
+                      onCheckedChange={(checked) => setParam("base64UrlSafe", checked === true, true)}
+                    />
+                    <span>URL Safe</span>
+                  </label>
+                </div>
+              </div>
             )}
-          </Button>
-        </div>
+
+            {["hex", "base45", "base32"].includes(state.serialization) && (
+              <div className="flex items-start gap-3">
+                <Label className="w-28 shrink-0 text-sm">Case</Label>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Tabs
+                    value={state.caseMode}
+                    onValueChange={(value) => setParam("caseMode", value as z.infer<typeof paramsSchema>["caseMode"], true)}
+                  >
+                    <ScrollableTabsList>
+                      <TabsTrigger value="lower" className="text-xs flex-none">
+                        Lower
+                      </TabsTrigger>
+                      <TabsTrigger value="upper" className="text-xs flex-none">
+                        Upper
+                      </TabsTrigger>
+                    </ScrollableTabsList>
+                  </Tabs>
+                  {state.serialization === "base32" && (
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        id="base32NoPadding"
+                        checked={state.base32NoPadding}
+                        onCheckedChange={(checked) => setParam("base32NoPadding", checked === true, true)}
+                      />
+                      <span>No Padding</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {state.serialization === "graphic-ascii" && (
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Label className="w-28 shrink-0 text-sm">Character Set</Label>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        id="includeUpper"
+                        checked={state.includeUpper}
+                        onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
+                      />
+                      <span>Upper letters</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        id="includeLower"
+                        checked={state.includeLower}
+                        onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
+                      />
+                      <span>Lower letters</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        id="includeNumbers"
+                        checked={state.includeNumbers}
+                        onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
+                      />
+                      <span>Numbers</span>
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Checkbox
+                        id="includeSymbols"
+                        checked={state.includeSymbols}
+                        onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
+                      />
+                      <span>Symbols</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0" />
+                  <div className="relative flex min-w-0 flex-1 items-center">
+                    <Input
+                      id="symbols"
+                      value={state.symbols}
+                      onChange={(e) => setParam("symbols", e.target.value)}
+                      disabled={!state.includeSymbols}
+                      className="h-9 w-full min-w-0 pr-16 font-mono"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setParam("symbols", DEFAULT_SYMBOLS, true)}
+                      disabled={!state.includeSymbols}
+                      className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
+                    >
+                      Reset
+                    </Button>
+                  </div>
+                </div>
+                {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
+              </div>
+            )}
+
+            <div className="flex items-start gap-3">
+              <Label className="w-28 shrink-0 text-sm">Length Type</Label>
+              <Tabs
+                value={state.lengthType}
+                onValueChange={(value) => setParam("lengthType", value as z.infer<typeof paramsSchema>["lengthType"], true)}
+                className="min-w-0 flex-1"
+              >
+                <ScrollableTabsList>
+                  <TabsTrigger value="bytes" className="text-xs flex-none">
+                    Bytes
+                  </TabsTrigger>
+                  <TabsTrigger value="chars" className="text-xs flex-none">
+                    Chars
+                  </TabsTrigger>
+                </ScrollableTabsList>
+              </Tabs>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <Label className="w-28 shrink-0 text-sm">Length</Label>
+                <Tabs
+                  value={state.lengthPreset}
+                  onValueChange={(value) => {
+                    setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
+                    if (value !== "custom") {
+                      setParam("lengthValue", Number(value), true)
+                    }
+                  }}
+                  className="min-w-0 flex-1"
+                >
+                  <ScrollableTabsList>
+                    {lengthPresets.map((preset) => (
+                      <TabsTrigger key={preset.value} value={preset.value} className="text-xs flex-none">
+                        {preset.label}
+                      </TabsTrigger>
+                    ))}
+                  </ScrollableTabsList>
+                </Tabs>
+              </div>
+              {state.lengthPreset === "custom" && (
+                <div className="flex items-center gap-3">
+                  <div className="w-28 shrink-0" />
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1024}
+                      value={state.lengthValue}
+                      onChange={(e) => {
+                        const nextValue = Math.max(1, Math.min(1024, Number(e.target.value) || 1))
+                        setParam("lengthValue", nextValue, true)
+                      }}
+                      className="h-9 w-20"
+                    />
+                    <span className="text-xs text-muted-foreground">1-1024</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="flex flex-col gap-4 sm:gap-6">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-semibold">Generated Password</h2>
+            <Button variant="ghost" size="icon" onClick={onRegenerate} aria-label="Regenerate password">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="rounded-md border px-3 py-3">
+            <div className="min-h-[96px] font-mono text-lg font-semibold tracking-tight break-all">
+              {result || "-"}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="label" className="text-sm font-medium">
+                Label
+              </Label>
+              <Input
+                id="label"
+                value={label}
+                onChange={(e) => setLabel(e.target.value)}
+                placeholder="Optional label for history"
+                className="h-9 w-full"
+              />
+            </div>
+            <Button onClick={handleCopy} disabled={!result || !!error}>
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4" />
+                  Saved and Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Save and Copy
+                </>
+              )}
+            </Button>
+            {error && <p className="text-xs text-destructive">{error}</p>}
+          </div>
+        </section>
       </div>
-      {error && <p className="text-xs text-destructive text-center">{error}</p>}
     </div>
   )
 }

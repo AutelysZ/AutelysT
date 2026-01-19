@@ -4,10 +4,10 @@ Generate secure passwords with multiple serialization modes and length presets.
 
 ## Features
 - Graphic ASCII and base encodings
+- Tabbed selections for serialization, case, and length presets
 - Length presets and custom input
 - One-click regenerate and copy
 - Mobile-friendly layout
-- Select dropdowns for long option lists on mobile
 
 ## Parameters
 - Serialization mode
