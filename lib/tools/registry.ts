@@ -96,6 +96,32 @@ export const tools: Tool[] = [
       keywords: ["hex escape", "encoder", "decoder", "byte escape", "string escape", "xFF"],
     },
   },
+  {
+    id: "charset-converter",
+    name: "Charset Converter",
+    description: "Convert text between different charsets with various encoding formats including Base64, URL, and Hex Escape.",
+    category: "Encoding",
+    route: "/tools/charset-converter",
+    keywords: ["charset", "encoding", "convert", "iconv", "utf-8", "utf-16", "gbk", "shift_jis", "base64", "url", "hex"],
+    seo: {
+      title: "Text Charset Converter - AutelysT",
+      description:
+        "Online text charset converter supporting 100+ charsets with Base64, URL, and Hex Escape encoding formats.",
+      keywords: [
+        "charset converter",
+        "text encoding",
+        "iconv",
+        "utf-8",
+        "utf-16",
+        "gbk",
+        "shift_jis",
+        "base64 encoder",
+        "url encoder",
+        "hex escape",
+        "encoding converter",
+      ],
+    },
+  },
   // Crypto Tools
   {
     id: "password-generator",

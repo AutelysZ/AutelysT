@@ -15,6 +15,7 @@ interface SearchableSelectProps {
   searchPlaceholder?: string
   className?: string
   triggerClassName?: string
+  disabled?: boolean
 }
 
 export function SearchableSelect({
@@ -25,6 +26,7 @@ export function SearchableSelect({
   searchPlaceholder = "Search...",
   className,
   triggerClassName,
+  disabled = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
@@ -44,7 +46,7 @@ export function SearchableSelect({
 
   if (!mounted) {
     return (
-      <Button variant="outline" role="combobox" className={cn("justify-between", triggerClassName)} disabled>
+      <Button variant="outline" role="combobox" className={cn("justify-between", triggerClassName)} disabled={disabled}>
         {selectedOption?.label ?? placeholder}
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
@@ -52,13 +54,15 @@ export function SearchableSelect({
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open && !disabled} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-disabled={disabled}
           className={cn("justify-between", triggerClassName)}
+          disabled={disabled}
         >
           {selectedOption?.label ?? placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
