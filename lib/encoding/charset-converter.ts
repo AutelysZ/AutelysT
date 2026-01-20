@@ -53,6 +53,14 @@ export function canUseRawInput(charset: string): boolean {
   return isUtf8Charset(charset)
 }
 
+export function encodeUrlBytes(bytes: Uint8Array): string {
+  let result = ""
+  for (const byte of bytes) {
+    result += "%" + byte.toString(16).padStart(2, "0").toUpperCase()
+  }
+  return result
+}
+
 export function encodeUrl(input: string, charset: string = "UTF-8"): string {
   const charsetLower = charset.toLowerCase()
   
@@ -64,11 +72,7 @@ export function encodeUrl(input: string, charset: string = "UTF-8"): string {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const iconv = require("iconv-lite")
     const bytes = iconv.encode(input, charsetLower)
-    let result = ""
-    for (const byte of bytes) {
-      result += "%" + byte.toString(16).padStart(2, "0").toUpperCase()
-    }
-    return result
+    return encodeUrlBytes(bytes)
   } catch {
     return encodeURIComponent(input)
   }
@@ -222,7 +226,12 @@ export function encodeOutput(
     }
     case "url": {
       const text = bytesToDisplayText(bytes, outputCharset)
-      return encodeUrl(text, outputCharset)
+      const encoded = encodeUrl(text, outputCharset)
+      // If bytes contain BOM (non-UTF-8 charsets), re-encode to preserve BOM bytes
+      if (outputCharset !== "UTF-8" && encoded.includes("%EF%BB%BF") === false && bytes.length > 0) {
+        return encodeUrlBytes(bytes)
+      }
+      return encoded
     }
     case "hex-escape": {
       return encodeHexEscape(bytes, { upperCase: hexEscapeUpperCase })
