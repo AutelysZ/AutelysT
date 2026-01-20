@@ -517,123 +517,133 @@ function CharsetConverterInner({
   ])
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex flex-col gap-3 w-full">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <Label className="w-16 text-sm shrink-0">Charset</Label>
-          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-            <Checkbox
-              id="autoDetect"
-              checked={state.autoDetect}
-              onCheckedChange={(c) => setParam("autoDetect", c === true)}
-            />
-            <span>Auto</span>
-          </label>
-          <SearchableSelect
-            value={state.inputCharset}
-            onValueChange={(v) => {
-              setParam("inputCharset", v)
-              setParam("autoDetect", false)
-            }}
-            options={charsets}
-            placeholder="Input..."
-            searchPlaceholder="Search..."
-            triggerClassName="w-24 text-xs h-8"
-            className="w-24"
-            disabled={state.autoDetect}
-          />
-          <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-          </Button>
-          <SearchableSelect
-            value={state.outputCharset}
-            onValueChange={(v) => setParam("outputCharset", v)}
-            options={charsets}
-            placeholder="Output..."
-            searchPlaceholder="Search..."
-            triggerClassName="w-24 text-xs h-8"
-            className="w-24"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-          <Label className="w-16 text-sm shrink-0">Encoding</Label>
-          <Tabs
-            value={state.inputEncoding}
-            onValueChange={(v) => {
-              setParam("inputEncoding", v)
-              setParam("autoDetect", false)
-            }}
-            className="min-w-0 flex-1 max-w-[200px]"
-          >
-            <ScrollableTabsList>
-              {INPUT_ENCODING_OPTIONS.map((opt) => (
-                <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
-                  {opt.label}
-                </TabsTrigger>
-              ))}
-            </ScrollableTabsList>
-          </Tabs>
-          <Button variant="outline" size="icon" onClick={handleSwapEncodings} className="h-8 w-8 shrink-0" title="Swap encodings">
-            <ArrowRightLeft className="h-3.5 w-3.5" />
-          </Button>
-          <Tabs
-            value={state.outputEncoding}
-            onValueChange={(v) => setParam("outputEncoding", v)}
-            className="min-w-0 flex-1 max-w-[200px]"
-          >
-            <ScrollableTabsList>
-              {OUTPUT_ENCODING_OPTIONS.map((opt) => (
-                <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
-                  {opt.label}
-                </TabsTrigger>
-              ))}
-            </ScrollableTabsList>
-          </Tabs>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-2 pl-[4.5rem]">
-          {(state.inputEncoding === "base64" || state.outputEncoding === "base64") && (
-            <>
-              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                <Checkbox
-                  id="urlSafeBase64"
-                  checked={state.urlSafeBase64}
-                  onCheckedChange={(c) => setParam("urlSafeBase64", c === true)}
+    <div className="flex w-full flex-col gap-4">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+        <section className="flex flex-col gap-4 sm:gap-6">
+          <div className="space-y-4 sm:space-y-5">
+            <div className="flex items-start gap-3">
+              <Label className="w-20 shrink-0 text-sm">Charset</Label>
+              <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    id="autoDetect"
+                    checked={state.autoDetect}
+                    onCheckedChange={(c) => setParam("autoDetect", c === true)}
+                  />
+                  <span>Auto</span>
+                </label>
+                <SearchableSelect
+                  value={state.inputCharset}
+                  onValueChange={(v) => {
+                    setParam("inputCharset", v)
+                    setParam("autoDetect", false)
+                  }}
+                  options={charsets}
+                  placeholder="Input..."
+                  searchPlaceholder="Search..."
+                  triggerClassName="w-20 text-xs h-8 flex-1 min-w-0"
+                  className="flex-1 min-w-0"
+                  disabled={state.autoDetect}
                 />
-                <span>URL Safe</span>
-              </label>
-              <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                <Checkbox
-                  id="base64Padding"
-                  checked={state.base64Padding}
-                  onCheckedChange={(c) => setParam("base64Padding", c === true)}
+                <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                </Button>
+                <SearchableSelect
+                  value={state.outputCharset}
+                  onValueChange={(v) => setParam("outputCharset", v)}
+                  options={charsets}
+                  placeholder="Output..."
+                  searchPlaceholder="Search..."
+                  triggerClassName="w-20 text-xs h-8 flex-1 min-w-0"
+                  className="flex-1 min-w-0"
                 />
-                <span>No Padding</span>
-              </label>
-            </>
-          )}
+              </div>
+            </div>
 
-          {state.outputEncoding === "raw" && state.outputCharset !== "UTF-8" && (
-            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-              <Checkbox
-                id="outputBOM"
-                checked={state.outputBOM}
-                onCheckedChange={(c) => setParam("outputBOM", c === true)}
-              />
-              <span>BOM</span>
-            </label>
-          )}
-        </div>
+            <div className="flex items-start gap-3">
+              <Label className="w-20 shrink-0 text-sm">Encoding</Label>
+              <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+                <Tabs
+                  value={state.inputEncoding}
+                  onValueChange={(v) => {
+                    setParam("inputEncoding", v)
+                    setParam("autoDetect", false)
+                  }}
+                  className="min-w-0 flex-1"
+                >
+                  <ScrollableTabsList>
+                    {INPUT_ENCODING_OPTIONS.map((opt) => (
+                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
+                        {opt.label}
+                      </TabsTrigger>
+                    ))}
+                  </ScrollableTabsList>
+                </Tabs>
+                <Button variant="outline" size="icon" onClick={handleSwapEncodings} className="h-8 w-8 shrink-0" title="Swap encodings">
+                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                </Button>
+                <Tabs
+                  value={state.outputEncoding}
+                  onValueChange={(v) => setParam("outputEncoding", v)}
+                  className="min-w-0 flex-1"
+                >
+                  <ScrollableTabsList>
+                    {OUTPUT_ENCODING_OPTIONS.map((opt) => (
+                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
+                        {opt.label}
+                      </TabsTrigger>
+                    ))}
+                  </ScrollableTabsList>
+                </Tabs>
+              </div>
+            </div>
 
-        {detectedInfo && state.autoDetect && (
-          <div className="flex items-center gap-2 pl-[4.5rem] text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-            <FileText className="h-3.5 w-3.5" />
-            <span>
-              <span className="font-medium">{detectedInfo.charset}</span> / <span className="font-medium">{detectedInfo.encoding}</span>
-            </span>
+            <div className="flex items-start gap-3">
+              <Label className="w-20 shrink-0 text-sm">Options</Label>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-w-0 flex-1">
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    id="urlSafeBase64"
+                    checked={state.urlSafeBase64}
+                    onCheckedChange={(c) => setParam("urlSafeBase64", c === true)}
+                    disabled={!(state.inputEncoding === "base64" || state.outputEncoding === "base64")}
+                  />
+                  <span className={!(state.inputEncoding === "base64" || state.outputEncoding === "base64") ? "text-muted-foreground" : ""}>URL Safe</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    id="base64Padding"
+                    checked={state.base64Padding}
+                    onCheckedChange={(c) => setParam("base64Padding", c === true)}
+                    disabled={!(state.inputEncoding === "base64" || state.outputEncoding === "base64")}
+                  />
+                  <span className={!(state.inputEncoding === "base64" || state.outputEncoding === "base64") ? "text-muted-foreground" : ""}>No Padding</span>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                  <Checkbox
+                    id="outputBOM"
+                    checked={state.outputBOM}
+                    onCheckedChange={(c) => setParam("outputBOM", c === true)}
+                    disabled={!(state.outputEncoding === "raw" && state.outputCharset !== "UTF-8")}
+                  />
+                  <span className={!(state.outputEncoding === "raw" && state.outputCharset !== "UTF-8") ? "text-muted-foreground" : ""}>BOM</span>
+                </label>
+              </div>
+            </div>
+
+            {detectedInfo && state.autoDetect && (
+              <div className="flex items-start gap-3">
+                <Label className="w-20 shrink-0 text-sm">Detected</Label>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>
+                    <span className="font-medium">{detectedInfo.charset}</span> / <span className="font-medium">{detectedInfo.encoding}</span>
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </section>
       </div>
 
       <DualPaneLayout
