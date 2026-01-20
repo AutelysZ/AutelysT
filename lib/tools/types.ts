@@ -26,6 +26,7 @@ export type ToolCategory =
   | "Crypto"
   | "Web"
   | "Data"
+  | "Utility"
   | "Misc"
 
 export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
@@ -50,6 +51,7 @@ export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   Crypto: ["hash", "md5", "sha", "encrypt", "decrypt", "aes", "rsa", "hmac", "password"],
   Web: ["json", "xml", "html", "css", "url", "query", "jwt", "uuid"],
   Data: ["json", "diff", "compare", "schema", "text", "viewer", "generate"],
+  Utility: ["unit", "converter", "length", "mass", "temperature", "volume", "area", "speed", "pressure", "energy"],
   Misc: [],
 }
 
@@ -63,6 +65,7 @@ export function categorizeByKeywords(keywords: string[]): ToolCategory {
     Crypto: 0,
     Web: 0,
     Data: 0,
+    Utility: 0,
     Misc: 0,
   }
 

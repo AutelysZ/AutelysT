@@ -50,9 +50,9 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 
 ## Getting Started
 
-```bash
+\`\`\`bash
 pnpm install && pnpm dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000)
 

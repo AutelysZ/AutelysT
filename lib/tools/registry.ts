@@ -680,6 +680,33 @@ export const tools: Tool[] = [
       keywords: ["format converter", "json to yaml", "yaml to json", "json to toml", "toml to json"],
     },
   },
+  // Utility Tools
+  {
+    id: "unit-converter",
+    name: "Unit Converter",
+    description: "Convert between units of length, mass, temperature, volume, area, speed, pressure, energy, power, data, time, angle, and frequency.",
+    category: "Utility",
+    route: "/tools/unit-converter",
+    keywords: [
+      "unit", "converter", "length", "mass", "weight", "temperature", "volume", "area", "speed", "velocity",
+      "pressure", "energy", "power", "data", "storage", "time", "duration", "angle", "frequency",
+      "meter", "foot", "mile", "kilometer", "inch", "yard", "kilogram", "pound", "ounce", "gram",
+      "celsius", "fahrenheit", "kelvin", "liter", "gallon", "cup", "tablespoon", "teaspoon",
+      "square meter", "acre", "hectare", "mph", "kph", "knot", "pascal", "bar", "psi", "atm",
+      "joule", "calorie", "watt", "horsepower", "byte", "kilobyte", "megabyte", "gigabyte", "terabyte",
+      "second", "minute", "hour", "day", "week", "year", "degree", "radian", "hertz", "rpm",
+    ],
+    seo: {
+      title: "Unit Converter - AutelysT",
+      description: "Online unit converter supporting length, mass, temperature, volume, area, speed, pressure, energy, power, data storage, time, angle, and frequency conversions.",
+      keywords: [
+        "unit converter", "length converter", "mass converter", "temperature converter", "volume converter",
+        "area converter", "speed converter", "pressure converter", "energy converter", "power converter",
+        "data converter", "time converter", "angle converter", "frequency converter",
+        "metric to imperial", "imperial to metric", "measurement conversion",
+      ],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
