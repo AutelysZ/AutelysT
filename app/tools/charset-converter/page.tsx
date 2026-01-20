@@ -532,44 +532,46 @@ function CharsetConverterInner({
                   />
                   <span>Auto</span>
                 </label>
-                <SearchableSelect
-                  value={state.inputCharset}
-                  onValueChange={(v) => {
-                    setParam("inputCharset", v)
-                    setParam("autoDetect", false)
-                  }}
-                  options={charsets}
-                  placeholder="Input..."
-                  searchPlaceholder="Search..."
-                  triggerClassName="w-20 text-xs h-8 flex-1 min-w-0"
-                  className="flex-1 min-w-0"
-                  disabled={state.autoDetect}
-                />
-                <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
-                  <ArrowRightLeft className="h-3.5 w-3.5" />
-                </Button>
-                <SearchableSelect
-                  value={state.outputCharset}
-                  onValueChange={(v) => setParam("outputCharset", v)}
-                  options={charsets}
-                  placeholder="Output..."
-                  searchPlaceholder="Search..."
-                  triggerClassName="w-20 text-xs h-8 flex-1 min-w-0"
-                  className="flex-1 min-w-0"
-                />
+                <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 max-w-[200px]">
+                  <SearchableSelect
+                    value={state.inputCharset}
+                    onValueChange={(v) => {
+                      setParam("inputCharset", v)
+                      setParam("autoDetect", false)
+                    }}
+                    options={charsets}
+                    placeholder="Input..."
+                    searchPlaceholder="Search..."
+                    triggerClassName="w-full text-xs h-8"
+                    className="flex-1 min-w-0"
+                    disabled={state.autoDetect}
+                  />
+                  <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
+                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <SearchableSelect
+                    value={state.outputCharset}
+                    onValueChange={(v) => setParam("outputCharset", v)}
+                    options={charsets}
+                    placeholder="Output..."
+                    searchPlaceholder="Search..."
+                    triggerClassName="w-full text-xs h-8"
+                    className="flex-1 min-w-0"
+                  />
+                </div>
               </div>
             </div>
 
             <div className="flex items-start gap-3">
               <Label className="w-20 shrink-0 text-sm">Encoding</Label>
-              <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 min-w-0 flex-1 max-w-[200px]">
                 <Tabs
                   value={state.inputEncoding}
                   onValueChange={(v) => {
                     setParam("inputEncoding", v)
                     setParam("autoDetect", false)
                   }}
-                  className="min-w-0 flex-1"
+                  className="flex-1 min-w-0"
                 >
                   <ScrollableTabsList>
                     {INPUT_ENCODING_OPTIONS.map((opt) => (
@@ -585,7 +587,7 @@ function CharsetConverterInner({
                 <Tabs
                   value={state.outputEncoding}
                   onValueChange={(v) => setParam("outputEncoding", v)}
-                  className="min-w-0 flex-1"
+                  className="flex-1 min-w-0"
                 >
                   <ScrollableTabsList>
                     {OUTPUT_ENCODING_OPTIONS.map((opt) => (
