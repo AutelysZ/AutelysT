@@ -624,9 +624,9 @@ function CharsetConverterInner({
                     id="outputBOM"
                     checked={state.outputBOM}
                     onCheckedChange={(c) => setParam("outputBOM", c === true)}
-                    disabled={!(state.outputEncoding === "raw" && state.outputCharset !== "UTF-8")}
+                    disabled={state.outputCharset === "UTF-8"}
                   />
-                  <span className={!(state.outputEncoding === "raw" && state.outputCharset !== "UTF-8") ? "text-muted-foreground" : ""}>BOM</span>
+                  <span className={state.outputCharset === "UTF-8" ? "text-muted-foreground" : ""}>BOM</span>
                 </label>
               </div>
             </div>
