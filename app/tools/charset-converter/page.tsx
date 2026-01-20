@@ -8,6 +8,7 @@ import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -518,17 +519,9 @@ function CharsetConverterInner({
   return (
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-col gap-3 w-full">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-            <Checkbox
-              id="autoDetect"
-              checked={state.autoDetect}
-              onCheckedChange={(c) => setParam("autoDetect", c === true)}
-            />
-            <span>Auto-detect</span>
-          </label>
-
-          <div className="flex items-center gap-1">
+        <div className="flex items-start gap-3">
+          <Label className="w-20 shrink-0 text-sm">Charset</Label>
+          <div className="flex flex-wrap items-center gap-2">
             <SearchableSelect
               value={state.inputCharset}
               onValueChange={(v) => {
@@ -536,10 +529,10 @@ function CharsetConverterInner({
                 setParam("autoDetect", false)
               }}
               options={charsets}
-              placeholder="Input charset..."
+              placeholder="Input..."
               searchPlaceholder="Search..."
-              triggerClassName="w-28 text-xs h-8"
-              className="w-28"
+              triggerClassName="w-24 text-xs h-8"
+              className="w-24"
               disabled={state.autoDetect}
             />
             <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
@@ -549,26 +542,28 @@ function CharsetConverterInner({
               value={state.outputCharset}
               onValueChange={(v) => setParam("outputCharset", v)}
               options={charsets}
-              placeholder="Output charset..."
+              placeholder="Output..."
               searchPlaceholder="Search..."
-              triggerClassName="w-28 text-xs h-8"
-              className="w-28"
+              triggerClassName="w-24 text-xs h-8"
+              className="w-24"
             />
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
+        <div className="flex items-start gap-3">
+          <Label className="w-20 shrink-0 text-sm">Encoding</Label>
+          <div className="flex flex-wrap items-center gap-2">
             <Tabs
               value={state.inputEncoding}
               onValueChange={(v) => {
                 setParam("inputEncoding", v)
                 setParam("autoDetect", false)
               }}
+              className="min-w-0 flex-1"
             >
               <ScrollableTabsList>
                 {INPUT_ENCODING_OPTIONS.map((opt) => (
-                  <TabsTrigger key={opt.value} value={opt.value} className="h-8 px-2.5 text-xs">
+                  <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none">
                     {opt.label}
                   </TabsTrigger>
                 ))}
@@ -580,18 +575,31 @@ function CharsetConverterInner({
             <Tabs
               value={state.outputEncoding}
               onValueChange={(v) => setParam("outputEncoding", v)}
+              className="min-w-0 flex-1"
             >
               <ScrollableTabsList>
                 {OUTPUT_ENCODING_OPTIONS.map((opt) => (
-                  <TabsTrigger key={opt.value} value={opt.value} className="h-8 px-2.5 text-xs">
+                  <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none">
                     {opt.label}
                   </TabsTrigger>
                 ))}
               </ScrollableTabsList>
             </Tabs>
           </div>
+        </div>
 
-          <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
+          <Label className="w-20 shrink-0 text-sm">Options</Label>
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <Checkbox
+                id="autoDetect"
+                checked={state.autoDetect}
+                onCheckedChange={(c) => setParam("autoDetect", c === true)}
+              />
+              <span>Auto-detect</span>
+            </label>
+
             {(state.inputEncoding === "base64" || state.outputEncoding === "base64") && (
               <>
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
@@ -638,11 +646,14 @@ function CharsetConverterInner({
         </div>
 
         {detectedInfo && state.autoDetect && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
-            <FileText className="h-3.5 w-3.5" />
-            <span>
-              Detected: <span className="font-medium">{detectedInfo.charset}</span> / <span className="font-medium">{detectedInfo.encoding}</span>
-            </span>
+          <div className="flex items-start gap-3">
+            <Label className="w-20 shrink-0 text-sm">Detected</Label>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              <span>
+                <span className="font-medium">{detectedInfo.charset}</span> / <span className="font-medium">{detectedInfo.encoding}</span>
+              </span>
+            </div>
           </div>
         )}
       </div>
