@@ -518,7 +518,7 @@ function CharsetConverterInner({
   return (
     <div className="flex h-full flex-col gap-4">
       <div className="flex flex-col gap-3 w-full">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs cursor-pointer">
             <Checkbox
               id="autoDetect"
@@ -555,7 +555,9 @@ function CharsetConverterInner({
               className="w-28"
             />
           </div>
+        </div>
 
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1">
             <Tabs
               value={state.inputEncoding}
@@ -589,7 +591,7 @@ function CharsetConverterInner({
             </Tabs>
           </div>
 
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3">
             {(state.inputEncoding === "base64" || state.outputEncoding === "base64") && (
               <>
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
