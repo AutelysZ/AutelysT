@@ -733,6 +733,27 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "scientific-calculator",
+    name: "Scientific Calculator",
+    description: "Full-featured scientific calculator with trigonometric, logarithmic, and exponential functions, memory operations, and calculation history.",
+    category: "Utility",
+    route: "/tools/scientific-calculator",
+    keywords: [
+      "calculator", "scientific calculator", "math", "mathematics", "arithmetic",
+      "sin", "cos", "tan", "trigonometry", "logarithm", "exponential", "power", "root", "sqrt",
+      "factorial", "pi", "euler", "memory", "calculation", "compute", "evaluate",
+      "degree", "radian", "gradian", "expression", "formula",
+    ],
+    seo: {
+      title: "Scientific Calculator - AutelysT",
+      description: "Free online scientific calculator with trigonometric, logarithmic, exponential functions, memory operations, and keyboard support.",
+      keywords: [
+        "scientific calculator", "online calculator", "math calculator", "trigonometry calculator",
+        "logarithm calculator", "free calculator", "web calculator",
+      ],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
