@@ -37,6 +37,7 @@ export const scientificFunctions = {
   },
   inv: (x: number): number => 1 / x,
   pow10: (x: number): number => Math.pow(10, x),
+  log: Math.log10, // Add alias for log10
 } as const
 
 function toRadians(degrees: number): number {
@@ -152,10 +153,10 @@ function parse(tokens: string[]): any {
     
     if (!token) throw new Error("Unexpected end of expression")
     
-    // Numbers and constants
-    if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token) || token === 'pi' || token === 'e') {
-      if (token === 'pi') return constants.pi
-      if (token === 'e') return constants.e
+    // Numbers and constants  
+    if (token === 'pi') return constants.pi
+    if (token === 'e') return constants.e
+    if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
       return parseNumber()
     }
     
@@ -174,10 +175,16 @@ function parse(tokens: string[]): any {
       return -parseFactor()
     }
     
-    // Functions
+    // Functions and identifiers (like ans)
     if (/[a-zA-Z]+/.test(token)) {
       const funcName = consume()
       if (!funcName) throw new Error("Expected function name")
+      
+      // Special case for ans (last answer) - doesn't need parentheses
+      if (funcName.toLowerCase() === 'ans') {
+        return { type: 'function', name: 'ans', args: [] }
+      }
+      
       if (peek() !== '(') throw new Error(`Expected '(' after function ${funcName}`)
       consume()
       
@@ -317,11 +324,16 @@ export function formatResult(result: number): string {
   
   // Use scientific notation for very large or small numbers
   if (Math.abs(result) >= 1e10 || (Math.abs(result) < 1e-6 && result !== 0)) {
-    return result.toExponential(6)
+    return result.toExponential(1).replace(/\.?0+e/, 'e')
   }
   
   // Round to avoid floating point artifacts
   const rounded = Math.round(result * 1e10) / 1e10
+  
+  // Additional rounding for numbers very close to integers
+  if (Math.abs(result - Math.round(result)) < 1e-9) {
+    return Math.round(result).toString()
+  }
   
   // If it's essentially an integer, show as integer
   if (Math.abs(rounded - Math.round(rounded)) < 1e-10) {
