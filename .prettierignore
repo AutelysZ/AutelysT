@@ -1,0 +1,28 @@
+# Ignore all files that shouldn't be formatted
+**
+# Only format source code in app/, lib/, and tests/ directories
+
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+.npm/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Generated files
+*.generated.ts
+*.generated.js
+
+# Configuration files that shouldn't be formatted
+*.md
+!.github/**/*.md
+
+# Testing
+coverage/
+
+# Logs
+*.log
