@@ -111,8 +111,8 @@ function UnitConverterContent() {
       const { inputs, params } = entry
       if (inputs.value !== undefined) setParam("value", inputs.value)
       if (params.category) setParam("category", params.category as UnitCategory)
-      if (params.fromUnit) setParam("fromUnit", params.fromUnit)
-      if (params.toUnit) setParam("toUnit", params.toUnit)
+      if (params.fromUnit !== undefined) setParam("fromUnit", params.fromUnit as string)
+      if (params.toUnit !== undefined) setParam("toUnit", params.toUnit as string)
     },
     [setParam],
   )
