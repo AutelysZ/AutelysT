@@ -1,4 +1,4 @@
-import { v1 as uuidv1, v4 as uuidv4, v6 as uuidv6, v7 as uuidv7, validate, version as uuidVersion } from "uuid"
+import { v1 as uuidv1, v4 as uuidv4, v6 as uuidv6, v7 as uuidv7 } from "uuid"
 
 export type UUIDVersion = "v1" | "v4" | "v6" | "v7"
 
@@ -36,12 +36,12 @@ export function generateUUIDs(version: UUIDVersion, count: number): string[] {
 export function parseUUID(uuidStr: string): ParsedUUID | { error: string } {
   const trimmed = uuidStr.trim().toLowerCase()
 
-  if (!validate(trimmed)) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(trimmed)) {
     return { error: "Invalid UUID format" }
   }
 
-  const ver = uuidVersion(trimmed)
   const bytes = uuidToBytes(trimmed)
+  const ver = (bytes[6] >> 4) & 0x0f
 
   // Determine variant
   const variantByte = bytes[8]

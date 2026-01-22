@@ -5,13 +5,13 @@ Generate and parse KSUIDs (K-Sortable Unique Identifiers).
 ## Features
 - Responsive layout on mobile
 - Generate KSUIDs
-- Parse to extract timestamp and payload
+- Parse one or more KSUIDs to extract timestamp and payload (multi-parse table supported)
 
 ## Parameters
 - Generation count
 
 ## Usage
-- Generate KSUIDs or paste one to parse
+- Generate KSUIDs or paste one or more to parse
 
 ## URL State
 - Inputs and parameters sync to the URL query

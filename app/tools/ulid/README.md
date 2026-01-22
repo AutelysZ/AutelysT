@@ -5,13 +5,13 @@ Generate and parse ULIDs (Universally Unique Lexicographically Sortable Identifi
 ## Features
 - Responsive layout on mobile
 - Generate ULIDs
-- Parse to extract timestamp and randomness
+- Parse one or more ULIDs to extract timestamp and randomness (multi-parse table supported)
 
 ## Parameters
 - Generation count
 
 ## Usage
-- Generate ULIDs or paste one to parse
+- Generate ULIDs or paste one or more to parse
 
 ## URL State
 - Inputs and parameters sync to the URL query

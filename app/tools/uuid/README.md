@@ -5,14 +5,14 @@ Generate and parse UUIDs (v1, v4, v6, v7).
 ## Features
 - Responsive layout on mobile
 - Generate multiple UUIDs
-- Parse a single UUID to extract fields
+- Parse one or more UUIDs to extract fields (multi-parse table supported, including non-RFC variants)
 
 ## Parameters
 - Version
 - Count
 
 ## Usage
-- Generate UUIDs or paste one to parse
+- Generate UUIDs or paste one or more to parse
 
 ## URL State
 - Inputs and parameters sync to the URL query

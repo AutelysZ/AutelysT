@@ -20,6 +20,12 @@ const paramsSchema = z.object({
   content: z.string().default(""),
 })
 
+type ParsedKSUIDItem = {
+  input: string
+  result?: ParsedKSUID
+  error?: string
+}
+
 export default function KSUIDPage() {
   return (
     <Suspense fallback={null}>
@@ -35,32 +41,39 @@ function KSUIDContent() {
   })
 
   const [parseError, setParseError] = React.useState<string | null>(null)
-  const [parsedInfo, setParsedInfo] = React.useState<ParsedKSUID | null>(null)
+  const [parsedItems, setParsedItems] = React.useState<ParsedKSUIDItem[]>([])
   const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
     const trimmed = state.content.trim()
     if (!trimmed) {
       setParseError(null)
-      setParsedInfo(null)
+      setParsedItems([])
       return
     }
 
-    const lines = trimmed.split("\n").filter((l) => l.trim())
-    if (lines.length !== 1) {
-      setParseError(null)
-      setParsedInfo(null)
-      return
-    }
+    const lines = trimmed
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const results = lines.map((line) => {
+      const result = parseKSUID(line)
+      if ("error" in result) {
+        return { input: line, error: result.error }
+      }
+      return { input: line, result }
+    })
 
-    const result = parseKSUID(lines[0])
-    if ("error" in result) {
-      setParseError(result.error)
-      setParsedInfo(null)
+    const hasErrors = results.some((item) => item.error)
+    if (lines.length === 1 && hasErrors) {
+      setParseError(results[0].error ?? "KSUID is invalid.")
+    } else if (hasErrors) {
+      setParseError("One or more KSUIDs are invalid.")
     } else {
       setParseError(null)
-      setParsedInfo(result)
     }
+
+    setParsedItems(results)
   }, [state.content])
 
   const handleContentChange = React.useCallback(
@@ -109,7 +122,7 @@ function KSUIDContent() {
         hasUrlParams={hasUrlParams}
         hydrationSource={hydrationSource}
         parseError={parseError}
-        parsedInfo={parsedInfo}
+        parsedItems={parsedItems}
         copied={copied}
         handleContentChange={handleContentChange}
         handleCopy={handleCopy}
@@ -126,7 +139,7 @@ function KSUIDInner({
   hasUrlParams,
   hydrationSource,
   parseError,
-  parsedInfo,
+  parsedItems,
   copied,
   handleContentChange,
   handleCopy,
@@ -142,7 +155,7 @@ function KSUIDInner({
   hasUrlParams: boolean
   hydrationSource: "default" | "url" | "history"
   parseError: string | null
-  parsedInfo: ParsedKSUID | null
+  parsedItems: ParsedKSUIDItem[]
   copied: boolean
   handleContentChange: (value: string) => void
   handleCopy: () => void
@@ -218,6 +231,9 @@ function KSUIDInner({
     },
     [setParam],
   )
+  const singleItem = parsedItems.length === 1 ? parsedItems[0] : null
+  const singleParsed = singleItem?.result ?? null
+  const singleError = singleItem?.error ?? null
 
   return (
     <div className="flex flex-col gap-4">
@@ -282,7 +298,7 @@ function KSUIDInner({
           <Textarea
             value={state.content}
             onChange={(e) => handleContentChange(e.target.value)}
-            placeholder="Generated KSUIDs will appear here, or paste a KSUID to parse..."
+            placeholder="Generated KSUIDs will appear here, or paste KSUIDs to parse..."
             className={cn(
               "min-h-[300px] max-h-[400px] resize-none overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
               parseError && "border-destructive",
@@ -298,21 +314,76 @@ function KSUIDInner({
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <Label className="text-sm font-medium">Parsed Information</Label>
 
-          {parsedInfo ? (
-            <Card className="max-h-[400px] overflow-auto">
-              <CardContent className="space-y-3 p-4">
-                <InfoRow label="KSUID" value={parsedInfo.ksuid} mono />
-                <InfoRow label="Timestamp (ISO)" value={parsedInfo.timestamp} />
-                <InfoRow label="Timestamp (Unix)" value={String(parsedInfo.timestampRaw)} mono />
-                <InfoRow label="Payload (Hex)" value={parsedInfo.payload} mono />
-              </CardContent>
-            </Card>
+          {parsedItems.length ? (
+            parsedItems.length > 1 ? (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-[760px] table-fixed text-sm">
+                      <thead className="text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-2 py-2 text-left font-medium">KSUID</th>
+                          <th className="px-2 py-2 text-left font-medium">Timestamp</th>
+                          <th className="px-2 py-2 text-left font-medium">Payload</th>
+                          <th className="px-2 py-2 text-left font-medium">Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedItems.map((item, index) => {
+                          const key = `${item.input}-${index}`
+                          if (item.error || !item.result) {
+                            return (
+                              <tr key={key} className="border-t">
+                                <td className="px-2 py-2 align-top break-all font-mono">{item.input}</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-destructive">
+                                  {item.error ?? "Invalid"}
+                                </td>
+                              </tr>
+                            )
+                          }
+                          return (
+                            <tr key={key} className="border-t">
+                              <td className="px-2 py-2 align-top break-all font-mono">{item.result.ksuid}</td>
+                              <td className="px-2 py-2 align-top">
+                                <div className="flex flex-col gap-1">
+                                  <span className="break-all">{item.result.timestamp}</span>
+                                  <span className="text-xs font-mono text-muted-foreground">
+                                    {item.result.timestampRaw}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-2 py-2 align-top font-mono">{item.result.payload}</td>
+                              <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : singleParsed ? (
+              <Card className="max-h-[400px] overflow-auto">
+                <CardContent className="space-y-3 p-4">
+                  <InfoRow label="KSUID" value={singleParsed.ksuid} mono />
+                  <InfoRow label="Timestamp (ISO)" value={singleParsed.timestamp} />
+                  <InfoRow label="Timestamp (Unix)" value={String(singleParsed.timestampRaw)} mono />
+                  <InfoRow label="Payload (Hex)" value={singleParsed.payload} mono />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="flex min-h-[300px] max-h-[400px] items-center justify-center">
+                <p className="text-sm text-destructive">{singleError ?? "KSUID is invalid."}</p>
+              </Card>
+            )
           ) : (
             <Card className="flex min-h-[300px] max-h-[400px] items-center justify-center">
               <p className="text-sm text-muted-foreground">
                 {state.content.trim()
-                  ? "Enter a single KSUID to parse"
-                  : "Generate or paste a single KSUID to see parsed information"}
+                  ? "Enter one or more KSUIDs to parse"
+                  : "Generate or paste KSUIDs to see parsed information"}
               </p>
             </Card>
           )}

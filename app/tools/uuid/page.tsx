@@ -22,6 +22,12 @@ const paramsSchema = z.object({
   content: z.string().default(""),
 })
 
+type ParsedUUIDItem = {
+  input: string
+  result?: ParsedUUID
+  error?: string
+}
+
 export default function UUIDPage() {
   return (
     <Suspense fallback={null}>
@@ -37,32 +43,39 @@ function UUIDContent() {
   })
 
   const [parseError, setParseError] = React.useState<string | null>(null)
-  const [parsedInfo, setParsedInfo] = React.useState<ParsedUUID | null>(null)
+  const [parsedItems, setParsedItems] = React.useState<ParsedUUIDItem[]>([])
   const [copied, setCopied] = React.useState(false)
 
   React.useEffect(() => {
     const trimmed = state.content.trim()
     if (!trimmed) {
       setParseError(null)
-      setParsedInfo(null)
+      setParsedItems([])
       return
     }
 
-    const lines = trimmed.split("\n").filter((l) => l.trim())
-    if (lines.length !== 1) {
-      setParseError(null)
-      setParsedInfo(null)
-      return
-    }
+    const lines = trimmed
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const results = lines.map((line) => {
+      const result = parseUUID(line)
+      if ("error" in result) {
+        return { input: line, error: result.error }
+      }
+      return { input: line, result }
+    })
 
-    const result = parseUUID(lines[0])
-    if ("error" in result) {
-      setParseError(result.error)
-      setParsedInfo(null)
+    const hasErrors = results.some((item) => item.error)
+    if (lines.length === 1 && hasErrors) {
+      setParseError(results[0].error ?? "UUID is invalid.")
+    } else if (hasErrors) {
+      setParseError("One or more UUIDs are invalid.")
     } else {
       setParseError(null)
-      setParsedInfo(result)
     }
+
+    setParsedItems(results)
   }, [state.content])
 
   const handleContentChange = React.useCallback(
@@ -112,7 +125,7 @@ function UUIDContent() {
         hasUrlParams={hasUrlParams}
         hydrationSource={hydrationSource}
         parseError={parseError}
-        parsedInfo={parsedInfo}
+        parsedItems={parsedItems}
         copied={copied}
         handleContentChange={handleContentChange}
         handleCopy={handleCopy}
@@ -129,7 +142,7 @@ function UUIDInner({
   hasUrlParams,
   hydrationSource,
   parseError,
-  parsedInfo,
+  parsedItems,
   copied,
   handleContentChange,
   handleCopy,
@@ -145,7 +158,7 @@ function UUIDInner({
   hasUrlParams: boolean
   hydrationSource: "default" | "url" | "history"
   parseError: string | null
-  parsedInfo: ParsedUUID | null
+  parsedItems: ParsedUUIDItem[]
   copied: boolean
   handleContentChange: (value: string) => void
   handleCopy: () => void
@@ -228,6 +241,9 @@ function UUIDInner({
     },
     [setParam],
   )
+  const singleItem = parsedItems.length === 1 ? parsedItems[0] : null
+  const singleParsed = singleItem?.result ?? null
+  const singleError = singleItem?.error ?? null
 
   return (
     <div className="flex flex-col gap-4">
@@ -312,7 +328,7 @@ function UUIDInner({
           <Textarea
             value={state.content}
             onChange={(e) => handleContentChange(e.target.value)}
-            placeholder="Generated UUIDs will appear here, or paste a UUID to parse..."
+            placeholder="Generated UUIDs will appear here, or paste UUIDs to parse..."
             className={cn(
               "min-h-[300px] max-h-[400px] resize-none overflow-auto overflow-x-hidden break-words whitespace-pre-wrap font-mono text-sm",
               parseError && "border-destructive",
@@ -328,33 +344,109 @@ function UUIDInner({
         <div className="flex w-full flex-1 flex-col gap-2 md:w-0">
           <Label className="text-sm font-medium">Parsed Information</Label>
 
-          {parsedInfo ? (
-            <Card className="max-h-[400px] overflow-auto">
-              <CardContent className="space-y-3 p-4">
-                <InfoRow label="UUID" value={parsedInfo.uuid} mono />
-                <InfoRow label="Version" value={`${parsedInfo.version}`} />
-                <InfoRow label="Variant" value={parsedInfo.variant} />
+          {parsedItems.length ? (
+            parsedItems.length > 1 ? (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="w-full overflow-x-auto">
+                    <table className="min-w-[900px] table-fixed text-sm">
+                      <thead className="text-xs text-muted-foreground">
+                        <tr>
+                          <th className="px-2 py-2 text-left font-medium">UUID</th>
+                          <th className="px-2 py-2 text-left font-medium">Version</th>
+                          <th className="px-2 py-2 text-left font-medium">Variant</th>
+                          <th className="px-2 py-2 text-left font-medium">Timestamp</th>
+                          <th className="px-2 py-2 text-left font-medium">Node ID</th>
+                          <th className="px-2 py-2 text-left font-medium">Clock Seq</th>
+                          <th className="px-2 py-2 text-left font-medium">Error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parsedItems.map((item, index) => {
+                          const key = `${item.input}-${index}`
+                          if (item.error || !item.result) {
+                            return (
+                              <tr key={key} className="border-t">
+                                <td className="px-2 py-2 align-top break-all font-mono">{item.input}</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                                <td className="px-2 py-2 align-top text-destructive">
+                                  {item.error ?? "Invalid"}
+                                </td>
+                              </tr>
+                            )
+                          }
 
-                {parsedInfo.timestamp && (
-                  <>
-                    <InfoRow label="Timestamp (ISO)" value={parsedInfo.timestamp} />
-                    <InfoRow label="Timestamp (Raw)" value={String(parsedInfo.timestampRaw)} mono />
-                  </>
-                )}
+                          const timestampRaw =
+                            item.result.timestampRaw !== undefined ? String(item.result.timestampRaw) : null
 
-                {parsedInfo.nodeId && <InfoRow label="Node ID" value={parsedInfo.nodeId} mono />}
+                          return (
+                            <tr key={key} className="border-t">
+                              <td className="px-2 py-2 align-top break-all font-mono">{item.result.uuid}</td>
+                              <td className="px-2 py-2 align-top">{item.result.version}</td>
+                              <td className="px-2 py-2 align-top">{item.result.variant}</td>
+                              <td className="px-2 py-2 align-top">
+                                {item.result.timestamp ? (
+                                  <div className="flex flex-col gap-1">
+                                    <span className="break-all">{item.result.timestamp}</span>
+                                    {timestampRaw && (
+                                      <span className="text-xs font-mono text-muted-foreground">{timestampRaw}</span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-muted-foreground">N/A</span>
+                                )}
+                              </td>
+                              <td className="px-2 py-2 align-top font-mono">
+                                {item.result.nodeId ?? "N/A"}
+                              </td>
+                              <td className="px-2 py-2 align-top">
+                                {item.result.clockSeq !== undefined ? item.result.clockSeq : "N/A"}
+                              </td>
+                              <td className="px-2 py-2 align-top text-muted-foreground">N/A</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : singleParsed ? (
+              <Card className="max-h-[400px] overflow-auto">
+                <CardContent className="space-y-3 p-4">
+                  <InfoRow label="UUID" value={singleParsed.uuid} mono />
+                  <InfoRow label="Version" value={`${singleParsed.version}`} />
+                  <InfoRow label="Variant" value={singleParsed.variant} />
 
-                {parsedInfo.clockSeq !== undefined && (
-                  <InfoRow label="Clock Sequence" value={String(parsedInfo.clockSeq)} />
-                )}
-              </CardContent>
-            </Card>
+                  {singleParsed.timestamp && (
+                    <>
+                      <InfoRow label="Timestamp (ISO)" value={singleParsed.timestamp} />
+                      <InfoRow label="Timestamp (Raw)" value={String(singleParsed.timestampRaw)} mono />
+                    </>
+                  )}
+
+                  {singleParsed.nodeId && <InfoRow label="Node ID" value={singleParsed.nodeId} mono />}
+
+                  {singleParsed.clockSeq !== undefined && (
+                    <InfoRow label="Clock Sequence" value={String(singleParsed.clockSeq)} />
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="flex min-h-[300px] max-h-[400px] items-center justify-center">
+                <p className="text-sm text-destructive">{singleError ?? "UUID is invalid."}</p>
+              </Card>
+            )
           ) : (
             <Card className="flex min-h-[300px] max-h-[400px] items-center justify-center">
               <p className="text-sm text-muted-foreground">
                 {state.content.trim()
-                  ? "Enter a single UUID to parse"
-                  : "Generate or paste a single UUID to see parsed information"}
+                  ? "Enter one or more UUIDs to parse"
+                  : "Generate or paste UUIDs to see parsed information"}
               </p>
             </Card>
           )}
