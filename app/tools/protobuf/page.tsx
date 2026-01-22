@@ -14,6 +14,7 @@ import {
   X,
   FileCode,
   Trash2,
+  Sparkles,
 } from "lucide-react"
 import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
 import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
@@ -44,6 +45,8 @@ import {
   objectToYaml,
   generateProtoFromDecodedFields,
   generateProtoFromObject,
+  GENERATED_PROTO_FILENAME,
+  GENERATED_PROTO_FULL_MESSAGE,
 } from "@/lib/protobuf/codec"
 
 // ============================================================================
@@ -280,18 +283,40 @@ function ProtobufCodecInner({
           } else {
             // Schema-less decoding with detailed field info
             decoded = decodeProtobufWithoutSchema(inputData)
-            const details = decodeProtobufWithDetails(inputData)
+          }
 
-            // Auto-generate proto file from decoded fields only if no existing proto files
-            if (details.length > 0 && protoFiles.length === 0) {
-              const generatedProto = generateProtoFromDecodedFields(details)
+          // Auto-generate/update generated.proto file
+          // Only generate when: no proto files exist OR selected message is generated.GeneratedMessage
+          const details = decodeProtobufWithDetails(inputData)
+          const shouldGenerateProto =
+            details.length > 0 &&
+            (protoFiles.length === 0 || state.messageName === GENERATED_PROTO_FULL_MESSAGE)
 
-              if (generatedProto !== lastGeneratedProtoRef.current) {
-                lastGeneratedProtoRef.current = generatedProto
+          if (shouldGenerateProto) {
+            const generatedProto = generateProtoFromDecodedFields(details)
+
+            if (generatedProto !== lastGeneratedProtoRef.current) {
+              lastGeneratedProtoRef.current = generatedProto
+              const existingGenerated = protoFiles.find(
+                (f) => f.name === GENERATED_PROTO_FILENAME
+              )
+
+              if (existingGenerated) {
+                // Update existing generated.proto
+                setProtoFiles(
+                  protoFiles.map((f) =>
+                    f.name === GENERATED_PROTO_FILENAME
+                      ? { ...f, content: generatedProto }
+                      : f
+                  )
+                )
+              } else {
+                // Create new generated.proto
                 setProtoFiles([
+                  ...protoFiles,
                   {
                     id: "generated_" + Date.now(),
-                    name: "decoded.proto",
+                    name: GENERATED_PROTO_FILENAME,
                     content: generatedProto,
                   },
                 ])
@@ -321,29 +346,51 @@ function ProtobufCodecInner({
             inputData = validation.parsed
           }
 
-          // Auto-generate proto file from input only if no existing proto files
-          if (protoFiles.length === 0) {
+          // Auto-generate/update generated.proto file
+          // Only generate when: no proto files exist OR selected message is generated.GeneratedMessage
+          const shouldGenerateProto =
+            protoFiles.length === 0 || state.messageName === GENERATED_PROTO_FULL_MESSAGE
+
+          if (shouldGenerateProto) {
             const generatedProto = generateProtoFromObject(
-              inputData as Record<string, unknown>,
-              "EncodedMessage"
+              inputData as Record<string, unknown>
             )
 
             if (generatedProto !== lastGeneratedProtoRef.current) {
               lastGeneratedProtoRef.current = generatedProto
-              setProtoFiles([
-                {
-                  id: "generated_encode_" + Date.now(),
-                  name: "encoded.proto",
-                  content: generatedProto,
-                },
-              ])
+              const existingGenerated = protoFiles.find(
+                (f) => f.name === GENERATED_PROTO_FILENAME
+              )
+
+              if (existingGenerated) {
+                // Update existing generated.proto
+                setProtoFiles(
+                  protoFiles.map((f) =>
+                    f.name === GENERATED_PROTO_FILENAME
+                      ? { ...f, content: generatedProto }
+                      : f
+                  )
+                )
+              } else {
+                // Create new generated.proto
+                setProtoFiles([
+                  ...protoFiles,
+                  {
+                    id: "generated_encode_" + Date.now(),
+                    name: GENERATED_PROTO_FILENAME,
+                    content: generatedProto,
+                  },
+                ])
+              }
             }
           }
 
-          // Auto-select EncodedMessage if available and not already selected
-          const hasEncodedMessage = availableMessages.some((m) => m.name === "EncodedMessage")
-          if (hasEncodedMessage && state.messageName !== "EncodedMessage") {
-            setParam("messageName", "EncodedMessage", true)
+          // Auto-select GeneratedMessage if available and not already selected
+          const hasGeneratedMessage = availableMessages.some(
+            (m) => m.fullName === GENERATED_PROTO_FULL_MESSAGE
+          )
+          if (hasGeneratedMessage && state.messageName !== GENERATED_PROTO_FULL_MESSAGE) {
+            setParam("messageName", GENERATED_PROTO_FULL_MESSAGE, true)
             return // Wait for next render with correct message
           }
 
@@ -529,6 +576,85 @@ function ProtobufCodecInner({
     setOutput("")
     setError(null)
   }, [state.mode, state.outputFormat, state.outputEncoding, state.inputFormat, state.inputEncoding, state.messageName, output, fileName, availableMessages, handleClearFile, setParam])
+
+  // Generate proto from current input
+  const handleGenerateProto = React.useCallback(() => {
+    const hasFile = Boolean(fileName && fileBytesRef.current)
+    const hasInputText = Boolean(state.input.trim())
+
+    if (!hasInputText && !hasFile) {
+      return
+    }
+
+    try {
+      let generatedProto: string
+
+      if (state.mode === "decode") {
+        let inputData: Uint8Array
+
+        if (hasFile) {
+          inputData = fileBytesRef.current!
+        } else {
+          inputData = decodeInputData(state.input, state.inputEncoding)
+        }
+
+        const details = decodeProtobufWithDetails(inputData)
+        if (details.length === 0) {
+          return
+        }
+        generatedProto = generateProtoFromDecodedFields(details)
+      } else {
+        let inputData: unknown
+
+        if (state.inputFormat === "json") {
+          const validation = validateJsonForProtobuf(state.input)
+          if (!validation.isValid) {
+            return
+          }
+          inputData = validation.parsed
+        } else {
+          const validation = validateYamlForProtobuf(state.input)
+          if (!validation.isValid) {
+            return
+          }
+          inputData = validation.parsed
+        }
+
+        generatedProto = generateProtoFromObject(inputData as Record<string, unknown>)
+      }
+
+      lastGeneratedProtoRef.current = generatedProto
+      const existingGenerated = protoFiles.find(
+        (f) => f.name === GENERATED_PROTO_FILENAME
+      )
+
+      if (existingGenerated) {
+        // Update existing generated.proto
+        setProtoFiles(
+          protoFiles.map((f) =>
+            f.name === GENERATED_PROTO_FILENAME
+              ? { ...f, content: generatedProto }
+              : f
+          )
+        )
+      } else {
+        // Create new generated.proto
+        setProtoFiles([
+          ...protoFiles,
+          {
+            id: "generated_" + Date.now(),
+            name: GENERATED_PROTO_FILENAME,
+            content: generatedProto,
+          },
+        ])
+      }
+
+      // Auto-select GeneratedMessage
+      setParam("messageName", GENERATED_PROTO_FULL_MESSAGE, true)
+    } catch {
+      // Ignore errors during manual generation
+    }
+  }, [state.mode, state.input, state.inputEncoding, state.inputFormat, fileName, protoFiles, setProtoFiles, setParam])
 
   const inputWarning = oversizeKeys.includes("input")
     ? "Input exceeds 2 KB and is not synced to URL."
@@ -772,6 +898,17 @@ function ProtobufCodecInner({
               onChange={(value) => setParam("messageName", value, true)}
             />
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGenerateProto}
+            disabled={!state.input.trim() && !fileName}
+            className="h-7 gap-1.5 px-2 text-xs"
+            title="Generate proto from current input"
+          >
+            <Sparkles className="h-3 w-3" />
+            Generate
+          </Button>
         </CardHeader>
         <CardContent className="p-0">
           {schemaError && (
