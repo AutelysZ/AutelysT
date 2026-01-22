@@ -50,6 +50,7 @@ interface ToolPageWrapperProps {
   seoContent?: React.ReactNode
   onLoadHistory?: (entry: HistoryEntry) => void
   historyVariant?: "default" | "password-generator"
+  scrollArea?: boolean
 }
 
 export function ToolPageWrapper({
@@ -60,6 +61,7 @@ export function ToolPageWrapper({
   seoContent,
   onLoadHistory,
   historyVariant = "default",
+  scrollArea = true,
 }: ToolPageWrapperProps) {
   const {
     entries,
@@ -106,6 +108,8 @@ export function ToolPageWrapper({
     [entries, loading, addEntry, updateLatestParams, updateLatestEntry, upsertInputEntry, upsertParams, clearHistory],
   )
 
+  const ScrollAreaElement = scrollArea ? ScrollArea : 'div'
+
   return (
     <ToolHistoryContext.Provider value={contextValue}>
       <div className="flex h-full flex-col">
@@ -120,14 +124,14 @@ export function ToolPageWrapper({
           onHistoryClear={clearHistory}
           historyVariant={historyVariant}
         />
-        <ScrollArea className="flex-1">
+        <ScrollAreaElement className="flex-1">
           <div className="p-4 sm:p-6 w-screen sm:w-auto">
             {children}
 
             {/* SEO Content */}
             {seoContent && <div className="mt-8 border-t border-border pt-8">{seoContent}</div>}
           </div>
-        </ScrollArea>
+        </ScrollAreaElement>
       </div>
     </ToolHistoryContext.Provider>
   )

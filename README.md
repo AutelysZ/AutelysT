@@ -48,6 +48,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **Text Diff Viewer** - Compare text files with collapsible hunks and character highlighting
 - **JSON Schema Generator** - Generate JSON Schema from sample data
 - **Format Converter** - Convert between JSON, YAML, and TOML with auto-detection
+- **CSV Editor** - Multi-tab CSV/Excel editing with frozen rows/columns, million-row virtualization, and CSV/XLSX export
 
 ### 🔄 Converters (AI-Optimized)
 - **Base Conversion** - Convert between binary, decimal, hex, and custom bases

@@ -84,8 +84,8 @@ function HomePage() {
             Free online tools for encoding, decoding, HTML escaping, world clocks, cryptographic and non-cryptographic
             hashing, symmetric/asymmetric and hybrid encryption (CMS/OpenPGP/JWE/HPKE), JWK conversion, keypair
             generation (including post-quantum), key exchange, key derivation, JWT inspection, signature verification,
-            password generation, ID creation (UUID, ULID, KSUID, ObjectID, Snowflake), data comparison, and number
-            conversion. Fast, private, and works entirely in your browser.
+            password generation, ID creation (UUID, ULID, KSUID, ObjectID, Snowflake), CSV editing/conversion, data
+            comparison, and number conversion. Fast, private, and works entirely in your browser.
           </p>
           {/* Search Input */}
           <div className="relative mx-auto max-w-xl">

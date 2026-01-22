@@ -691,6 +691,30 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "csv",
+    name: "CSV",
+    description: "Edit massive CSV files or Excel sheets with frozen rows/columns, multi-tabs, and CSV/XLSX export.",
+    category: "Data",
+    route: "/tools/csv",
+    keywords: ["csv", "excel", "xlsx", "sheet", "table", "grid", "editor", "converter", "freeze"],
+    seo: {
+      title: "CSV Editor & Excel Converter - AutelysT",
+      description:
+        "Edit CSV or Excel sheets with frozen rows/columns, virtualized scrolling for million-row files, and export to CSV, ZIP, or XLSX.",
+      keywords: [
+        "csv editor",
+        "csv to xlsx",
+        "xlsx to csv",
+        "excel to csv",
+        "freeze header",
+        "freeze columns",
+        "table editor",
+        "grid editor",
+        "csv converter",
+      ],
+    },
+  },
   // Data Tools
   {
     id: "diff-viewer",

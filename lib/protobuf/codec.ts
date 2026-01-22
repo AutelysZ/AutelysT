@@ -1084,7 +1084,10 @@ export function generateProtoFromDecodedFields(fields: DecodedField[]): string {
 }
 
 // Generate a .proto file content from a JavaScript object (for encoding)
-export function generateProtoFromObject(obj: Record<string, unknown>): string {
+export function generateProtoFromObject(
+  obj: Record<string, unknown>,
+  rootMessageName = GENERATED_PROTO_MESSAGE
+): string {
   const lines: string[] = [
     'syntax = "proto3";',
     "",
@@ -1173,7 +1176,7 @@ export function generateProtoFromObject(obj: Record<string, unknown>): string {
   }
 
   // Add main message
-  lines.push(`message ${GENERATED_PROTO_MESSAGE} {`)
+  lines.push(`message ${rootMessageName} {`)
   lines.push(...fields)
   lines.push("}")
   lines.push("")
