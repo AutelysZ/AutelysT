@@ -31,6 +31,7 @@ interface ToolHistoryContextValue {
     files?: HistoryEntry["files"],
   ) => Promise<HistoryEntry | null>
   upsertParams: (params: Record<string, unknown>, mode: "interpretation" | "deferred") => Promise<void>
+  clearHistory: (scope: "tool" | "all") => Promise<void>
 }
 
 const ToolHistoryContext = React.createContext<ToolHistoryContextValue | null>(null)
@@ -100,8 +101,9 @@ export function ToolPageWrapper({
       updateLatestEntry,
       upsertInputEntry,
       upsertParams,
+      clearHistory,
     }),
-    [entries, loading, addEntry, updateLatestParams, updateLatestEntry, upsertInputEntry, upsertParams],
+    [entries, loading, addEntry, updateLatestParams, updateLatestEntry, upsertInputEntry, upsertParams, clearHistory],
   )
 
   return (

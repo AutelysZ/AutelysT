@@ -664,6 +664,33 @@ export const tools: Tool[] = [
       keywords: ["url encoder", "url decoder", "percent encoding", "uri", "query string", "url parser", "hash params"],
     },
   },
+  {
+    id: "protobuf",
+    name: "Protobuf",
+    description: "Encode and decode Protocol Buffers with smart type detection, schema support, and full JSON/YAML conversion.",
+    category: "Data",
+    route: "/tools/protobuf",
+    keywords: ["protobuf", "protocol buffers", "encode", "decode", "schema", "binary", "serialization", "json", "yaml", "wire format", "grpc"],
+    seo: {
+      title: "Protobuf Encoder/Decoder - AutelysT",
+      description: "Online Protocol Buffers encoder/decoder with smart schema-less decoding, type inference, JSON/YAML support, and wire format analysis.",
+      keywords: [
+        "protobuf",
+        "protocol buffers",
+        "encode protobuf",
+        "decode protobuf",
+        "protobuf schema",
+        "binary serialization",
+        "json to protobuf",
+        "protobuf to json",
+        "yaml to protobuf",
+        "protobuf to yaml",
+        "wire format",
+        "grpc",
+        "protobuf decoder",
+      ],
+    },
+  },
   // Data Tools
   {
     id: "diff-viewer",
