@@ -22,6 +22,7 @@ interface ToolHistoryContextValue {
     params?: Record<string, unknown>
     files?: HistoryEntry["files"]
     preview?: string
+    hasInput?: boolean
   }) => Promise<void>
   upsertInputEntry: (
     inputs: Record<string, string>,
@@ -51,6 +52,7 @@ interface ToolPageWrapperProps {
   onLoadHistory?: (entry: HistoryEntry) => void
   historyVariant?: "default" | "password-generator"
   scrollArea?: boolean
+  showHistory?: boolean
 }
 
 export function ToolPageWrapper({
@@ -62,6 +64,7 @@ export function ToolPageWrapper({
   onLoadHistory,
   historyVariant = "default",
   scrollArea = true,
+  showHistory = true,
 }: ToolPageWrapperProps) {
   const {
     entries,
@@ -123,6 +126,7 @@ export function ToolPageWrapper({
           onHistoryDelete={deleteEntry}
           onHistoryClear={clearHistory}
           historyVariant={historyVariant}
+          showHistory={showHistory}
         />
         <ScrollAreaElement className="flex-1">
           <div className="p-4 sm:p-6 w-screen sm:w-auto">

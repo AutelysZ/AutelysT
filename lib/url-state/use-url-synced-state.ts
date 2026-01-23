@@ -47,6 +47,7 @@ export interface UseUrlSyncedStateOptions<T extends ZodRawShape> {
     value: z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>],
     state: z.infer<ZodObject<T>>,
   ) => boolean
+  shouldParseParam?: (key: keyof z.infer<ZodObject<T>>, value: string) => boolean
   inputSide?: {
     sideKey: keyof z.infer<ZodObject<T>>
     inputKeyBySide: Record<string, keyof z.infer<ZodObject<T>>>
@@ -64,6 +65,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     restoreFromHistory = true,
     syncOnHistoryRestore = false,
     shouldSyncParam,
+    shouldParseParam,
     inputSide,
     restoreMissingKeys,
     initialSearch,
@@ -82,6 +84,12 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const [hydrationSource, setHydrationSource] = useState<"default" | "url" | "history">("default")
   const normalizedInitialSearch = initialSearch ? (initialSearch.startsWith("?") ? initialSearch : `?${initialSearch}`) : ""
 
+  const shouldParseParamFromUrl = useCallback(
+    (key: keyof z.infer<ZodObject<T>>, value: string) =>
+      !shouldParseParam || shouldParseParam(key, value),
+    [shouldParseParam],
+  )
+
   // Parse URL params
   const parseUrlParams = useCallback(
     (searchStr: string): z.infer<ZodObject<T>> => {
@@ -90,6 +98,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
 
       params.forEach((value, key) => {
         if (key in defaults) {
+          if (!shouldParseParamFromUrl(key as keyof z.infer<ZodObject<T>>, value)) return
           const defaultValue = defaults[key as keyof typeof defaults]
           if (typeof defaultValue === "boolean") {
             result[key] = value === "true" || value === "1"
@@ -108,7 +117,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
         return defaults
       }
     },
-    [schema, defaults],
+    [schema, defaults, shouldParseParamFromUrl],
   )
 
   // Initialize state from URL on first render only
@@ -207,7 +216,9 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
 
     // Check if URL has any meaningful params (excluding defaults)
     const currentParams = new URLSearchParams(window.location.search)
-    const hasUrlParams = Array.from(currentParams.keys()).some((key) => key in defaults)
+    const hasUrlParams = Array.from(currentParams.entries()).some(
+      ([key, value]) => key in defaults && shouldParseParamFromUrl(key as keyof z.infer<ZodObject<T>>, value),
+    )
 
     if (!hasUrlParams) {
       hasRestoredFromHistoryRef.current = true
@@ -289,6 +300,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
     restoreMissingKeys,
     updateUrl,
     parseUrlParams,
+    shouldParseParamFromUrl,
   ])
 
   useEffect(() => {
@@ -375,8 +387,10 @@ export function useUrlSyncedState<T extends ZodRawShape>(toolId: string, options
   const urlParamKeys = useMemo(() => {
     if (typeof window === "undefined") return [] as string[]
     const params = new URLSearchParams(searchString)
-    return Array.from(params.keys()).filter((key) => key in defaults)
-  }, [searchString, defaults])
+    return Array.from(params.entries())
+      .filter(([key, value]) => key in defaults && shouldParseParamFromUrl(key as keyof z.infer<ZodObject<T>>, value))
+      .map(([key]) => key)
+  }, [searchString, defaults, shouldParseParamFromUrl])
 
   return {
     state,

@@ -18,6 +18,7 @@ interface ToolHeaderProps {
   onHistoryDelete: (id: string) => void
   onHistoryClear: (scope: "tool" | "all") => void
   historyVariant?: "default" | "password-generator"
+  showHistory?: boolean
 }
 
 export function ToolHeader({
@@ -30,6 +31,7 @@ export function ToolHeader({
   onHistoryDelete,
   onHistoryClear,
   historyVariant = "default",
+  showHistory = true,
 }: ToolHeaderProps) {
   const [titleTarget, setTitleTarget] = React.useState<HTMLElement | null>(null)
   const [actionTarget, setActionTarget] = React.useState<HTMLElement | null>(null)
@@ -60,15 +62,17 @@ export function ToolHeader({
             >
               <Star className={favoriteActive ? "h-4 w-4 fill-current" : "h-4 w-4"} />
             </Button>
-            <HistoryPanel
-              entries={historyEntries}
-              loading={historyLoading}
-              onSelect={onHistorySelect}
-              onDelete={onHistoryDelete}
-              onClear={onHistoryClear}
-              toolName={title}
-              variant={historyVariant}
-            />
+            {showHistory && (
+              <HistoryPanel
+                entries={historyEntries}
+                loading={historyLoading}
+                onSelect={onHistorySelect}
+                onDelete={onHistoryDelete}
+                onClear={onHistoryClear}
+                toolName={title}
+                variant={historyVariant}
+              />
+            )}
           </div>,
           actionTarget,
         )}
@@ -87,15 +91,17 @@ export function ToolHeader({
           >
             <Star className={favoriteActive ? "h-4 w-4 fill-current" : "h-4 w-4"} />
           </Button>
-          <HistoryPanel
-            entries={historyEntries}
-            loading={historyLoading}
-            onSelect={onHistorySelect}
-            onDelete={onHistoryDelete}
-            onClear={onHistoryClear}
-            toolName={title}
-            variant={historyVariant}
-          />
+          {showHistory && (
+            <HistoryPanel
+              entries={historyEntries}
+              loading={historyLoading}
+              onSelect={onHistorySelect}
+              onDelete={onHistoryDelete}
+              onClear={onHistoryClear}
+              toolName={title}
+              variant={historyVariant}
+            />
+          )}
         </div>
       </div>
     </header>
