@@ -602,6 +602,26 @@ Example:
                 Refresh
               </Button>
               <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!state.svgContent) return
+                  const blob = new Blob([state.svgContent], { type: "image/svg+xml;charset=utf-8" })
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement("a")
+                  a.href = url
+                  a.download = "image.svg"
+                  document.body.appendChild(a)
+                  a.click()
+                  document.body.removeChild(a)
+                  URL.revokeObjectURL(url)
+                }}
+                disabled={!state.svgContent}
+              >
+                <Download className="h-4 w-4 mr-1" />
+                SVG
+              </Button>
+              <Button
                 variant="default"
                 size="sm"
                 onClick={convertAndDownload}
@@ -615,7 +635,7 @@ Example:
                 ) : (
                   <>
                     <Download className="h-4 w-4 mr-1" />
-                    Download PNG
+                    PNG
                   </>
                 )}
               </Button>
