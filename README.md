@@ -39,6 +39,7 @@
 - **Hash** - Generate MD, SHA, SHA3, and BLAKE hash digests
 - **Non-Crypto Hash** - Generate MurmurHash, xxHash, CityHash/FarmHash, SipHash, SpookyHash, HighwayHash, FNV, and CRC32
 - **Symmetric Encryption** - Encrypt/decrypt using AES, ChaCha20, Salsa20, DES, or 3DES
+- **X.509 Certificate Tool** - Create, view, validate, and convert X.509 certificates with PEM/DER/PKCS#12 support
 
 ### 🆔 Identifier Tools (AI-Designed)
 Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake ID with timestamp extraction.

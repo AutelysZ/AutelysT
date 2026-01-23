@@ -285,6 +285,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "x509",
+    name: "X.509",
+    description: "Create, view, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 support.",
+    category: "Crypto",
+    route: "/tools/x509",
+    keywords: ["x509", "certificate", "pem", "der", "pkcs12", "p12", "tls", "ssl", "openssl", "ca"],
+    seo: {
+      title: "X.509 Certificate Tool - AutelysT",
+      description: "Create, inspect, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 formats.",
+      keywords: ["x509", "certificate", "pem", "der", "pkcs12", "p12", "tls", "ssl", "openssl", "ca"],
+    },
+  },
+  {
     id: "jwt",
     name: "JWT",
     description: "Parse, edit, and generate JSON Web Tokens with claims editing and signature validation.",
