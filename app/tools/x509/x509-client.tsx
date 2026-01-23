@@ -64,6 +64,7 @@ import {
   generateEcKeyPair,
   generateEdKeyPair,
   getEcCurveSpec,
+  normalizeEcCurveId,
   parseDhPrivateKey,
   parseDsaPrivateKey,
   parseEcPrivateKey,
@@ -73,7 +74,7 @@ import {
 } from "@/lib/x509/keys"
 
 const paramsSchema = z.object({
-  tab: z.enum(["create", "view", "validate", "convert"]).default("create"),
+  tab: z.enum(["create", "sign", "view", "validate", "convert"]).default("create"),
 
   createSubjectDn: z.string().default("CN=example.com"),
   createIssuerDn: z.string().default(""),
@@ -117,9 +118,23 @@ const paramsSchema = z.object({
   createIncludePkcs12: z.coerce.boolean().default(false),
   createPkcs12Password: z.string().default(""),
 
+  signCsrInput: z.string().default(""),
+  signCsrFormat: z.enum(["pem", "der"]).default("pem"),
+  signIssuerDn: z.string().default(""),
+  signIssuerCertPem: z.string().default(""),
+  signIssuerKeyPem: z.string().default(""),
+  signSerial: z.string().default("01"),
+  signNotBefore: z.string().default(""),
+  signNotAfter: z.string().default(""),
+  signHash: z.enum(["sha256", "sha384", "sha512"]).default("sha256"),
+  signUseCsrExtensions: z.coerce.boolean().default(true),
+  signIncludePem: z.coerce.boolean().default(true),
+  signIncludeDer: z.coerce.boolean().default(true),
+
   viewInput: z.string().default(""),
   viewFormat: z.enum(["pem", "der", "pkcs12"]).default("pem"),
   viewPassword: z.string().default(""),
+  viewPrivateKeyPem: z.string().default(""),
   viewSelectedIndex: z.coerce.number().int().min(0).default(0),
 
   validateInput: z.string().default(""),
@@ -146,12 +161,38 @@ type CreateOutput = {
   pkcs12Base64?: string
 }
 
+type SignOutput = {
+  certPem?: string
+  derBase64?: string
+}
+
+type ViewKeyOutput = {
+  pem?: string
+  derBase64?: string
+  jwk?: string
+}
+
+type ViewOutputs = {
+  kind: "certificate" | "csr"
+  pem: string[]
+  derBase64: string[]
+  publicKey?: ViewKeyOutput
+  privateKey?: ViewKeyOutput
+}
+
 type ValidationResult = {
   timeValid: boolean
   chainValid: boolean | null
   signatureValid: boolean | null
   errors: string[]
 }
+
+type SigningKey =
+  | { kind: "rsa"; key: any }
+  | { kind: "dsa"; key: any }
+  | { kind: "ecdsa"; curve: EcCurveId; privateKey: Uint8Array }
+  | { kind: "ed25519"; privateKey: Uint8Array }
+  | { kind: "ed448"; privateKey: Uint8Array }
 
 const KEY_USAGE_OPTIONS = [
   { key: "digitalSignature", label: "Digital Signature" },
@@ -234,7 +275,11 @@ const URL_EXCLUDED_KEYS: Array<keyof z.infer<typeof paramsSchema>> = [
   "createPrivateKeyPem",
   "createIssuerCertPem",
   "createIssuerKeyPem",
+  "signCsrInput",
+  "signIssuerCertPem",
+  "signIssuerKeyPem",
   "viewInput",
+  "viewPrivateKeyPem",
   "validateInput",
   "validateCaBundle",
   "convertInput",
@@ -246,7 +291,7 @@ const URL_EXCLUDED_KEYS: Array<keyof z.infer<typeof paramsSchema>> = [
   "convertP12Password",
 ]
 
-const VALID_TABS = ["create", "view", "validate", "convert"] as const
+const VALID_TABS = ["create", "sign", "view", "validate", "convert"] as const
 
 function normalizeInitialTab(tab?: string) {
   if (!tab) return undefined
@@ -302,7 +347,12 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       createKeyUsage: state.createKeyUsage,
       createExtKeyUsage: state.createExtKeyUsage,
       createCustomExtensions: state.createCustomExtensions,
+      signCsrInput: state.signCsrInput,
+      signIssuerDn: state.signIssuerDn,
+      signIssuerCertPem: state.signIssuerCertPem,
+      signIssuerKeyPem: state.signIssuerKeyPem,
       viewInput: state.viewInput,
+      viewPrivateKeyPem: state.viewPrivateKeyPem,
       validateInput: state.validateInput,
       validateCaBundle: state.validateCaBundle,
       convertInput: state.convertInput,
@@ -318,7 +368,12 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       state.createKeyUsage,
       state.createExtKeyUsage,
       state.createCustomExtensions,
+      state.signCsrInput,
+      state.signIssuerDn,
+      state.signIssuerCertPem,
+      state.signIssuerKeyPem,
       state.viewInput,
+      state.viewPrivateKeyPem,
       state.validateInput,
       state.validateCaBundle,
       state.convertInput,
@@ -351,6 +406,14 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       createIncludeDer: state.createIncludeDer,
       createIncludePkcs12: state.createIncludePkcs12,
       createPkcs12Password: state.createPkcs12Password,
+      signCsrFormat: state.signCsrFormat,
+      signSerial: state.signSerial,
+      signNotBefore: state.signNotBefore,
+      signNotAfter: state.signNotAfter,
+      signHash: state.signHash,
+      signUseCsrExtensions: state.signUseCsrExtensions,
+      signIncludePem: state.signIncludePem,
+      signIncludeDer: state.signIncludeDer,
       viewFormat: state.viewFormat,
       viewPassword: state.viewPassword,
       viewSelectedIndex: state.viewSelectedIndex,
@@ -387,6 +450,14 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       state.createIncludeDer,
       state.createIncludePkcs12,
       state.createPkcs12Password,
+      state.signCsrFormat,
+      state.signSerial,
+      state.signNotBefore,
+      state.signNotAfter,
+      state.signHash,
+      state.signUseCsrExtensions,
+      state.signIncludePem,
+      state.signIncludeDer,
       state.viewFormat,
       state.viewPassword,
       state.viewSelectedIndex,
@@ -403,10 +474,11 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
   const historyLabel = React.useMemo(() => {
     if (state.tab === "create") return state.createSubjectDn.trim() || "X.509 create"
+    if (state.tab === "sign") return state.signCsrInput.trim().slice(0, 80) || "X.509 sign"
     if (state.tab === "view") return state.viewInput.trim().slice(0, 80) || "X.509 view"
     if (state.tab === "validate") return state.validateInput.trim().slice(0, 80) || "X.509 validate"
     return state.convertInput.trim().slice(0, 80) || "X.509 convert"
-  }, [state.tab, state.createSubjectDn, state.viewInput, state.validateInput, state.convertInput])
+  }, [state.tab, state.createSubjectDn, state.signCsrInput, state.viewInput, state.validateInput, state.convertInput])
 
   const parseUrlState = React.useCallback(
     (search: string) => {
@@ -499,10 +571,26 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
   const [createBusy, setCreateBusy] = React.useState(false)
   const [createCopied, setCreateCopied] = React.useState(false)
 
+  const [signOutput, setSignOutput] = React.useState<SignOutput | null>(null)
+  const [signError, setSignError] = React.useState<string | null>(null)
+  const [signBusy, setSignBusy] = React.useState(false)
+  const [signCopied, setSignCopied] = React.useState(false)
+
   const [viewSummaries, setViewSummaries] = React.useState<ViewSummary[]>([])
   const [viewError, setViewError] = React.useState<string | null>(null)
   const [viewBusy, setViewBusy] = React.useState(false)
   const [viewCopied, setViewCopied] = React.useState(false)
+  const [viewCerts, setViewCerts] = React.useState<X509Certificate[]>([])
+  const [viewCsrData, setViewCsrData] = React.useState<{
+    pem: string
+    derBase64: string
+    publicKeyPem: string
+  } | null>(null)
+  const [viewPrivateKeyDer, setViewPrivateKeyDer] = React.useState<ArrayBuffer | null>(null)
+  const [viewKeyOutputs, setViewKeyOutputs] = React.useState<{
+    publicKey?: ViewKeyOutput
+    privateKey?: ViewKeyOutput
+  } | null>(null)
 
   const [validateResult, setValidateResult] = React.useState<ValidationResult | null>(null)
   const [validateError, setValidateError] = React.useState<string | null>(null)
@@ -516,6 +604,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
   } | null>(null)
   const [convertError, setConvertError] = React.useState<string | null>(null)
   const [convertBusy, setConvertBusy] = React.useState(false)
+  const [signFileName, setSignFileName] = React.useState<string | null>(null)
   const [viewFileName, setViewFileName] = React.useState<string | null>(null)
   const [validateFileName, setValidateFileName] = React.useState<string | null>(null)
   const [convertFileName, setConvertFileName] = React.useState<string | null>(null)
@@ -531,20 +620,31 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     const later = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
     setParam("createNotBefore", now.toISOString(), true)
     setParam("createNotAfter", later.toISOString(), true)
+    setParam("signNotBefore", now.toISOString(), true)
+    setParam("signNotAfter", later.toISOString(), true)
     setCreateOutput(null)
     setCreateError(null)
     setCreateBusy(false)
     setCreateCopied(false)
+    setSignOutput(null)
+    setSignError(null)
+    setSignBusy(false)
+    setSignCopied(false)
     setViewSummaries([])
     setViewError(null)
     setViewBusy(false)
     setViewCopied(false)
+    setViewCerts([])
+    setViewCsrData(null)
+    setViewPrivateKeyDer(null)
+    setViewKeyOutputs(null)
     setValidateResult(null)
     setValidateError(null)
     setValidateBusy(false)
     setConvertOutput(null)
     setConvertError(null)
     setConvertBusy(false)
+    setSignFileName(null)
     setViewFileName(null)
     setValidateFileName(null)
     setConvertFileName(null)
@@ -565,20 +665,43 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     const date = new Date(state.createNotAfter)
     return Number.isNaN(date.getTime()) ? undefined : date
   }, [state.createNotAfter])
+  const signNotBeforeDate = React.useMemo(() => {
+    const date = new Date(state.signNotBefore)
+    return Number.isNaN(date.getTime()) ? undefined : date
+  }, [state.signNotBefore])
+  const signNotAfterDate = React.useMemo(() => {
+    const date = new Date(state.signNotAfter)
+    return Number.isNaN(date.getTime()) ? undefined : date
+  }, [state.signNotAfter])
 
   React.useEffect(() => {
     if (hasInitializedDatesRef.current) return
     if (hydrationSource !== "default") return
-    if (state.createNotBefore || state.createNotAfter) {
+    const shouldInitCreate = !state.createNotBefore && !state.createNotAfter
+    const shouldInitSign = !state.signNotBefore && !state.signNotAfter
+    if (!shouldInitCreate && !shouldInitSign) {
       hasInitializedDatesRef.current = true
       return
     }
     const now = new Date()
     const later = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000)
-    setParam("createNotBefore", now.toISOString(), true)
-    setParam("createNotAfter", later.toISOString(), true)
+    if (shouldInitCreate) {
+      setParam("createNotBefore", now.toISOString(), true)
+      setParam("createNotAfter", later.toISOString(), true)
+    }
+    if (shouldInitSign) {
+      setParam("signNotBefore", now.toISOString(), true)
+      setParam("signNotAfter", later.toISOString(), true)
+    }
     hasInitializedDatesRef.current = true
-  }, [hydrationSource, setParam, state.createNotAfter, state.createNotBefore])
+  }, [
+    hydrationSource,
+    setParam,
+    state.createNotAfter,
+    state.createNotBefore,
+    state.signNotAfter,
+    state.signNotBefore,
+  ])
 
   React.useEffect(() => {
     if (state.createKeyType !== "rsa" && state.createIncludePkcs12) {
@@ -634,6 +757,39 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     return btoa(binary)
   }
 
+  const binaryStringToBytes = (value: string) => {
+    const bytes = new Uint8Array(value.length)
+    for (let i = 0; i < value.length; i += 1) {
+      bytes[i] = value.charCodeAt(i)
+    }
+    return bytes
+  }
+
+  const bytesToBase64Url = (bytes: Uint8Array) => {
+    const chunkSize = 0x8000
+    let binary = ""
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize)
+      binary += String.fromCharCode(...chunk)
+    }
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "")
+  }
+
+  const hexToBytes = (hex: string) => {
+    const normalized = hex.length % 2 === 0 ? hex : `0${hex}`
+    const bytes = new Uint8Array(normalized.length / 2)
+    for (let i = 0; i < normalized.length; i += 2) {
+      bytes[i / 2] = Number.parseInt(normalized.slice(i, i + 2), 16)
+    }
+    return bytes
+  }
+
+  const formatPemBlock = (label: string, base64: string) => {
+    const clean = base64.replace(/\s+/g, "")
+    const lines = clean.match(/.{1,64}/g) ?? []
+    return `-----BEGIN ${label}-----\n${lines.join("\n")}\n-----END ${label}-----`
+  }
+
   const readFileAsInput = async (file: File, fallback: X509InputFormat) => {
     const inferred = inferFormatFromFilename(file.name) ?? fallback
     if (inferred === "pem") {
@@ -667,6 +823,11 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       hex += byte.toString(16).padStart(2, "0")
     }
     return hex
+  }
+
+  const bigIntToHex = (value: bigint) => {
+    const hex = value.toString(16)
+    return hex.length % 2 === 0 ? hex : `0${hex}`
   }
 
   const ensurePkijsEngine = () => {
@@ -772,6 +933,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       }
       return { certs, privateKey }
     } catch (err) {
+      console.error(err)
       const message = err instanceof Error ? err.message : ""
       if (message.includes("contentEncryptionAlgorithm")) {
         const parsed = parseCertificateInput(input, "pkcs12", password)
@@ -829,6 +991,263 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
     throw new Error("Unsupported private key format. Use PEM, DER (Base64), or JWK.")
   }
+
+  const jsbnToBigInt = (value: { toString: (radix: number) => string }) => BigInt(`0x${value.toString(16)}`)
+
+  const parsePublicKeyPem = (pem: string): CertPublicKey => {
+    const { KEYUTIL, RSAKey, KJUR } = jsrsasign
+    const key = KEYUTIL.getKey(pem)
+    if (key instanceof RSAKey) {
+      return { type: "rsa", n: jsbnToBigInt(key.n), e: jsbnToBigInt(key.e) }
+    }
+    const ECDSA = KJUR.crypto.ECDSA
+    const DSA = KJUR.crypto.DSA
+    if (key instanceof ECDSA) {
+      const curve = normalizeEcCurveId(key.curveName ?? "")
+      if (!curve) {
+        throw new Error("Unsupported EC curve in public key.")
+      }
+      const pubKeyHex = key.pubKeyHex ?? (() => {
+        const xy = key.getPublicKeyXYHex()
+        return `04${xy.x}${xy.y}`
+      })()
+      return { type: "ec", curve, publicKeyBytes: hexToBytes(pubKeyHex) }
+    }
+    if (key instanceof DSA) {
+      return {
+        type: "dsa",
+        params: {
+          p: jsbnToBigInt(key.p),
+          q: jsbnToBigInt(key.q),
+          g: jsbnToBigInt(key.g),
+          y: jsbnToBigInt(key.y),
+        },
+      }
+    }
+    throw new Error("Unsupported public key format.")
+  }
+
+  const buildJwkFromPublicKey = (key: CertPublicKey) => {
+    if (key.type === "rsa") {
+      return {
+        kty: "RSA",
+        n: bytesToBase64Url(hexToBytes(bigIntToHex(key.n))),
+        e: bytesToBase64Url(hexToBytes(bigIntToHex(key.e))),
+      }
+    }
+    if (key.type === "ec") {
+      const spec = getEcCurveSpec(key.curve)
+      if (key.publicKeyBytes[0] !== 4) {
+        throw new Error("Unsupported EC public key format.")
+      }
+      const coordLength = (key.publicKeyBytes.length - 1) / 2
+      const x = key.publicKeyBytes.slice(1, 1 + coordLength)
+      const y = key.publicKeyBytes.slice(1 + coordLength)
+      return { kty: "EC", crv: spec.jwk, x: bytesToBase64Url(x), y: bytesToBase64Url(y) }
+    }
+    if (key.type === "ed25519" || key.type === "ed448") {
+      return {
+        kty: "OKP",
+        crv: key.type === "ed25519" ? "Ed25519" : "Ed448",
+        x: bytesToBase64Url(key.publicKeyBytes),
+      }
+    }
+    if (key.type === "dsa") {
+      return {
+        kty: "DSA",
+        p: bigIntToHex(key.params.p),
+        q: bigIntToHex(key.params.q),
+        g: bigIntToHex(key.params.g),
+        y: bigIntToHex(key.params.y),
+      }
+    }
+    // key.type === "dh"
+    const dhKey = key as { type: "dh"; params: { p: bigint; g: bigint; y: bigint } }
+    return {
+      kty: "DH",
+      p: bigIntToHex(dhKey.params.p),
+      g: bigIntToHex(dhKey.params.g),
+      y: bigIntToHex(dhKey.params.y),
+    }
+  }
+
+  const buildJwkFromPrivateKeyInput = (input: string) => {
+    try {
+      const { KEYUTIL } = jsrsasign
+      const { key } = parseRsaKey(input)
+      return KEYUTIL.getJWKFromKey(key)
+    } catch {}
+
+    for (const curve of EC_CURVE_IDS) {
+      try {
+        const { privateKey, publicKey } = parseEcPrivateKey(input, curve)
+        if (publicKey[0] !== 4) {
+          throw new Error("Unsupported EC public key format.")
+        }
+        const spec = getEcCurveSpec(curve)
+        const coordLength = (publicKey.length - 1) / 2
+        const x = publicKey.slice(1, 1 + coordLength)
+        const y = publicKey.slice(1 + coordLength)
+        return {
+          kty: "EC",
+          crv: spec.jwk,
+          x: bytesToBase64Url(x),
+          y: bytesToBase64Url(y),
+          d: bytesToBase64Url(privateKey),
+        }
+      } catch {}
+    }
+
+    try {
+      const { privateKey, publicKey } = parseEdPrivateKey(input, "Ed25519")
+      return {
+        kty: "OKP",
+        crv: "Ed25519",
+        x: bytesToBase64Url(publicKey),
+        d: bytesToBase64Url(privateKey),
+      }
+    } catch {}
+
+    try {
+      const { privateKey, publicKey } = parseEdPrivateKey(input, "Ed448")
+      return {
+        kty: "OKP",
+        crv: "Ed448",
+        x: bytesToBase64Url(publicKey),
+        d: bytesToBase64Url(privateKey),
+      }
+    } catch {}
+
+    try {
+      const { params } = parseDsaPrivateKey(input)
+      return {
+        kty: "DSA",
+        p: bigIntToHex(params.p),
+        q: bigIntToHex(params.q),
+        g: bigIntToHex(params.g),
+        y: bigIntToHex(params.y),
+        x: bigIntToHex(params.x as bigint),
+      }
+    } catch {}
+
+    try {
+      const { params } = parseDhPrivateKey(input)
+      return {
+        kty: "DH",
+        p: bigIntToHex(params.p),
+        g: bigIntToHex(params.g),
+        y: bigIntToHex(params.y),
+        x: params.x ? bigIntToHex(params.x) : undefined,
+      }
+    } catch {}
+
+    throw new Error("Unsupported private key format.")
+  }
+
+  const buildPublicKeyOutputs = (pem: string): ViewKeyOutput => {
+    const outputs: ViewKeyOutput = { pem, derBase64: normalizeBase64Input(pem) }
+    try {
+      const jwk = buildJwkFromPublicKey(parsePublicKeyPem(pem))
+      outputs.jwk = JSON.stringify(jwk, null, 2)
+    } catch (err) {
+      console.error(err)
+    }
+    return outputs
+  }
+
+  const buildPrivateKeyOutputsFromDer = (der: ArrayBuffer): ViewKeyOutput => {
+    const derBase64 = arrayBufferToBase64(der)
+    const pem = formatPemBlock("PRIVATE KEY", derBase64)
+    const outputs: ViewKeyOutput = { pem, derBase64 }
+    try {
+      const jwk = buildJwkFromPrivateKeyInput(pem)
+      outputs.jwk = JSON.stringify(jwk, null, 2)
+    } catch (err) {
+      console.error(err)
+    }
+    return outputs
+  }
+
+  const buildPrivateKeyOutputsFromInput = (input: string): ViewKeyOutput => {
+    const der = parsePrivateKeyPkcs8(input)
+    const derBase64 = arrayBufferToBase64(der)
+    const pem = formatPemBlock("PRIVATE KEY", derBase64)
+    const outputs: ViewKeyOutput = { pem, derBase64 }
+    try {
+      const jwk = buildJwkFromPrivateKeyInput(input)
+      outputs.jwk = JSON.stringify(jwk, null, 2)
+    } catch (err) {
+      console.error(err)
+    }
+    return outputs
+  }
+
+  const parseCsrInput = (input: string, format: "pem" | "der") => {
+    const { KJUR } = jsrsasign
+    const base64 = normalizeBase64Input(input)
+    const hasPemHeader =
+      input.includes("BEGIN CERTIFICATE REQUEST") || input.includes("BEGIN NEW CERTIFICATE REQUEST")
+    const pem =
+      format === "pem" && hasPemHeader
+        ? input.trim()
+        : formatPemBlock("CERTIFICATE REQUEST", base64)
+    const derBase64 = normalizeBase64Input(pem)
+    const params = KJUR.asn1.csr.CSRUtil.getParam(pem)
+    const subject = typeof params.subject?.str === "string" ? params.subject.str : ""
+    const publicKeyPem = typeof params.sbjpubkey === "string" ? params.sbjpubkey : ""
+    const publicKey = publicKeyPem ? parsePublicKeyPem(publicKeyPem) : null
+    const signatureAlgorithm = typeof params.sigalg === "string" ? params.sigalg : ""
+    const extensions = params.extreq ? JSON.stringify(params.extreq, null, 2) : "[]"
+    const fingerprint = bytesToHex(sha256(new Uint8Array(base64ToArrayBuffer(derBase64))))
+    return {
+      pem,
+      derBase64,
+      subject,
+      publicKeyPem,
+      publicKey,
+      signatureAlgorithm,
+      extensions,
+      extreq: Array.isArray(params.extreq) ? params.extreq : [],
+      fingerprintSha256: fingerprint,
+    }
+  }
+
+  const getPublicKeyPemFromCert = async (cert: X509Certificate) => {
+    const { KEYUTIL } = jsrsasign
+    try {
+      const certPem = cert.toString("pem")
+      const key = KEYUTIL.getKey(certPem)
+      return KEYUTIL.getPEM(key, "PKCS8PUB")
+    } catch (err) {
+      console.error(err)
+    }
+    try {
+      const spki = await globalThis.crypto.subtle.exportKey("spki", cert.publicKey as unknown as CryptoKey)
+      return formatPemBlock("PUBLIC KEY", arrayBufferToBase64(spki))
+    } catch (err) {
+      console.error(err)
+    }
+    return null
+  }
+
+  const describePublicKey = (key: CertPublicKey | null) => {
+    if (!key) return ""
+    if (key.type === "rsa") return "RSA"
+    if (key.type === "ec") return `EC (${key.curve})`
+    if (key.type === "ed25519") return "Ed25519"
+    if (key.type === "ed448") return "Ed448"
+    if (key.type === "dsa") return "DSA"
+    return "DH"
+  }
+
+  const buildCsrSummary = (csr: ReturnType<typeof parseCsrInput>): ViewSummary => ({
+    kind: "csr",
+    subject: csr.subject,
+    fingerprintSha256: csr.fingerprintSha256,
+    signatureAlgorithm: csr.signatureAlgorithm,
+    publicKeyAlgorithm: describePublicKey(csr.publicKey),
+    extensions: csr.extensions,
+  })
 
   const createPkcs12Base64Pkijs = async (
     cert: X509Certificate,
@@ -913,8 +1332,11 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       critical: ext.critical,
       value: TextConverter.serialize(ext.toTextObject()),
     }))
+    const signatureAlgorithm = cert.signatureAlgorithm?.name ?? ""
+    const publicKeyAlgorithm = (cert.publicKey?.algorithm as { name?: string } | undefined)?.name ?? ""
 
     return {
+      kind: "certificate",
       subject: cert.subject,
       issuer: cert.issuer,
       serial: cert.serialNumber,
@@ -922,6 +1344,8 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       notAfter: cert.notAfter.toISOString(),
       isCa: basicConstraints?.ca ?? false,
       fingerprintSha256: fingerprint,
+      signatureAlgorithm,
+      publicKeyAlgorithm,
       extensions: JSON.stringify(extensions, null, 2),
     }
   }
@@ -936,6 +1360,15 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       setParam("viewInput", result.content)
     },
     [setParam, state.viewFormat],
+  )
+
+  const handleViewPrivateKeyUpload = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      setParam("viewPrivateKeyPem", await readKeyFileInput(file))
+    },
+    [setParam],
   )
 
   const handleCreateIssuerCertUpload = React.useCallback(
@@ -961,6 +1394,37 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       const file = event.target.files?.[0]
       if (!file) return
       setParam("createPrivateKeyPem", await readKeyFileInput(file))
+    },
+    [setParam],
+  )
+
+  const handleSignUpload = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      setSignFileName(file.name)
+      const result = await readFileAsInput(file, state.signCsrFormat as X509InputFormat)
+      const format = result.format === "pkcs12" ? "pem" : result.format
+      setParam("signCsrFormat", format as z.infer<typeof paramsSchema>["signCsrFormat"], true)
+      setParam("signCsrInput", result.content)
+    },
+    [setParam, state.signCsrFormat],
+  )
+
+  const handleSignIssuerCertUpload = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      setParam("signIssuerCertPem", await readCertFileInput(file))
+    },
+    [setParam],
+  )
+
+  const handleSignIssuerKeyUpload = React.useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (!file) return
+      setParam("signIssuerKeyPem", await readKeyFileInput(file))
     },
     [setParam],
   )
@@ -1007,6 +1471,40 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     [setParam],
   )
 
+  const parseSigningKey = (input: string): SigningKey => {
+    try {
+      const { key } = parseRsaKey(input)
+      return { kind: "rsa", key }
+    } catch {}
+    try {
+      const { params, key } = parseDsaPrivateKey(input)
+      return { kind: "dsa", key }
+    } catch {}
+    try {
+      const { privateKey } = parseEdPrivateKey(input, "Ed25519")
+      return { kind: "ed25519", privateKey }
+    } catch {}
+    try {
+      const { privateKey } = parseEdPrivateKey(input, "Ed448")
+      return { kind: "ed448", privateKey }
+    } catch {}
+    for (const curve of EC_CURVE_IDS) {
+      try {
+        const { privateKey } = parseEcPrivateKey(input, curve)
+        return { kind: "ecdsa", curve, privateKey }
+      } catch {}
+    }
+    try {
+      parseDhPrivateKey(input)
+      throw new Error("DH keys cannot sign certificates.")
+    } catch (err) {
+      if (err instanceof Error && err.message.includes("DH keys cannot sign certificates.")) {
+        throw err
+      }
+    }
+    throw new Error("Unsupported issuer key format. Use PEM, DER (Base64), or JWK.")
+  }
+
   const handleCreate = React.useCallback(async () => {
     setCreateError(null)
     setCreateOutput(null)
@@ -1017,27 +1515,12 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       const forge = forgeModule.default ?? forgeModule
       const { KJUR, KEYUTIL } = jsrsasign
 
-      const binaryStringToBytes = (value: string) => {
-        const bytes = new Uint8Array(value.length)
-        for (let i = 0; i < value.length; i += 1) {
-          bytes[i] = value.charCodeAt(i)
-        }
-        return bytes
-      }
-
       const bytesToBinaryString = (value: Uint8Array) => forge.util.createBuffer(value).getBytes()
 
       const subjectAttrs = parseDnString(state.createSubjectDn)
       if (!subjectAttrs.length) {
         throw new Error("Subject DN is required.")
       }
-
-      type Signer =
-        | { kind: "rsa"; key: any }
-        | { kind: "dsa"; key: any }
-        | { kind: "ecdsa"; curve: EcCurveId; privateKey: Uint8Array }
-        | { kind: "ed25519"; privateKey: Uint8Array }
-        | { kind: "ed448"; privateKey: Uint8Array }
 
       const hashAlgorithm = state.createHash as keyof typeof RSA_SIGNATURE_OIDS
 
@@ -1050,7 +1533,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
       let subjectPublicKey: CertPublicKey | null = null
       let subjectPrivateKeyPem = ""
-      let subjectSigner: Signer | null = null
+      let subjectSigner: SigningKey | null = null
 
       if (state.createKeyMode === "generate") {
         if (state.createKeyType === "rsa") {
@@ -1125,9 +1608,46 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           throw new Error("Ed25519 and Ed448 certificate requests are not supported.")
         }
 
-        const { KJUR, KEYUTIL, hextob64 } = jsrsasign
-        const keyObject = KEYUTIL.getKey(subjectPrivateKeyPem)
-        const subjectPublicKeyPem = KEYUTIL.getPEM(keyObject, "PKCS8PUB")
+        const { KJUR, KEYUTIL, hextob64, BigInteger } = jsrsasign
+
+        const buildCsrPublicKey = () => {
+          if (subjectPublicKey?.type === "rsa") {
+            return KEYUTIL.getKey({
+              n: subjectPublicKey.n.toString(16),
+              e: subjectPublicKey.e.toString(16),
+            })
+          }
+          if (subjectPublicKey?.type === "ec") {
+            const publicKeyBytes = subjectPublicKey.publicKeyBytes
+            if (publicKeyBytes[0] !== 4) {
+              throw new Error("Unsupported EC public key format for CSR.")
+            }
+            const coordLength = (publicKeyBytes.length - 1) / 2
+            const x = publicKeyBytes.slice(1, 1 + coordLength)
+            const y = publicKeyBytes.slice(1 + coordLength)
+            const jwk = {
+              kty: "EC",
+              crv: getEcCurveSpec(subjectPublicKey.curve).jwk,
+              x: bytesToBase64Url(x),
+              y: bytesToBase64Url(y),
+            }
+            try {
+              return KEYUTIL.getKey(jwk)
+            } catch {
+              throw new Error("Selected EC curve is not supported for CSR generation.")
+            }
+          }
+          if (subjectPublicKey?.type === "dsa") {
+            const { params } = subjectPublicKey
+            return KEYUTIL.getKey({
+              p: new BigInteger(params.p.toString(16), 16),
+              q: new BigInteger(params.q.toString(16), 16),
+              g: new BigInteger(params.g.toString(16), 16),
+              y: new BigInteger(params.y.toString(16), 16),
+            })
+          }
+          throw new Error("Unsupported key type for CSR generation.")
+        }
 
         const buildCsrExtensions = () => {
           const extensions: Array<Record<string, unknown>> = []
@@ -1181,7 +1701,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           })
 
           if (state.createSubjectKeyIdentifier) {
-            const keyIdentifier = computeSubjectKeyIdentifier(publicKeyToAsn1(subjectPublicKey))
+            const keyIdentifier = computeSubjectKeyIdentifier(publicKeyToAsn1(subjectPublicKey as CertPublicKey))
             const keyHex = bytesToHex(binaryStringToBytes(keyIdentifier))
             extensions.push({
               extname: "subjectKeyIdentifier",
@@ -1201,10 +1721,15 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           signatureAlgorithm = ECDSA_SIGNATURE_ALGOS[hashAlgorithm]
         }
 
+        // Convert subject DN to jsrsasign format (slash-delimited with str property)
+        const subjectDnStr = state.createSubjectDn.trim().startsWith("/")
+          ? state.createSubjectDn.trim()
+          : "/" + state.createSubjectDn.trim().split(/\s*,\s*/).join("/")
+
         const csrParams: Record<string, unknown> = {
-          subject: state.createSubjectDn,
+          subject: { str: subjectDnStr },
           sbjprvkey: subjectPrivateKeyPem,
-          sbjpubkey: subjectPublicKeyPem,
+          sbjpubkey: buildCsrPublicKey(),
           sigalg: signatureAlgorithm,
         }
         const csrExtensions = buildCsrExtensions()
@@ -1225,42 +1750,8 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
       }
 
       let issuerCert: any | null = null
-      let signingKey: Signer | null = subjectSigner
+      let signingKey: SigningKey | null = subjectSigner
       let issuerAttrs = subjectAttrs
-
-      const parseIssuerKey = (input: string): Signer => {
-        try {
-          const { key } = parseRsaKey(input)
-          return { kind: "rsa", key }
-        } catch {}
-        try {
-          const { params, key } = parseDsaPrivateKey(input)
-          return { kind: "dsa", key }
-        } catch {}
-        try {
-          const { privateKey } = parseEdPrivateKey(input, "Ed25519")
-          return { kind: "ed25519", privateKey }
-        } catch {}
-        try {
-          const { privateKey } = parseEdPrivateKey(input, "Ed448")
-          return { kind: "ed448", privateKey }
-        } catch {}
-        for (const curve of EC_CURVE_IDS) {
-          try {
-            const { privateKey } = parseEcPrivateKey(input, curve)
-            return { kind: "ecdsa", curve, privateKey }
-          } catch {}
-        }
-        try {
-          parseDhPrivateKey(input)
-          throw new Error("DH keys cannot sign certificates.")
-        } catch (err) {
-          if (err instanceof Error && err.message.includes("DH keys cannot sign certificates.")) {
-            throw err
-          }
-        }
-        throw new Error("Unsupported issuer key format. Use PEM, DER (Base64), or JWK.")
-      }
 
       if (!state.createSelfSigned) {
         if (!state.createIssuerCertPem.trim() || !state.createIssuerKeyPem.trim()) {
@@ -1272,7 +1763,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           issuerInput.includes("BEGIN CERTIFICATE") ? "pem" : "der",
         )
         issuerCert = issuerParsed.certs[0]
-        signingKey = parseIssuerKey(state.createIssuerKeyPem)
+        signingKey = parseSigningKey(state.createIssuerKeyPem)
         issuerAttrs = state.createIssuerDn.trim()
           ? parseDnString(state.createIssuerDn)
           : issuerCert.subject.attributes
@@ -1446,6 +1937,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
         cert.generateSubjectKeyIdentifier = originalGenerateSubjectKeyIdentifier
       }
     } catch (err) {
+      console.error(err)
       setCreateError(err instanceof Error ? err.message : "Failed to create certificate.")
     } finally {
       setCreateBusy(false)
@@ -1456,9 +1948,228 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     notAfterDate,
   ])
 
+  const handleSign = React.useCallback(async () => {
+    setSignError(null)
+    setSignOutput(null)
+    setSignBusy(true)
+
+    try {
+      const forgeModule = await import("node-forge")
+      const forge = forgeModule.default ?? forgeModule
+      const { KJUR } = jsrsasign
+
+      const csr = parseCsrInput(state.signCsrInput, state.signCsrFormat)
+      if (!csr.publicKey) {
+        throw new Error("CSR public key is unsupported.")
+      }
+      const subjectAttrs = parseDnString(csr.subject)
+      if (!subjectAttrs.length) {
+        throw new Error("CSR subject is required.")
+      }
+      if (!state.signIssuerCertPem.trim() || !state.signIssuerKeyPem.trim()) {
+        throw new Error("Issuer certificate and issuer key are required.")
+      }
+
+      const issuerInput = state.signIssuerCertPem.trim()
+      const issuerParsed = parseCertificateInput(
+        issuerInput,
+        issuerInput.includes("BEGIN CERTIFICATE") ? "pem" : "der",
+      )
+      const issuerCert = issuerParsed.certs[0]
+      if (!issuerCert) {
+        throw new Error("Issuer certificate is invalid.")
+      }
+      const issuerAttrs = state.signIssuerDn.trim()
+        ? parseDnString(state.signIssuerDn)
+        : issuerCert.subject.attributes
+
+      const signingKey = parseSigningKey(state.signIssuerKeyPem)
+
+      const bytesToBinaryString = (value: Uint8Array) => forge.util.createBuffer(value).getBytes()
+
+      const signWithJsrsasign = (algorithm: string, key: any, tbsBytes: string) => {
+        const signer = new KJUR.crypto.Signature({ alg: algorithm })
+        signer.init(key)
+        signer.updateHex(forge.util.bytesToHex(tbsBytes))
+        return signer.sign()
+      }
+
+      const cert = forge.pki.createCertificate()
+      cert.publicKey = csr.publicKey
+      cert.serialNumber = normalizeSerialNumber(state.signSerial)
+      cert.validity.notBefore = signNotBeforeDate ?? new Date()
+      cert.validity.notAfter = signNotAfterDate ?? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      cert.setSubject(subjectAttrs)
+      cert.setIssuer(issuerAttrs)
+
+      const subjectKeyIdentifier = computeSubjectKeyIdentifier(publicKeyToAsn1(csr.publicKey))
+      const originalGenerateSubjectKeyIdentifier = cert.generateSubjectKeyIdentifier
+      cert.generateSubjectKeyIdentifier = () => forge.util.createBuffer(subjectKeyIdentifier)
+
+      const originalPublicKeyToAsn1 = forge.pki.publicKeyToAsn1
+      forge.pki.publicKeyToAsn1 = (key: any) => {
+        if (key?.type) {
+          return publicKeyToAsn1(key as CertPublicKey)
+        }
+        return originalPublicKeyToAsn1(key)
+      }
+
+      try {
+        const extensions: any[] = []
+
+        if (state.signUseCsrExtensions && csr.extreq.length) {
+          for (const ext of csr.extreq) {
+            if (ext.extname === "subjectAltName" && Array.isArray(ext.array)) {
+              const altNames = ext.array
+                .map((entry: any) => {
+                  if (entry.dns) return { type: 2, value: entry.dns }
+                  if (entry.ip) return { type: 7, ip: entry.ip }
+                  if (entry.uri) return { type: 6, value: entry.uri }
+                  if (entry.rfc822) return { type: 1, value: entry.rfc822 }
+                  if (entry.dn?.str) return { type: 4, value: entry.dn.str }
+                  return null
+                })
+                .filter(Boolean)
+              if (altNames.length) {
+                extensions.push({
+                  name: "subjectAltName",
+                  altNames,
+                  critical: ext.critical || undefined,
+                })
+              }
+              continue
+            }
+            if (ext.extname === "keyUsage" && Array.isArray(ext.names)) {
+              const keyUsage: Record<string, boolean> = {}
+              for (const name of ext.names) {
+                if (typeof name === "string" && name) {
+                  keyUsage[name] = true
+                }
+              }
+              if (Object.keys(keyUsage).length) {
+                extensions.push({ name: "keyUsage", critical: ext.critical || undefined, ...keyUsage })
+              }
+              continue
+            }
+            if (ext.extname === "extKeyUsage" && Array.isArray(ext.array)) {
+              const extKeyUsage: Record<string, boolean> = {}
+              for (const name of ext.array) {
+                if (typeof name === "string" && name) {
+                  extKeyUsage[name] = true
+                }
+              }
+              if (Object.keys(extKeyUsage).length) {
+                extensions.push({ name: "extKeyUsage", critical: ext.critical || undefined, ...extKeyUsage })
+              }
+              continue
+            }
+            if (ext.extname === "basicConstraints") {
+              const basicConstraints: Record<string, unknown> = {
+                name: "basicConstraints",
+                cA: Boolean(ext.cA),
+                critical: ext.critical || undefined,
+              }
+              if (ext.pathLen !== undefined) {
+                basicConstraints.pathLenConstraint = ext.pathLen
+              }
+              extensions.push(basicConstraints)
+              continue
+            }
+          }
+        }
+
+        if (!extensions.some((ext) => ext.name === "subjectKeyIdentifier")) {
+          extensions.push({ name: "subjectKeyIdentifier" })
+        }
+
+        let keyIdentifier: string | boolean = true
+        if (issuerCert?.publicKey) {
+          try {
+            const issuerSpki = forge.pki.publicKeyToAsn1(issuerCert.publicKey)
+            keyIdentifier = computeSubjectKeyIdentifier(issuerSpki)
+          } catch {
+            keyIdentifier = issuerCert?.generateSubjectKeyIdentifier?.().getBytes?.() ?? true
+          }
+        }
+        extensions.push({ name: "authorityKeyIdentifier", keyIdentifier })
+
+        if (extensions.length) {
+          cert.setExtensions(extensions)
+        }
+
+        const hashAlgorithm = state.signHash as keyof typeof RSA_SIGNATURE_OIDS
+        let signatureOid: string
+        if (signingKey.kind === "rsa") {
+          signatureOid = RSA_SIGNATURE_OIDS[hashAlgorithm]
+        } else if (signingKey.kind === "dsa") {
+          signatureOid = DSA_SIGNATURE_OIDS[hashAlgorithm]
+        } else if (signingKey.kind === "ecdsa") {
+          signatureOid = ECDSA_SIGNATURE_OIDS[hashAlgorithm]
+        } else if (signingKey.kind === "ed25519") {
+          signatureOid = "1.3.101.112"
+        } else {
+          signatureOid = "1.3.101.113"
+        }
+
+        cert.signatureOid = signatureOid
+        cert.siginfo.algorithmOid = signatureOid
+        cert.tbsCertificate = forge.pki.getTBSCertificate(cert)
+        const tbsBytes = forge.asn1.toDer(cert.tbsCertificate).getBytes()
+        const tbsBinary = binaryStringToBytes(tbsBytes)
+
+        let signature: string
+        if (signingKey.kind === "rsa") {
+          const signatureHex = signWithJsrsasign(RSA_SIGNATURE_ALGOS[hashAlgorithm], signingKey.key, tbsBytes)
+          signature = forge.util.hexToBytes(signatureHex)
+        } else if (signingKey.kind === "dsa") {
+          const signatureHex = signWithJsrsasign(DSA_SIGNATURE_ALGOS[hashAlgorithm], signingKey.key, tbsBytes)
+          signature = forge.util.hexToBytes(signatureHex)
+        } else if (signingKey.kind === "ecdsa") {
+          const spec = getEcCurveSpec(signingKey.curve)
+          const digest =
+            hashAlgorithm === "sha256"
+              ? sha256(tbsBinary)
+              : hashAlgorithm === "sha384"
+                ? sha384(tbsBinary)
+                : sha512(tbsBinary)
+          const sigBytes = spec.noble.sign(digest, signingKey.privateKey, { prehash: false, format: "der" })
+          signature = bytesToBinaryString(sigBytes)
+        } else if (signingKey.kind === "ed25519") {
+          const sigBytes = ed25519.sign(tbsBinary, signingKey.privateKey)
+          signature = bytesToBinaryString(sigBytes)
+        } else {
+          const sigBytes = ed448.sign(tbsBinary, signingKey.privateKey)
+          signature = bytesToBinaryString(sigBytes)
+        }
+
+        cert.signature = signature
+
+        const certPem = certificateToPem(cert)
+        const derBase64 = state.signIncludeDer ? certificateToDerBase64(cert) : undefined
+
+        setSignOutput({
+          certPem,
+          derBase64,
+        })
+      } finally {
+        forge.pki.publicKeyToAsn1 = originalPublicKeyToAsn1
+        cert.generateSubjectKeyIdentifier = originalGenerateSubjectKeyIdentifier
+      }
+    } catch (err) {
+      console.error(err)
+      setSignError(err instanceof Error ? err.message : "Failed to sign certificate.")
+    } finally {
+      setSignBusy(false)
+    }
+  }, [state, signNotBeforeDate, signNotAfterDate])
+
   React.useEffect(() => {
     if (!state.viewInput.trim()) {
       setViewSummaries([])
+      setViewCerts([])
+      setViewCsrData(null)
+      setViewPrivateKeyDer(null)
+      setViewKeyOutputs(null)
       setViewError(null)
       return
     }
@@ -1468,16 +2179,60 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
     const parse = async () => {
       try {
-        const parsed = await parseX509Certificates(
-          state.viewInput,
-          state.viewFormat as X509InputFormat,
-          state.viewPassword,
-        )
-        const summaries = parsed.certs.map((cert) => buildX509Summary(cert))
-        setViewSummaries(summaries)
-        setViewError(null)
+        const format = state.viewFormat as X509InputFormat
+        const trimmed = state.viewInput.trim()
+        const looksLikeCsr =
+          format !== "pkcs12" && /BEGIN (NEW )?CERTIFICATE REQUEST/.test(trimmed)
+
+        if (looksLikeCsr) {
+          const csr = parseCsrInput(trimmed, format === "der" ? "der" : "pem")
+          setViewSummaries([buildCsrSummary(csr)])
+          setViewCerts([])
+          setViewCsrData({ pem: csr.pem, derBase64: csr.derBase64, publicKeyPem: csr.publicKeyPem })
+          setViewPrivateKeyDer(null)
+          setViewKeyOutputs(null)
+          if (state.viewSelectedIndex !== 0) {
+            setParam("viewSelectedIndex", 0, true)
+          }
+          setViewError(null)
+          return
+        }
+
+        try {
+          const parsed = await parseX509Certificates(trimmed, format, state.viewPassword)
+          const summaries = parsed.certs.map((cert) => buildX509Summary(cert))
+          setViewSummaries(summaries)
+          setViewCerts(parsed.certs)
+          setViewCsrData(null)
+          setViewPrivateKeyDer(parsed.privateKey ?? null)
+          setViewKeyOutputs(null)
+          if (state.viewSelectedIndex >= summaries.length) {
+            setParam("viewSelectedIndex", 0, true)
+          }
+          setViewError(null)
+        } catch (certErr) {
+          if (format !== "pkcs12") {
+            const csr = parseCsrInput(trimmed, format === "der" ? "der" : "pem")
+            setViewSummaries([buildCsrSummary(csr)])
+            setViewCerts([])
+            setViewCsrData({ pem: csr.pem, derBase64: csr.derBase64, publicKeyPem: csr.publicKeyPem })
+            setViewPrivateKeyDer(null)
+            setViewKeyOutputs(null)
+            if (state.viewSelectedIndex !== 0) {
+              setParam("viewSelectedIndex", 0, true)
+            }
+            setViewError(null)
+            return
+          }
+          throw certErr
+        }
       } catch (err) {
+        console.error(err)
         setViewSummaries([])
+        setViewCerts([])
+        setViewCsrData(null)
+        setViewPrivateKeyDer(null)
+        setViewKeyOutputs(null)
         setViewError(err instanceof Error ? err.message : "Failed to parse certificate.")
       } finally {
         setViewBusy(false)
@@ -1485,7 +2240,68 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     }
 
     void parse()
-  }, [state.viewInput, state.viewFormat, state.viewPassword])
+  }, [state.viewInput, state.viewFormat, state.viewPassword, setParam])
+
+  React.useEffect(() => {
+    if (!viewSummaries.length) {
+      setViewKeyOutputs(null)
+      return
+    }
+
+    let cancelled = false
+
+    const update = async () => {
+      try {
+        const selected = viewSummaries[state.viewSelectedIndex] ?? viewSummaries[0]
+        if (!selected) {
+          if (!cancelled) setViewKeyOutputs(null)
+          return
+        }
+        const outputs: { publicKey?: ViewKeyOutput; privateKey?: ViewKeyOutput } = {}
+
+        if (selected.kind === "csr" && viewCsrData?.publicKeyPem) {
+          outputs.publicKey = buildPublicKeyOutputs(viewCsrData.publicKeyPem)
+        } else if (selected.kind === "certificate") {
+          const cert = viewCerts[state.viewSelectedIndex] ?? viewCerts[0]
+          if (cert) {
+            const publicKeyPem = await getPublicKeyPemFromCert(cert)
+            if (publicKeyPem) {
+              outputs.publicKey = buildPublicKeyOutputs(publicKeyPem)
+            }
+          }
+        }
+
+        const manualKey = state.viewPrivateKeyPem.trim()
+        if (manualKey) {
+          outputs.privateKey = buildPrivateKeyOutputsFromInput(manualKey)
+        } else if (viewPrivateKeyDer) {
+          outputs.privateKey = buildPrivateKeyOutputsFromDer(viewPrivateKeyDer)
+        }
+
+        if (!cancelled) {
+          setViewKeyOutputs(Object.keys(outputs).length ? outputs : null)
+        }
+      } catch (err) {
+        console.error(err)
+        if (!cancelled) {
+          setViewKeyOutputs(null)
+        }
+      }
+    }
+
+    void update()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    viewSummaries,
+    viewCerts,
+    viewCsrData,
+    viewPrivateKeyDer,
+    state.viewPrivateKeyPem,
+    state.viewSelectedIndex,
+  ])
 
   const handleValidate = React.useCallback(async () => {
     setValidateError(null)
@@ -1569,6 +2385,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
       setValidateResult({ timeValid, chainValid, signatureValid, errors })
     } catch (err) {
+      console.error(err)
       setValidateError(err instanceof Error ? err.message : "Failed to validate certificate.")
     } finally {
       setValidateBusy(false)
@@ -1613,6 +2430,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
       setConvertOutput(output)
     } catch (err) {
+      console.error(err)
       setConvertError(err instanceof Error ? err.message : "Failed to convert certificate.")
     } finally {
       setConvertBusy(false)
@@ -1696,8 +2514,59 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     downloadBlob(blob, "x509-converted.zip")
   }
 
-  const selectedViewSummary = viewSummaries[state.viewSelectedIndex]
+  const handleViewDownloadAllZip = async () => {
+    const JSZip = (await import("jszip")).default
+    const zip = new JSZip()
+    const isCsrView = selectedViewSummary?.kind === "csr"
+    const certFolder = isCsrView ? "csr" : "certificate"
+
+    // Add certificate/CSR files
+    if (viewPemOutputs.length > 0) {
+      const pem = viewPemOutputs[state.viewSelectedIndex] ?? viewPemOutputs[0]
+      const der = viewDerOutputs[state.viewSelectedIndex] ?? viewDerOutputs[0]
+      zip.file(`${certFolder}/${isCsrView ? "request" : "certificate"}.pem`, pem)
+      if (der) {
+        zip.file(`${certFolder}/${isCsrView ? "request" : "certificate"}.der`, atob(der), { binary: true })
+      }
+    }
+
+    // Add public key files
+    if (viewKeyOutputs?.publicKey) {
+      const pk = viewKeyOutputs.publicKey
+      if (pk.pem) zip.file("public-key/public-key.pem", pk.pem)
+      if (pk.derBase64) zip.file("public-key/public-key.der", atob(pk.derBase64), { binary: true })
+      if (pk.jwk) zip.file("public-key/public-key.jwk", pk.jwk)
+    }
+
+    // Add private key files
+    if (viewKeyOutputs?.privateKey) {
+      const pk = viewKeyOutputs.privateKey
+      if (pk.pem) zip.file("private-key/private-key.pem", pk.pem)
+      if (pk.derBase64) zip.file("private-key/private-key.der", atob(pk.derBase64), { binary: true })
+      if (pk.jwk) zip.file("private-key/private-key.jwk", pk.jwk)
+    }
+
+    const blob = await zip.generateAsync({ type: "blob" })
+    downloadBlob(blob, isCsrView ? "x509-csr-bundle.zip" : "x509-certificate-bundle.zip")
+  }
+
+  const handleSignZip = async () => {
+    if (!signOutput) return
+    const JSZip = (await import("jszip")).default
+    const zip = new JSZip()
+    if (signOutput.certPem) {
+      zip.file("certificate.pem", signOutput.certPem)
+    }
+    if (signOutput.derBase64) {
+      zip.file("certificate.der", atob(signOutput.derBase64), { binary: true })
+    }
+    const blob = await zip.generateAsync({ type: "blob" })
+    downloadBlob(blob, "x509-signed-certificate.zip")
+  }
+
+  const selectedViewSummary = viewSummaries[state.viewSelectedIndex] ?? viewSummaries[0]
   const isCsr = state.createOutputType === "csr"
+  const viewIsCsr = selectedViewSummary?.kind === "csr"
   const isRsaKey = state.createKeyType === "rsa"
   const isEcKey = state.createKeyType === "ec"
   const isEdKey = state.createKeyType === "ed25519" || state.createKeyType === "ed448"
@@ -1705,6 +2574,16 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
   const isDhKey = state.createKeyType === "dh"
   const allowGenerateKey = !isDsaKey && !isDhKey
   const canSelectHash = !state.createSelfSigned || isRsaKey || isEcKey || isDsaKey
+  const viewPemOutputs = React.useMemo(() => {
+    if (viewCsrData) return [viewCsrData.pem]
+    if (viewCerts.length) return viewCerts.map((cert) => cert.toString("pem"))
+    return []
+  }, [viewCsrData, viewCerts])
+  const viewDerOutputs = React.useMemo(() => {
+    if (viewCsrData) return [viewCsrData.derBase64]
+    if (viewCerts.length) return viewCerts.map((cert) => cert.toString("base64"))
+    return []
+  }, [viewCsrData, viewCerts])
 
   return (
     <div className="flex flex-col gap-4">
@@ -1715,6 +2594,7 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
         <div className="flex items-start justify-between gap-2">
           <ScrollableTabsList>
             <TabsTrigger value="create">Create</TabsTrigger>
+            <TabsTrigger value="sign">Sign</TabsTrigger>
             <TabsTrigger value="view">View</TabsTrigger>
             <TabsTrigger value="validate">Validate</TabsTrigger>
             <TabsTrigger value="convert">Convert</TabsTrigger>
@@ -1727,6 +2607,27 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
         <TabsContent value="create" className="mt-4">
           <div className="grid gap-4">
+            <Tabs
+              value={state.createOutputType}
+              onValueChange={(value) =>
+                setParam(
+                  "createOutputType",
+                  value as z.infer<typeof paramsSchema>["createOutputType"],
+                  true,
+                )
+              }
+            >
+              <ScrollableTabsList>
+                <TabsTrigger value="certificate">Certificate</TabsTrigger>
+                <TabsTrigger value="csr">Certificate Request (CSR)</TabsTrigger>
+              </ScrollableTabsList>
+            </Tabs>
+            {isCsr && (
+              <p className="text-xs text-muted-foreground">
+                CSR output ignores issuer, validity, serial, and PKCS#12 options.
+              </p>
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle>Subject and Issuer</CardTitle>
@@ -2112,31 +3013,9 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
 
             <Card>
               <CardHeader>
-                <CardTitle>Outputs</CardTitle>
+                <CardTitle>Output Formats</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label>Create Type</Label>
-                    <Select
-                      value={state.createOutputType}
-                      onValueChange={(value) => setParam("createOutputType", value as z.infer<typeof paramsSchema>["createOutputType"], true)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="certificate">Certificate</SelectItem>
-                        <SelectItem value="csr">Certificate Request (CSR)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {isCsr && (
-                    <div className="text-xs text-muted-foreground">
-                      CSR output ignores issuer, validity, serial, and PKCS#12 options.
-                    </div>
-                  )}
-                </div>
                 <div className="flex flex-wrap gap-4 text-sm">
                   <label className="flex items-center gap-2">
                     <Checkbox
@@ -2285,19 +3164,21 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           </div>
         </TabsContent>
 
-        <TabsContent value="view" className="mt-4">
+        <TabsContent value="sign" className="mt-4">
           <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
-            <Card className="h-full">
+            <Card>
               <CardHeader>
-                <CardTitle>Certificate Input</CardTitle>
+                <CardTitle>CSR and Issuer</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Format</Label>
+                    <Label>CSR Format</Label>
                     <Select
-                      value={state.viewFormat}
-                      onValueChange={(value) => setParam("viewFormat", value as z.infer<typeof paramsSchema>["viewFormat"], true)}
+                      value={state.signCsrFormat}
+                      onValueChange={(value) =>
+                        setParam("signCsrFormat", value as z.infer<typeof paramsSchema>["signCsrFormat"], true)
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -2305,103 +3186,476 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
                       <SelectContent>
                         <SelectItem value="pem">PEM</SelectItem>
                         <SelectItem value="der">DER (Base64)</SelectItem>
-                        <SelectItem value="pkcs12">PKCS#12 (Base64)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Password (if needed)</Label>
-                    <Input
-                      type="password"
-                      value={state.viewPassword}
-                      onChange={(e) => setParam("viewPassword", e.target.value)}
+                    <Label>Use CSR Extensions</Label>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={state.signUseCsrExtensions}
+                        onCheckedChange={(checked) => setParam("signUseCsrExtensions", checked, true)}
+                      />
+                      <span className="text-xs text-muted-foreground">Include requested extensions in the signed cert.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label>Certificate Request</Label>
+                  <UploadButton
+                    accept=".pem,.csr,.der"
+                    onChange={handleSignUpload}
+                  />
+                </div>
+                {signFileName && <p className="text-xs text-muted-foreground">{signFileName}</p>}
+                <Textarea
+                  value={state.signCsrInput}
+                  onChange={(e) => setParam("signCsrInput", e.target.value)}
+                  placeholder="-----BEGIN CERTIFICATE REQUEST-----"
+                  className="min-h-[200px] font-mono text-xs whitespace-pre-wrap break-all"
+                />
+
+                <div className="space-y-2">
+                  <Label>Issuer DN (optional override)</Label>
+                  <Textarea
+                    value={state.signIssuerDn}
+                    onChange={(e) => setParam("signIssuerDn", e.target.value)}
+                    placeholder="Leave empty to use issuer certificate subject."
+                    className="min-h-[80px] font-mono text-xs whitespace-pre-wrap break-all"
+                  />
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Issuer Certificate (PEM or DER Base64)</Label>
+                      <UploadButton
+                        accept=".pem,.crt,.cer,.der"
+                        onChange={handleSignIssuerCertUpload}
+                      />
+                    </div>
+                    <Textarea
+                      value={state.signIssuerCertPem}
+                      onChange={(e) => setParam("signIssuerCertPem", e.target.value)}
+                      placeholder="-----BEGIN CERTIFICATE-----"
+                      className="min-h-[140px] font-mono text-xs whitespace-pre-wrap break-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Issuer Private Key (PEM, DER Base64, or JWK)</Label>
+                      <UploadButton
+                        accept=".pem,.key,.p8,.der,.json,.jwk"
+                        onChange={handleSignIssuerKeyUpload}
+                      />
+                    </div>
+                    <Textarea
+                      value={state.signIssuerKeyPem}
+                      onChange={(e) => setParam("signIssuerKeyPem", e.target.value)}
+                      placeholder="-----BEGIN PRIVATE KEY----- or JWK JSON"
+                      className="min-h-[140px] font-mono text-xs whitespace-pre-wrap break-all"
                     />
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <Label>Certificate</Label>
-                  <UploadButton
-                    accept=".pem,.crt,.cer,.der,.p12,.pfx"
-                    onChange={handleViewUpload}
-                  />
+
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label>Serial Number</Label>
+                    <Input
+                      value={state.signSerial}
+                      onChange={(e) => setParam("signSerial", e.target.value)}
+                      placeholder="01"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Signature Hash</Label>
+                    <Select
+                      value={state.signHash}
+                      onValueChange={(value) => setParam("signHash", value as z.infer<typeof paramsSchema>["signHash"], true)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sha256">SHA-256</SelectItem>
+                        <SelectItem value="sha384">SHA-384</SelectItem>
+                        <SelectItem value="sha512">SHA-512</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                {viewFileName && <p className="text-xs text-muted-foreground">{viewFileName}</p>}
-                <Textarea
-                  value={state.viewInput}
-                  onChange={(e) => setParam("viewInput", e.target.value)}
-                  placeholder="Paste certificate here..."
-                  className={cn(
-                    "min-h-[220px] font-mono text-xs whitespace-pre-wrap break-all",
-                    viewError && "border-destructive",
-                  )}
-                />
-                {viewError && <p className="text-sm text-destructive">{viewError}</p>}
-                {viewBusy && <p className="text-xs text-muted-foreground">Parsing certificate...</p>}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Not Before</Label>
+                    <DateTimePicker
+                      date={signNotBeforeDate}
+                      setDate={(date) => setParam("signNotBefore", date ? date.toISOString() : "", true)}
+                      buttonLabel={signNotBeforeDate ? signNotBeforeDate.toISOString() : "Pick"}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Not After</Label>
+                    <DateTimePicker
+                      date={signNotAfterDate}
+                      setDate={(date) => setParam("signNotAfter", date ? date.toISOString() : "", true)}
+                      buttonLabel={signNotAfterDate ? signNotAfterDate.toISOString() : "Pick"}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            <Card className="h-full">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Details</CardTitle>
-                {selectedViewSummary && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleCopy(selectedViewSummary.extensions, setViewCopied)}
-                  >
-                    {viewCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    Copy Extensions
-                  </Button>
-                )}
+            <Card>
+              <CardHeader>
+                <CardTitle>Signed Certificate</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {viewSummaries.length ? (
-                  <>
-                    {viewSummaries.length > 1 && (
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <label className="flex items-center gap-2">
+                    <Checkbox
+                      checked={state.signIncludePem}
+                      onCheckedChange={(value) => setParam("signIncludePem", Boolean(value), true)}
+                    />
+                    PEM
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <Checkbox
+                      checked={state.signIncludeDer}
+                      onCheckedChange={(value) => setParam("signIncludeDer", Boolean(value), true)}
+                    />
+                    DER (Base64)
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={handleSign} disabled={signBusy}>
+                    {signBusy ? "Signing..." : "Sign Request"}
+                  </Button>
+                  {signOutput && (
+                    <>
+                      <Button variant="outline" onClick={handleSignZip}>
+                        <Download className="h-4 w-4" />
+                        Download ZIP
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => handleCopy(signOutput.certPem ?? "", setSignCopied)}
+                      >
+                        {signCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        Copy PEM
+                      </Button>
+                    </>
+                  )}
+                </div>
+
+                {signError && <p className="text-sm text-destructive">{signError}</p>}
+
+                {signOutput && (
+                  <div className="grid gap-4">
+                    {state.signIncludePem && signOutput.certPem && (
                       <div className="space-y-2">
-                        <Label>Certificate Index</Label>
-                        <Select
-                          value={String(state.viewSelectedIndex)}
-                          onValueChange={(value) => setParam("viewSelectedIndex", Number.parseInt(value, 10) || 0, true)}
+                        <Label>Certificate (PEM)</Label>
+                        <Textarea
+                          value={signOutput.certPem}
+                          readOnly
+                          className="min-h-[160px] font-mono text-xs whitespace-pre-wrap break-all"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => downloadTextFile(signOutput.certPem ?? "", "certificate.pem")}
                         >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {viewSummaries.map((_, index) => (
-                              <SelectItem key={`cert-${index}`} value={String(index)}>
-                                Certificate {index + 1}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          <Download className="h-4 w-4" />
+                          Download PEM
+                        </Button>
                       </div>
                     )}
-                    {selectedViewSummary && (
-                      <>
-                        <InfoRow label="Subject" value={selectedViewSummary.subject} />
-                        <InfoRow label="Issuer" value={selectedViewSummary.issuer} />
-                        <InfoRow label="Serial" value={selectedViewSummary.serial} mono />
-                        <InfoRow label="Valid From" value={selectedViewSummary.notBefore} />
-                        <InfoRow label="Valid To" value={selectedViewSummary.notAfter} />
-                        <InfoRow label="Is CA" value={selectedViewSummary.isCa ? "Yes" : "No"} />
-                        <InfoRow label="SHA-256" value={selectedViewSummary.fingerprintSha256} mono />
-                        <div className="space-y-2">
-                          <Label>Extensions</Label>
-                          <Textarea value={selectedViewSummary.extensions} readOnly className="min-h-[120px] font-mono text-xs whitespace-pre-wrap break-all" />
-                        </div>
-                      </>
+                    {state.signIncludeDer && signOutput.derBase64 && (
+                      <div className="space-y-2">
+                        <Label>Certificate (DER Base64)</Label>
+                        <Textarea
+                          value={signOutput.derBase64}
+                          readOnly
+                          className="min-h-[140px] font-mono text-xs whitespace-pre-wrap break-all"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => downloadBase64File(signOutput.derBase64 ?? "", "certificate.der")}
+                        >
+                          <Download className="h-4 w-4" />
+                          Download DER
+                        </Button>
+                      </div>
                     )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {state.viewInput.trim()
-                      ? "Unable to parse certificate."
-                      : "Paste a certificate to view details."}
-                  </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="view" className="mt-4">
+          <div className="grid gap-4">
+            <div className="grid gap-4 md:grid-cols-[1.1fr_1fr]">
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle>Certificate / CSR Input</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Format</Label>
+                      <Select
+                        value={state.viewFormat}
+                        onValueChange={(value) => setParam("viewFormat", value as z.infer<typeof paramsSchema>["viewFormat"], true)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pem">PEM</SelectItem>
+                          <SelectItem value="der">DER (Base64)</SelectItem>
+                          <SelectItem value="pkcs12">PKCS#12 (Base64)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Password (if needed)</Label>
+                      <Input
+                        type="password"
+                        value={state.viewPassword}
+                        onChange={(e) => setParam("viewPassword", e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label>Certificate or CSR</Label>
+                    <UploadButton
+                      accept=".pem,.crt,.cer,.der,.p12,.pfx,.csr"
+                      onChange={handleViewUpload}
+                    />
+                  </div>
+                  {viewFileName && <p className="text-xs text-muted-foreground">{viewFileName}</p>}
+                  <Textarea
+                    value={state.viewInput}
+                    onChange={(e) => setParam("viewInput", e.target.value)}
+                    placeholder="Paste certificate or CSR here..."
+                    className={cn(
+                      "min-h-[220px] font-mono text-xs whitespace-pre-wrap break-all",
+                      viewError && "border-destructive",
+                    )}
+                  />
+                  {viewError && <p className="text-sm text-destructive">{viewError}</p>}
+                  {viewBusy && <p className="text-xs text-muted-foreground">Parsing...</p>}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Private Key (optional, for download)</Label>
+                      <UploadButton
+                        accept=".pem,.key,.p8,.der,.json,.jwk"
+                        onChange={handleViewPrivateKeyUpload}
+                      />
+                    </div>
+                    <Textarea
+                      value={state.viewPrivateKeyPem}
+                      onChange={(e) => setParam("viewPrivateKeyPem", e.target.value)}
+                      placeholder="-----BEGIN PRIVATE KEY----- or JWK JSON"
+                      className="min-h-[100px] font-mono text-xs whitespace-pre-wrap break-all"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="h-full">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>{viewIsCsr ? "CSR Details" : "Certificate Details"}</CardTitle>
+                  {selectedViewSummary && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleCopy(selectedViewSummary.extensions, setViewCopied)}
+                    >
+                      {viewCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      Copy Extensions
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {viewSummaries.length ? (
+                    <>
+                      {viewSummaries.length > 1 && (
+                        <div className="space-y-2">
+                          <Label>Certificate Index</Label>
+                          <Select
+                            value={String(state.viewSelectedIndex)}
+                            onValueChange={(value) => setParam("viewSelectedIndex", Number.parseInt(value, 10) || 0, true)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {viewSummaries.map((_, index) => (
+                                <SelectItem key={`cert-${index}`} value={String(index)}>
+                                  Certificate {index + 1}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {selectedViewSummary && (
+                        <>
+                          <InfoRow label="Type" value={selectedViewSummary.kind === "csr" ? "Certificate Signing Request (CSR)" : "Certificate"} />
+                          <InfoRow label="Subject" value={selectedViewSummary.subject} />
+                          {selectedViewSummary.kind === "certificate" && (
+                            <>
+                              <InfoRow label="Issuer" value={selectedViewSummary.issuer ?? ""} />
+                              <InfoRow label="Serial" value={selectedViewSummary.serial ?? ""} mono />
+                              <InfoRow label="Valid From" value={selectedViewSummary.notBefore ?? ""} />
+                              <InfoRow label="Valid To" value={selectedViewSummary.notAfter ?? ""} />
+                              <InfoRow label="Is CA" value={selectedViewSummary.isCa ? "Yes" : "No"} />
+                            </>
+                          )}
+                          <InfoRow label="Signature Algorithm" value={selectedViewSummary.signatureAlgorithm || "N/A"} />
+                          <InfoRow label="Public Key Algorithm" value={selectedViewSummary.publicKeyAlgorithm || "N/A"} />
+                          <InfoRow label="SHA-256 Fingerprint" value={selectedViewSummary.fingerprintSha256} mono />
+                          <div className="space-y-2">
+                            <Label>Extensions</Label>
+                            <Textarea value={selectedViewSummary.extensions} readOnly className="min-h-[120px] font-mono text-xs whitespace-pre-wrap break-all" />
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {state.viewInput.trim()
+                        ? "Unable to parse certificate or CSR."
+                        : "Paste a certificate or CSR to view details."}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {(viewKeyOutputs?.publicKey || viewKeyOutputs?.privateKey || viewPemOutputs.length > 0) && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>Downloads</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleViewDownloadAllZip}
+                    className="gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download All as ZIP
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {viewPemOutputs.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>{viewIsCsr ? "CSR" : "Certificate"}</Label>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadTextFile(viewPemOutputs[state.viewSelectedIndex] ?? viewPemOutputs[0], viewIsCsr ? "request.csr" : "certificate.pem")}
+                          >
+                            <Download className="h-4 w-4" />
+                            PEM
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadBase64File(viewDerOutputs[state.viewSelectedIndex] ?? viewDerOutputs[0], viewIsCsr ? "request.der" : "certificate.der")}
+                          >
+                            <Download className="h-4 w-4" />
+                            DER
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    {viewKeyOutputs?.publicKey && (
+                      <div className="space-y-2">
+                        <Label>Public Key</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {viewKeyOutputs.publicKey.pem && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadTextFile(viewKeyOutputs.publicKey!.pem!, "public-key.pem")}
+                            >
+                              <Download className="h-4 w-4" />
+                              PEM
+                            </Button>
+                          )}
+                          {viewKeyOutputs.publicKey.derBase64 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadBase64File(viewKeyOutputs.publicKey!.derBase64!, "public-key.der")}
+                            >
+                              <Download className="h-4 w-4" />
+                              DER
+                            </Button>
+                          )}
+                          {viewKeyOutputs.publicKey.jwk && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadTextFile(viewKeyOutputs.publicKey!.jwk!, "public-key.jwk", "application/json")}
+                            >
+                              <Download className="h-4 w-4" />
+                              JWK
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {viewKeyOutputs?.privateKey && (
+                      <div className="space-y-2">
+                        <Label>Private Key</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {viewKeyOutputs.privateKey.pem && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadTextFile(viewKeyOutputs.privateKey!.pem!, "private-key.pem")}
+                            >
+                              <Download className="h-4 w-4" />
+                              PEM
+                            </Button>
+                          )}
+                          {viewKeyOutputs.privateKey.derBase64 && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadBase64File(viewKeyOutputs.privateKey!.derBase64!, "private-key.der")}
+                            >
+                              <Download className="h-4 w-4" />
+                              DER
+                            </Button>
+                          )}
+                          {viewKeyOutputs.privateKey.jwk && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => downloadTextFile(viewKeyOutputs.privateKey!.jwk!, "private-key.jwk", "application/json")}
+                            >
+                              <Download className="h-4 w-4" />
+                              JWK
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 

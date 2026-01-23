@@ -7,13 +7,16 @@ import { TabsList } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 export type ViewSummary = {
+  kind: "certificate" | "csr"
   subject: string
-  issuer: string
-  serial: string
-  notBefore: string
-  notAfter: string
-  isCa: boolean
+  issuer?: string
+  serial?: string
+  notBefore?: string
+  notAfter?: string
+  isCa?: boolean
   fingerprintSha256: string
+  signatureAlgorithm?: string
+  publicKeyAlgorithm?: string
   extensions: string
 }
 
@@ -99,6 +102,7 @@ export function buildViewSummary(forge: any, cert: any): ViewSummary {
   sha256.update(der)
 
   return {
+    kind: "certificate",
     subject,
     issuer,
     serial,

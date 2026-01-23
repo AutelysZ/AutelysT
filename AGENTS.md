@@ -16,6 +16,7 @@ This file defines how coding agents should operate in this repository. Follow it
 - Use ASCII in edits unless the target file already uses non-ASCII and the change requires it.
 - Do not add new UI libraries unless explicitly requested.
 - For large files (>2000 lines), try to split components into multiple files when editing them.
+- When catching errors in code, log them to the console (e.g., `console.error`) before handling.
 
 ## Tool Implementation Rules
 When adding or updating a tool:
