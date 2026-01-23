@@ -79,14 +79,20 @@ function HomePage() {
       {/* Hero Section */}
       <section className="shrink-0 border-b border-border bg-gradient-to-b from-background to-muted/30 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-4xl text-center">
-          <h1 className="mb-3 text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
-          <p className="mx-auto mb-6 max-w-2xl text-balance text-muted-foreground">
-            Free online tools for encoding, decoding, HTML escaping, world clocks, cryptographic and non-cryptographic
-            hashing, symmetric/asymmetric and hybrid encryption (CMS/OpenPGP/JWE/HPKE), JWK conversion, X.509 certificate
-            creation/validation, keypair generation (including post-quantum), key exchange, key derivation, JWT
-            inspection, signature verification, password generation, ID creation (UUID, ULID, KSUID, ObjectID,
-            Snowflake), CSV editing/conversion, data comparison, and number conversion. Fast, private, and works
-            entirely in your browser.
+          <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
+            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
+            <iframe
+              title="GitHub Star Button"
+              src="https://ghbtns.com/github-btn.html?user=AutelysZ&repo=AutelysT&type=star&count=true"
+              loading="lazy"
+              width="100"
+              height="20"
+              className="h-5 w-[100px] border-0"
+            />
+          </div>
+          <p className="mx-auto mb-4 max-w-2xl text-balance text-muted-foreground">
+            Entirely AI-generated and running completely in your browser, AutelysT keeps your data local and secure
+            while providing a built-in history to revisit recent work.
           </p>
           {/* Search Input */}
           <div className="relative mx-auto max-w-xl">
