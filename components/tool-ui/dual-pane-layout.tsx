@@ -16,8 +16,7 @@ interface PaneProps {
   placeholder?: string
   disabled?: boolean
   onFileUpload?: (file: File) => void
-  leftDownload?: () => void
-  rightDownload?: () => void
+  onDownload?: () => void
   fileResult?: {
     status: "success" | "error"
     message: string
@@ -37,8 +36,7 @@ function Pane({
   placeholder,
   disabled,
   onFileUpload,
-  leftDownload,
-  rightDownload,
+  onDownload,
   fileResult,
   onClearFile,
 }: PaneProps) {
@@ -94,11 +92,11 @@ function Pane({
               </Button>
             </>
           )}
-          {leftDownload && (
+          {onDownload && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={leftDownload}
+              onClick={onDownload}
               disabled={!value}
               className="h-7 gap-1 px-2 text-xs"
             >
@@ -119,18 +117,6 @@ function Pane({
               </>
             )}
           </Button>
-          {rightDownload && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={rightDownload}
-              disabled={!value}
-              className="h-7 gap-1 px-2 text-xs"
-            >
-              <Download className="h-3 w-3" />
-              Download
-            </Button>
-          )}
         </div>
       </div>
 
@@ -278,7 +264,7 @@ export function DualPaneLayout({
           warning={leftWarning}
           placeholder={leftPlaceholder}
           onFileUpload={leftFileUpload}
-          leftDownload={leftDownload}
+          onDownload={leftDownload}
           fileResult={leftFileResult}
           onClearFile={onClearLeftFile}
         />
@@ -296,7 +282,7 @@ export function DualPaneLayout({
           warning={rightWarning}
           placeholder={rightPlaceholder}
           onFileUpload={rightFileUpload}
-          rightDownload={rightDownload}
+          onDownload={rightDownload}
           fileResult={rightFileResult}
           onClearFile={onClearRightFile}
         />

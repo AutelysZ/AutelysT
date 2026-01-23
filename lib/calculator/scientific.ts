@@ -1,345 +1,422 @@
+// Scientific Calculator Engine
+// Supports standard operations, trigonometry, logarithms, powers, and more
+
 export type AngleUnit = "deg" | "rad" | "grad"
 
+export interface CalculatorState {
+  display: string
+  expression: string
+  memory: number
+  angleUnit: AngleUnit
+  lastAnswer: number
+  error: string | null
+}
+
+// Mathematical constants
 export const constants = {
   pi: Math.PI,
   e: Math.E,
+  phi: (1 + Math.sqrt(5)) / 2, // Golden ratio
+  sqrt2: Math.SQRT2,
+  sqrt3: Math.sqrt(3),
+  ln2: Math.LN2,
+  ln10: Math.LN10,
 } as const
 
+export type ConstantName = keyof typeof constants
+
+// Convert angle to radians based on current unit
+export function toRadians(value: number, unit: AngleUnit): number {
+  switch (unit) {
+    case "deg":
+      return (value * Math.PI) / 180
+    case "grad":
+      return (value * Math.PI) / 200
+    case "rad":
+    default:
+      return value
+  }
+}
+
+// Convert radians to current angle unit
+export function fromRadians(value: number, unit: AngleUnit): number {
+  switch (unit) {
+    case "deg":
+      return (value * 180) / Math.PI
+    case "grad":
+      return (value * 200) / Math.PI
+    case "rad":
+    default:
+      return value
+  }
+}
+
+// Scientific functions
 export const scientificFunctions = {
-  sin: Math.sin,
-  cos: Math.cos,
-  tan: Math.tan,
-  asin: Math.asin,
-  acos: Math.acos,
-  atan: Math.atan,
-  sinh: Math.sinh,
-  cosh: Math.cosh,
-  tanh: Math.tanh,
-  ln: Math.log,
-  log10: Math.log10,
-  log2: Math.log2,
-  sqrt: Math.sqrt,
-  cbrt: Math.cbrt,
-  exp: Math.exp,
-  abs: Math.abs,
-  floor: Math.floor,
-  ceil: Math.ceil,
-  round: Math.round,
-  factorial: (n: number): number => {
-    if (n < 0) throw new Error("Factorial is not defined for negative numbers")
-    if (n !== Math.floor(n)) throw new Error("Factorial is only defined for integers")
-    if (n > 170) throw new Error("Factorial result too large")
+  // Trigonometric (input in current angle unit)
+  sin: (x: number, unit: AngleUnit) => Math.sin(toRadians(x, unit)),
+  cos: (x: number, unit: AngleUnit) => Math.cos(toRadians(x, unit)),
+  tan: (x: number, unit: AngleUnit) => Math.tan(toRadians(x, unit)),
+  
+  // Inverse trigonometric (output in current angle unit)
+  asin: (x: number, unit: AngleUnit) => fromRadians(Math.asin(x), unit),
+  acos: (x: number, unit: AngleUnit) => fromRadians(Math.acos(x), unit),
+  atan: (x: number, unit: AngleUnit) => fromRadians(Math.atan(x), unit),
+  
+  // Hyperbolic
+  sinh: (x: number) => Math.sinh(x),
+  cosh: (x: number) => Math.cosh(x),
+  tanh: (x: number) => Math.tanh(x),
+  asinh: (x: number) => Math.asinh(x),
+  acosh: (x: number) => Math.acosh(x),
+  atanh: (x: number) => Math.atanh(x),
+  
+  // Logarithmic
+  ln: (x: number) => Math.log(x),
+  log10: (x: number) => Math.log10(x),
+  log2: (x: number) => Math.log2(x),
+  
+  // Exponential
+  exp: (x: number) => Math.exp(x),
+  pow10: (x: number) => Math.pow(10, x),
+  pow2: (x: number) => Math.pow(2, x),
+  
+  // Roots and powers
+  sqrt: (x: number) => Math.sqrt(x),
+  cbrt: (x: number) => Math.cbrt(x),
+  square: (x: number) => x * x,
+  cube: (x: number) => x * x * x,
+  
+  // Other
+  abs: (x: number) => Math.abs(x),
+  floor: (x: number) => Math.floor(x),
+  ceil: (x: number) => Math.ceil(x),
+  round: (x: number) => Math.round(x),
+  sign: (x: number) => Math.sign(x),
+  
+  // Factorial (for non-negative integers)
+  factorial: (x: number): number => {
+    if (x < 0 || !Number.isInteger(x)) {
+      return gamma(x + 1) // Use gamma function for non-integers
+    }
+    if (x > 170) return Number.POSITIVE_INFINITY
     let result = 1
-    for (let i = 2; i <= n; i++) {
+    for (let i = 2; i <= x; i++) {
       result *= i
     }
     return result
   },
-  inv: (x: number): number => 1 / x,
-  pow10: (x: number): number => Math.pow(10, x),
-  log: Math.log10, // Add alias for log10
-} as const
-
-function toRadians(degrees: number): number {
-  return degrees * (Math.PI / 180)
+  
+  // Reciprocal
+  inv: (x: number) => 1 / x,
+  
+  // Percentage
+  percent: (x: number) => x / 100,
 }
 
-function toDegrees(radians: number): number {
-  return radians * (180 / Math.PI)
-}
-
-function toGradians(degrees: number): number {
-  return degrees * (200 / 180)
-}
-
-function fromGradians(gradians: number): number {
-  return gradians * (180 / 200)
-}
-
-function convertAngleToRadians(value: number, fromUnit: AngleUnit): number {
-  switch (fromUnit) {
-    case "deg":
-      return toRadians(value)
-    case "rad":
-      return value
-    case "grad":
-      return toRadians(fromGradians(value))
-    default:
-      return value
+// Gamma function approximation (Lanczos)
+function gamma(z: number): number {
+  if (z < 0.5) {
+    return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z))
   }
-}
-
-function convertAngleFromRadians(radians: number, toUnit: AngleUnit): number {
-  switch (toUnit) {
-    case "deg":
-      return toDegrees(radians)
-    case "rad":
-      return radians
-    case "grad":
-      return toGradians(toDegrees(radians))
-    default:
-      return radians
+  z -= 1
+  const g = 7
+  const c = [
+    0.99999999999980993,
+    676.5203681218851,
+    -1259.1392167224028,
+    771.32342877765313,
+    -176.61502916214059,
+    12.507343278686905,
+    -0.13857109526572012,
+    9.9843695780195716e-6,
+    1.5056327351493116e-7,
+  ]
+  let x = c[0]
+  for (let i = 1; i < g + 2; i++) {
+    x += c[i] / (z + i)
   }
+  const t = z + g + 0.5
+  return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x
 }
 
-function tokenize(expression: string): string[] {
-  const tokens: string[] = []
+// Token types for expression parsing
+type TokenType = "number" | "operator" | "function" | "constant" | "paren"
+
+interface Token {
+  type: TokenType
+  value: string
+  precedence?: number
+}
+
+// Operator precedence
+const precedence: Record<string, number> = {
+  "+": 1,
+  "-": 1,
+  "*": 2,
+  "/": 2,
+  "%": 2, // Modulo
+  "^": 3,
+  "E": 3, // Scientific notation
+}
+
+// Right associative operators
+const rightAssociative = new Set(["^"])
+
+// Tokenize expression
+function tokenize(expression: string): Token[] {
+  const tokens: Token[] = []
   let i = 0
   
   while (i < expression.length) {
     const char = expression[i]
     
+    // Skip whitespace
     if (/\s/.test(char)) {
       i++
       continue
     }
     
-    if (/\d/.test(char) || char === '.') {
-      let num = ''
-      while (i < expression.length && (/[\d.]/.test(expression[i]) || (expression[i] === 'e' && i + 1 < expression.length && /[+-]/.test(expression[i + 1])))) {
-        num += expression[i]
+    // Numbers (including decimals and negative)
+    if (/[\d.]/.test(char) || (char === "-" && (tokens.length === 0 || tokens[tokens.length - 1].type === "operator" || tokens[tokens.length - 1].value === "("))) {
+      let num = ""
+      if (char === "-") {
+        num = "-"
         i++
       }
-      tokens.push(num)
+      while (i < expression.length && /[\d.eE+-]/.test(expression[i])) {
+        // Handle scientific notation
+        if ((expression[i] === "e" || expression[i] === "E") && i + 1 < expression.length) {
+          num += expression[i]
+          i++
+          if (expression[i] === "+" || expression[i] === "-") {
+            num += expression[i]
+            i++
+          }
+        } else if (expression[i] === "+" || expression[i] === "-") {
+          break
+        } else {
+          num += expression[i]
+          i++
+        }
+      }
+      tokens.push({ type: "number", value: num })
       continue
     }
     
-    if (/[a-zA-Z]/.test(char)) {
-      let ident = ''
-      while (i < expression.length && /[a-zA-Z]/.test(expression[i])) {
-        ident += expression[i]
-        i++
-      }
-      tokens.push(ident)
-      continue
-    }
-    
-    if (/[+\-*/^%(),]/.test(char)) {
-      tokens.push(char)
+    // Operators
+    if (["+", "-", "*", "/", "^", "%"].includes(char)) {
+      tokens.push({ type: "operator", value: char, precedence: precedence[char] })
       i++
       continue
     }
     
-    throw new Error(`Invalid character: ${char}`)
+    // Scientific notation operator (E)
+    if (char === "E" && tokens.length > 0 && tokens[tokens.length - 1].type === "number") {
+      tokens.push({ type: "operator", value: "E", precedence: precedence["E"] })
+      i++
+      continue
+    }
+    
+    // Parentheses
+    if (char === "(" || char === ")") {
+      tokens.push({ type: "paren", value: char })
+      i++
+      continue
+    }
+    
+    // Functions and constants (alphabetic)
+    if (/[a-zA-Z]/.test(char)) {
+      let name = ""
+      while (i < expression.length && /[a-zA-Z0-9]/.test(expression[i])) {
+        name += expression[i]
+        i++
+      }
+      const lowerName = name.toLowerCase()
+      if (lowerName in constants) {
+        tokens.push({ type: "constant", value: lowerName })
+      } else {
+        tokens.push({ type: "function", value: lowerName })
+      }
+      continue
+    }
+    
+    // Unknown character - skip
+    i++
   }
   
   return tokens
 }
 
-function parse(tokens: string[]): any {
-  let pos = 0
+// Convert infix to postfix (Shunting Yard algorithm)
+function toPostfix(tokens: Token[]): Token[] {
+  const output: Token[] = []
+  const operatorStack: Token[] = []
   
-  function peek(): string | undefined {
-    return tokens[pos]
-  }
-  
-  function consume(): string | undefined {
-    return tokens[pos++]
-  }
-  
-  function parseNumber(): number {
-    const token = consume()
-    if (!token) throw new Error("Unexpected end of expression")
-    
-    if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
-      return parseFloat(token)
-    }
-    
-    throw new Error(`Expected number, got ${token}`)
-  }
-  
-  function parseFactor(): any {
-    const token = peek()
-    
-    if (!token) throw new Error("Unexpected end of expression")
-    
-    // Numbers and constants  
-    if (token === 'pi') return constants.pi
-    if (token === 'e') return constants.e
-    if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
-      return parseNumber()
-    }
-    
-    // Parentheses
-    if (token === '(') {
-      consume()
-      const expr = parseExpression()
-      if (peek() !== ')') throw new Error("Expected ')'")
-      consume()
-      return expr
-    }
-    
-    // Unary minus
-    if (token === '-') {
-      consume()
-      return -parseFactor()
-    }
-    
-    // Functions and identifiers (like ans)
-    if (/[a-zA-Z]+/.test(token)) {
-      const funcName = consume()
-      if (!funcName) throw new Error("Expected function name")
-      
-      // Special case for ans (last answer) - doesn't need parentheses
-      if (funcName.toLowerCase() === 'ans') {
-        return { type: 'function', name: 'ans', args: [] }
-      }
-      
-      if (peek() !== '(') throw new Error(`Expected '(' after function ${funcName}`)
-      consume()
-      
-      const args: any[] = []
-      if (peek() !== ')') {
-        args.push(parseExpression())
-        while (peek() === ',') {
-          consume()
-          args.push(parseExpression())
+  for (const token of tokens) {
+    switch (token.type) {
+      case "number":
+      case "constant":
+        output.push(token)
+        break
+        
+      case "function":
+        operatorStack.push(token)
+        break
+        
+      case "operator": {
+        while (operatorStack.length > 0) {
+          const top = operatorStack[operatorStack.length - 1]
+          if (
+            top.type === "operator" &&
+            ((rightAssociative.has(token.value) && (top.precedence ?? 0) > (token.precedence ?? 0)) ||
+              (!rightAssociative.has(token.value) && (top.precedence ?? 0) >= (token.precedence ?? 0)))
+          ) {
+            output.push(operatorStack.pop()!)
+          } else {
+            break
+          }
         }
+        operatorStack.push(token)
+        break
       }
-      
-      if (peek() !== ')') throw new Error("Expected ')'")
-      consume()
-      
-      return { type: 'function', name: funcName.toLowerCase(), args }
+        
+      case "paren":
+        if (token.value === "(") {
+          operatorStack.push(token)
+        } else {
+          while (operatorStack.length > 0 && operatorStack[operatorStack.length - 1].value !== "(") {
+            output.push(operatorStack.pop()!)
+          }
+          operatorStack.pop() // Remove "("
+          // If there's a function before the parenthesis, pop it
+          if (operatorStack.length > 0 && operatorStack[operatorStack.length - 1].type === "function") {
+            output.push(operatorStack.pop()!)
+          }
+        }
+        break
     }
-    
-    throw new Error(`Unexpected token: ${token}`)
   }
   
-  function parsePower(): any {
-    let left = parseFactor()
-    
-    while (peek() === '^') {
-      consume()
-      const right = parsePower() // Right-associative
-      left = { type: 'binary', op: '^', left, right }
-    }
-    
-    return left
+  while (operatorStack.length > 0) {
+    output.push(operatorStack.pop()!)
   }
   
-  function parseTerm(): any {
-    let left = parsePower()
-    
-    while (peek() === '*' || peek() === '/' || peek() === '%') {
-      const op = consume()!
-      const right = parsePower()
-      left = { type: 'binary', op, left, right }
-    }
-    
-    return left
-  }
-  
-  function parseExpression(): any {
-    let left = parseTerm()
-    
-    while (peek() === '+' || peek() === '-') {
-      const op = consume()!
-      const right = parseTerm()
-      left = { type: 'binary', op, left, right }
-    }
-    
-    return left
-  }
-  
-  const result = parseExpression()
-  if (pos !== tokens.length) {
-    throw new Error(`Unexpected token at position ${pos}: ${tokens[pos]}`)
-  }
-  
-  return result
+  return output
 }
 
-function evaluateNode(node: any, angleUnit: AngleUnit, lastAnswer: number = 0): number {
-  if (typeof node === 'number') {
-    return node
+// Evaluate postfix expression
+function evaluatePostfix(postfix: Token[], angleUnit: AngleUnit, lastAnswer: number): number {
+  const stack: number[] = []
+  
+  for (const token of postfix) {
+    switch (token.type) {
+      case "number":
+        stack.push(parseFloat(token.value))
+        break
+        
+      case "constant":
+        if (token.value === "ans") {
+          stack.push(lastAnswer)
+        } else {
+          stack.push(constants[token.value as ConstantName])
+        }
+        break
+        
+      case "operator": {
+        const b = stack.pop() ?? 0
+        const a = stack.pop() ?? 0
+        switch (token.value) {
+          case "+":
+            stack.push(a + b)
+            break
+          case "-":
+            stack.push(a - b)
+            break
+          case "*":
+            stack.push(a * b)
+            break
+          case "/":
+            stack.push(a / b)
+            break
+          case "^":
+            stack.push(Math.pow(a, b))
+            break
+          case "%":
+            stack.push(a % b)
+            break
+          case "E":
+            stack.push(a * Math.pow(10, b))
+            break
+        }
+        break
+      }
+        
+      case "function": {
+        const arg = stack.pop() ?? 0
+        const fn = token.value.toLowerCase()
+        
+        // Trig functions with angle unit
+        if (["sin", "cos", "tan"].includes(fn)) {
+          stack.push(scientificFunctions[fn as "sin" | "cos" | "tan"](arg, angleUnit))
+        } else if (["asin", "acos", "atan"].includes(fn)) {
+          stack.push(scientificFunctions[fn as "asin" | "acos" | "atan"](arg, angleUnit))
+        } else if (fn in scientificFunctions) {
+          const func = scientificFunctions[fn as keyof typeof scientificFunctions]
+          if (typeof func === "function") {
+            stack.push((func as (x: number) => number)(arg))
+          }
+        } else {
+          throw new Error(`Unknown function: ${fn}`)
+        }
+        break
+      }
+    }
   }
   
-  if (node.type === 'binary') {
-    const left = evaluateNode(node.left, angleUnit, lastAnswer)
-    const right = evaluateNode(node.right, angleUnit, lastAnswer)
-    
-    switch (node.op) {
-      case '+': return left + right
-      case '-': return left - right
-      case '*': return left * right
-      case '/': 
-        if (right === 0) throw new Error("Division by zero")
-        return left / right
-      case '%': return left % right
-      case '^': return Math.pow(left, right)
-      default:
-        throw new Error(`Unknown operator: ${node.op}`)
-    }
-  }
-  
-  if (node.type === 'function') {
-    const args = node.args.map((arg: any) => evaluateNode(arg, angleUnit, lastAnswer))
-    
-    if (node.name === 'ans') {
-      return lastAnswer
-    }
-    
-    const func = scientificFunctions[node.name as keyof typeof scientificFunctions]
-    if (!func) throw new Error(`Unknown function: ${node.name}`)
-    
-    // Handle trigonometric functions with angle conversion
-    if (['sin', 'cos', 'tan'].includes(node.name)) {
-      const radians = convertAngleToRadians(args[0], angleUnit)
-      return (func as any)(radians)
-    }
-    
-    // Handle inverse trigonometric functions with angle conversion
-    if (['asin', 'acos', 'atan'].includes(node.name)) {
-      const result = (func as any)(...args)
-      return convertAngleFromRadians(result, angleUnit)
-    }
-    
-    return (func as any)(...args)
-  }
-  
-  throw new Error(`Unknown node type: ${node.type}`)
+  return stack[0] ?? 0
 }
 
-export function evaluate(expression: string, angleUnit: AngleUnit = "deg", lastAnswer: number = 0): number {
-  if (!expression.trim()) {
-    throw new Error("Empty expression")
-  }
+// Main evaluation function
+export function evaluate(expression: string, angleUnit: AngleUnit, lastAnswer: number): number {
+  if (!expression.trim()) return 0
   
-  try {
-    const tokens = tokenize(expression)
-    const ast = parse(tokens)
-    return evaluateNode(ast, angleUnit, lastAnswer)
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error("Invalid expression")
-  }
+  const tokens = tokenize(expression)
+  const postfix = toPostfix(tokens)
+  return evaluatePostfix(postfix, angleUnit, lastAnswer)
 }
 
-export function formatResult(result: number): string {
-  if (isNaN(result)) return "NaN"
-  if (!isFinite(result)) return result > 0 ? "Infinity" : "-Infinity"
-  
-  // Use scientific notation for very large or small numbers
-  if (Math.abs(result) >= 1e10 || (Math.abs(result) < 1e-6 && result !== 0)) {
-    return result.toExponential(1).replace(/\.?0+e/, 'e')
+// Format number for display
+export function formatResult(value: number, precision = 10): string {
+  if (!Number.isFinite(value)) {
+    if (Number.isNaN(value)) return "Error"
+    return value > 0 ? "Infinity" : "-Infinity"
   }
   
-  // Round to avoid floating point artifacts
-  const rounded = Math.round(result * 1e10) / 1e10
+  // Check if it's very close to zero
+  if (Math.abs(value) < 1e-15) return "0"
   
-  // Additional rounding for numbers very close to integers
-  if (Math.abs(result - Math.round(result)) < 1e-9) {
-    return Math.round(result).toString()
+  // Check if scientific notation is needed
+  const absValue = Math.abs(value)
+  if (absValue >= 1e10 || (absValue < 1e-6 && absValue > 0)) {
+    return value.toExponential(precision - 1).replace(/\.?0+e/, "e").replace(/e\+/, "e")
   }
   
-  // If it's essentially an integer, show as integer
-  if (Math.abs(rounded - Math.round(rounded)) < 1e-10) {
-    return Math.round(rounded).toString()
+  // Regular number formatting
+  const formatted = value.toPrecision(precision)
+  // Remove trailing zeros after decimal point
+  if (formatted.includes(".")) {
+    return formatted.replace(/\.?0+$/, "")
   }
-  
-  // Otherwise, show with appropriate precision
-  return rounded.toString()
+  return formatted
 }
+
+// Button categories for UI
+export const buttonCategories = {
+  number: ["7", "8", "9", "4", "5", "6", "1", "2", "3", "0", ".", "±"],
+  operator: ["+", "-", "*", "/", "^", "%"],
+  function: ["sin", "cos", "tan", "asin", "acos", "atan", "sinh", "cosh", "tanh", "ln", "log", "sqrt", "exp", "abs", "floor", "ceil", "round"],
+  constant: ["pi", "e"],
+  memory: ["MC", "MR", "M+", "M-", "MS"],
+  control: ["AC", "C", "=", "(", ")", "Ans"],
+} as const

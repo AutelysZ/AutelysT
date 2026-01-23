@@ -159,7 +159,7 @@ function bytesToBinaryString(bytes: Uint8Array) {
   for (let i = 0; i < bytes.length; i += chunkSize) {
     value += String.fromCharCode(...bytes.subarray(i, i + chunkSize))
   }
-  return value || ""
+  return value
 }
 
 function parseSeedValue(value: string) {
@@ -408,16 +408,16 @@ async function computeHashResult({
   switch (state.algorithmFamily) {
     case "murmur3": {
       const seed = seedToU32(parseSeedValue(state.murmurSeed))
-      // MurmurHash3 expects Uint8Array directly, not a binary string
+      const payload = bytesToBinaryString(input)
       if (state.murmurVariant === "x86-32") {
-        const value = MurmurHash3.x86.hash32(input, seed)
+        const value = MurmurHash3.x86.hash32(payload, seed) >>> 0
         return { bytes: bigIntToBytes(BigInt(value), 4), bits: 32, value: BigInt(value) }
       }
       if (state.murmurVariant === "x86-128") {
-        const hex = MurmurHash3.x86.hash128(input, seed)
+        const hex = MurmurHash3.x86.hash128(payload, seed)
         return { bytes: decodeHex(hex), bits: 128 }
       }
-      const hex = MurmurHash3.x64.hash128(input, seed)
+      const hex = MurmurHash3.x64.hash128(payload, seed)
       return { bytes: decodeHex(hex), bits: 128 }
     }
     case "xxhash": {

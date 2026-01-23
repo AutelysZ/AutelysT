@@ -29,8 +29,6 @@ When adding or updating a tool:
 - Update homepage copy and README when new tools or major features are added.
 - Create or update the tool's README whenever a tool is created or modified.
 - Always read the tool's README before modifying a tool.
-- Write unit tests for new utility functions in `tests/lib/<module>/`.
-- Run type check and tests before marking a task complete.
 
 ## URL Sync & State Restore
 - Parameters and inputs must reflect in the URL query string.
@@ -60,50 +58,8 @@ When adding or updating a tool:
 - Sitemap and robots should include tool routes.
 
 ## Commands & Automation
-
-### Type Checking
-Always run type checking after making changes:
-```bash
-npx tsc --noEmit
-```
-Fix all TypeScript errors before committing. Use `pnpm build` to verify full compilation.
-
-### Testing
-Add or update unit tests for all new or modified code:
-```bash
-# Run all tests
-npx vitest run
-
-# Run a single test file
-npx vitest run tests/lib/encoding/charset-converter.test.ts
-
-# Run tests with watch mode (during development)
-npx vitest watch tests/lib/encoding/base64.test.ts
-```
-
-Test file location: `tests/` directory mirroring source structure (e.g., `tests/lib/encoding/` for `lib/encoding/`).
-
-### Build & Lint
-```bash
-# Full production build
-pnpm build
-
-# Start development server
-pnpm dev
-
-# Linting (if configured)
-pnpm lint
-```
-
-### Toolchain
-Use existing dependencies:
-- **Package manager**: `pnpm`
-- **TypeScript**: v5 with strict mode, path aliases (`@/*`)
-- **Framework**: Next.js 16 App Router
-- **Testing**: Vitest (default config)
-- **Validation**: Zod for runtime schema validation
-
-Do not add new tools or libraries without explicit approval.
+- Do not ask before running commands or editing files.
+- If a command is blocked by platform permissions, rerun with required approvals.
 
 ## Git & Safety
 - Do not rewrite history.
@@ -113,4 +69,3 @@ Do not add new tools or libraries without explicit approval.
 ## Output Expectations
 - Provide concise summaries with file paths.
 - Suggest tests or next steps only when they make sense.
-- Run type check (`npx tsc --noEmit`) and tests (`npx vitest run`) before marking tasks complete.

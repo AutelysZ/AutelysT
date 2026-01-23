@@ -65,7 +65,7 @@ function CalcButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-10 sm:h-12 w-full rounded-lg text-sm sm:text-base font-medium transition-all active:scale-95",
+        "h-12 w-full rounded-lg text-base font-medium transition-all active:scale-95",
         variantStyles[variant],
         className
       )}
@@ -94,47 +94,31 @@ export default function ScientificCalculatorPage() {
 }
 
 function ScientificCalculatorContent() {
-  const { state: params, setParam, hasUrlParams } = useUrlSyncedState("scientific-calculator", {
-    schema: paramsSchema,
-    defaults: defaultParams,
-    debounceMs: DEFAULT_URL_SYNC_DEBOUNCE_MS,
-  })
-
-  const handleLoadHistory = React.useCallback(
-    (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.expression !== undefined) setParam("expression", inputs.expression)
-      if (params.angleUnit) setParam("angleUnit", params.angleUnit as AngleUnit)
-    },
-    [setParam],
-  )
-
   return (
     <ToolPageWrapper
       toolId="scientific-calculator"
-      title="Scientific Calculator"
-      description="Full-featured scientific calculator with trigonometric, logarithmic, and exponential functions, memory operations, and calculation history."
-      onLoadHistory={handleLoadHistory}
+      paramsSchema={paramsSchema}
+      deserializeHistoryEntry={(entry: HistoryEntry) => {
+        const data = entry.data as { expression?: string; angleUnit?: AngleUnit; result?: string }
+        return {
+          expression: data.expression ?? "",
+          angleUnit: data.angleUnit ?? "deg",
+        }
+      }}
     >
-      <ScientificCalculatorInner
-        state={params}
-        setParam={setParam}
-        hasUrlParams={hasUrlParams}
-      />
+      <ScientificCalculatorInner />
     </ToolPageWrapper>
   )
 }
 
-function ScientificCalculatorInner({
-  state,
-  setParam,
-  hasUrlParams,
-}: {
-  state: { expression: string; angleUnit: AngleUnit }
-  setParam: <K extends keyof typeof state>(key: K, value: typeof state[K], immediate?: boolean) => void
-  hasUrlParams: boolean
-}) {
-  const { addHistoryEntry } = useToolHistoryContext()
+function ScientificCalculatorInner() {
+  const { saveToHistory } = useToolHistoryContext()
+
+  const { state: params, setState: setParams } = useUrlSyncedState("scientific-calculator", {
+    schema: paramsSchema,
+    defaults: defaultParams,
+    debounceMs: DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  })
 
   const [display, setDisplay] = React.useState("0")
   const [expression, setExpression] = React.useState("")
@@ -148,17 +132,17 @@ function ScientificCalculatorInner({
 
   // Sync expression with URL params
   React.useEffect(() => {
-    if (state.expression) {
-      setExpression(state.expression)
+    if (params.expression) {
+      setExpression(params.expression)
       try {
-        const result = evaluate(state.expression, state.angleUnit, lastAnswer)
+        const result = evaluate(params.expression, params.angleUnit, lastAnswer)
         setDisplay(formatResult(result))
         setError(null)
       } catch {
         setDisplay("0")
       }
     }
-  }, [state.expression, state.angleUnit, lastAnswer])
+  }, [])
 
   const handleInput = React.useCallback((value: string) => {
     setError(null)
@@ -331,7 +315,7 @@ function ScientificCalculatorInner({
     if (!expression) return
 
     try {
-      const result = evaluate(expression, state.angleUnit, lastAnswer)
+      const result = evaluate(expression, params.angleUnit, lastAnswer)
       const formattedResult = formatResult(result)
       
       setDisplay(formattedResult)
@@ -341,13 +325,14 @@ function ScientificCalculatorInner({
       setCalcHistory(prev => [...prev.slice(-19), { expr: expression, result: formattedResult }])
       
       // Save to tool history
-      addHistoryEntry(
-        { expression },
-        { angleUnit: state.angleUnit }
-      )
+      saveToHistory({
+        expression,
+        angleUnit: params.angleUnit,
+        result: formattedResult,
+      })
       
       // Update URL params
-      setParam("expression", expression)
+      setParams({ ...params, expression })
       
       // Clear expression for next input but keep result displayed
       setExpression(formattedResult)
@@ -356,7 +341,7 @@ function ScientificCalculatorInner({
       setError(err instanceof Error ? err.message : "Calculation error")
       setDisplay("Error")
     }
-  }, [expression, state, lastAnswer, addHistoryEntry, setParam])
+  }, [expression, params, lastAnswer, saveToHistory, setParams])
 
   // Memory operations
   const handleMemoryClear = () => setMemory(0)
@@ -367,7 +352,7 @@ function ScientificCalculatorInner({
   }
   const handleMemoryAdd = () => {
     try {
-      const current = evaluate(expression || display, state.angleUnit, lastAnswer)
+      const current = evaluate(expression || display, params.angleUnit, lastAnswer)
       setMemory(memory + current)
     } catch {
       // Ignore errors
@@ -375,7 +360,7 @@ function ScientificCalculatorInner({
   }
   const handleMemorySubtract = () => {
     try {
-      const current = evaluate(expression || display, state.angleUnit, lastAnswer)
+      const current = evaluate(expression || display, params.angleUnit, lastAnswer)
       setMemory(memory - current)
     } catch {
       // Ignore errors
@@ -383,7 +368,7 @@ function ScientificCalculatorInner({
   }
   const handleMemoryStore = () => {
     try {
-      const current = evaluate(expression || display, state.angleUnit, lastAnswer)
+      const current = evaluate(expression || display, params.angleUnit, lastAnswer)
       setMemory(current)
     } catch {
       // Ignore errors
@@ -415,20 +400,19 @@ function ScientificCalculatorInner({
   }, [handleKeyDown])
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-6">
       {/* Mode Selection */}
-      <div className="flex flex-col gap-3 sm:gap-4">
-        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">Angle:</span>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Angle:</span>
             <Tabs
-              value={state.angleUnit}
-              onValueChange={(value) => setParam("angleUnit", value as AngleUnit)}
-              className="flex-1 sm:flex-none"
+              value={params.angleUnit}
+              onValueChange={(value) => setParams({ ...params, angleUnit: value as AngleUnit })}
             >
               <ScrollableTabsList>
                 {angleUnits.map((unit) => (
-                  <TabsTrigger key={unit} value={unit} className="text-xs sm:text-sm">
+                  <TabsTrigger key={unit} value={unit}>
                     {angleUnitLabels[unit]}
                   </TabsTrigger>
                 ))}
@@ -436,12 +420,12 @@ function ScientificCalculatorInner({
             </Tabs>
           </div>
           
-          <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto justify-between sm:justify-end">
+          <div className="flex items-center gap-2 ml-auto">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowFunctions(!showFunctions)}
-              className={cn(showFunctions && "bg-muted", "text-xs sm:text-sm")}
+              className={cn(showFunctions && "bg-muted")}
             >
               {showFunctions ? "Basic" : "Scientific"}
             </Button>
@@ -449,18 +433,18 @@ function ScientificCalculatorInner({
               variant="outline"
               size="icon"
               onClick={() => setShowHistory(!showHistory)}
-              className={cn(showHistory && "bg-muted", "h-8 w-8 sm:h-9 sm:w-9")}
+              className={cn(showHistory && "bg-muted")}
             >
-              <History className="h-3 w-3 sm:h-4 sm:w-4" />
+              <History className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
 
       {/* Display */}
-      <div className="rounded-xl border bg-muted/50 p-4 w-full">
+      <div className="rounded-xl border bg-muted/50 p-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground font-mono truncate max-w-[60%] sm:max-w-[80%]">
+          <span className="text-xs text-muted-foreground font-mono truncate max-w-[80%]">
             {expression || "0"}
           </span>
           <div className="flex items-center gap-1">
@@ -470,7 +454,7 @@ function ScientificCalculatorInner({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 shrink-0"
+              className="h-6 w-6"
               onClick={handleCopy}
             >
               {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -478,31 +462,31 @@ function ScientificCalculatorInner({
           </div>
         </div>
         <div className={cn(
-          "text-right font-mono text-3xl sm:text-4xl font-bold tracking-tight break-all",
+          "text-right font-mono text-4xl font-bold tracking-tight",
           error && "text-destructive"
         )}>
           {display}
         </div>
         {error && (
-          <p className="text-xs text-destructive mt-1 break-words">{error}</p>
+          <p className="text-xs text-destructive mt-1">{error}</p>
         )}
       </div>
 
       {/* History Panel */}
       {showHistory && calcHistory.length > 0 && (
-        <div className="rounded-lg border bg-muted/30 p-3 max-h-32 overflow-y-auto w-full">
+        <div className="rounded-lg border bg-muted/30 p-3 max-h-40 overflow-y-auto">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-muted-foreground">History</span>
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 text-xs shrink-0"
+              className="h-6 text-xs"
               onClick={() => setCalcHistory([])}
             >
               Clear
             </Button>
           </div>
-          <div className="space-y-1 max-h-20 overflow-y-auto">
+          <div className="space-y-1">
             {calcHistory.slice().reverse().map((item, i) => (
               <button
                 key={`${item.expr}-${i}`}
@@ -510,10 +494,10 @@ function ScientificCalculatorInner({
                   setExpression(item.result)
                   setDisplay(item.result)
                 }}
-                className="w-full text-left px-2 py-1 rounded hover:bg-muted transition-colors truncate"
+                className="w-full text-left px-2 py-1 rounded hover:bg-muted transition-colors"
               >
-                <span className="text-xs text-muted-foreground font-mono truncate">{item.expr} =</span>
-                <span className="text-sm font-mono ml-2 truncate">{item.result}</span>
+                <span className="text-xs text-muted-foreground font-mono">{item.expr} =</span>
+                <span className="text-sm font-mono ml-2">{item.result}</span>
               </button>
             ))}
           </div>
@@ -521,10 +505,10 @@ function ScientificCalculatorInner({
       )}
 
       {/* Calculator Buttons */}
-      <div className="flex flex-col gap-2 w-full max-w-lg mx-auto">
+      <div className="flex flex-col gap-2">
         {/* Scientific Functions Row */}
         {showFunctions && (
-          <div className="grid grid-cols-5 gap-1 sm:gap-1.5 mb-2 text-xs sm:text-sm">
+          <div className="grid grid-cols-5 gap-1.5 mb-2">
             <CalcButton variant="function" onClick={() => handleInput("sin")}>sin</CalcButton>
             <CalcButton variant="function" onClick={() => handleInput("cos")}>cos</CalcButton>
             <CalcButton variant="function" onClick={() => handleInput("tan")}>tan</CalcButton>
@@ -558,7 +542,7 @@ function ScientificCalculatorInner({
         )}
 
         {/* Memory Row */}
-        <div className="grid grid-cols-5 gap-1 sm:gap-1.5 text-xs sm:text-sm">
+        <div className="grid grid-cols-5 gap-1.5">
           <CalcButton variant="function" onClick={handleMemoryClear}>MC</CalcButton>
           <CalcButton variant="function" onClick={handleMemoryRecall}>MR</CalcButton>
           <CalcButton variant="function" onClick={handleMemoryAdd}>M+</CalcButton>
@@ -567,7 +551,7 @@ function ScientificCalculatorInner({
         </div>
 
         {/* Main Calculator Grid */}
-        <div className="grid grid-cols-4 gap-1 sm:gap-1.5">
+        <div className="grid grid-cols-4 gap-1.5">
           {/* Row 1 */}
           <CalcButton variant="clear" onClick={handleClear}>AC</CalcButton>
           <CalcButton variant="function" onClick={() => handleInput("(")}>(</CalcButton>
@@ -600,9 +584,9 @@ function ScientificCalculatorInner({
         </div>
 
         {/* Bottom Row */}
-        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 mt-1 text-xs sm:text-sm">
+        <div className="grid grid-cols-3 gap-1.5 mt-1">
           <CalcButton variant="function" onClick={handleDelete}>
-            <Delete className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Delete className="h-4 w-4" />
           </CalcButton>
           <CalcButton variant="function" onClick={() => handleInput("Ans")}>Ans</CalcButton>
           <CalcButton variant="function" onClick={() => {
@@ -610,13 +594,13 @@ function ScientificCalculatorInner({
             setLastAnswer(0)
             setMemory(0)
           }}>
-            <RotateCcw className="h-3 w-3 sm:h-4 sm:w-4" />
+            <RotateCcw className="h-4 w-4" />
           </CalcButton>
         </div>
       </div>
 
       {/* Keyboard Shortcuts Info */}
-      <div className="text-xs text-muted-foreground text-center px-2 hidden sm:block">
+      <div className="text-xs text-muted-foreground text-center">
         <span>Keyboard: Numbers, operators (+, -, *, /, ^), Enter = calculate, Escape = clear, Backspace = delete</span>
       </div>
     </div>
