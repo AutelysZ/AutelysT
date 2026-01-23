@@ -728,6 +728,25 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "svg-converter",
+    name: "SVG Converter",
+    description: "Convert SVG to PNG with custom dimensions. Upload or paste SVG code, edit in real-time, and download as PNG.",
+    category: "Utility",
+    route: "/tools/svg-converter",
+    keywords: [
+      "svg", "png", "converter", "svg to png", "image converter", "svg editor", "resize", "download",
+      "vector", "raster", "icon", "favicon", "export", "transform", "scale",
+    ],
+    seo: {
+      title: "SVG to PNG Converter - AutelysT",
+      description: "Free online SVG to PNG converter with custom dimensions, real-time preview, code editing, and instant download.",
+      keywords: [
+        "svg to png", "svg converter", "image converter", "svg editor", "vector to raster",
+        "png export", "svg resize", "icon converter", "favicon generator",
+      ],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
