@@ -5,7 +5,13 @@
       "Bash(pnpm vitest run:*)",
       "Bash(pnpm tsc:*)",
       "Bash(pnpm build:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(ls:*)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm remove lz4-wasm-nodejs)",
+      "Bash(pnpm remove:*)",
+      "Bash(xargs cat:*)",
+      "Bash(npx next build:*)"
     ]
   }
 }

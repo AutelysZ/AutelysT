@@ -110,6 +110,7 @@ Do not add new tools or libraries without explicit approval.
 - Do not rewrite history.
 - Do not revert unrelated user changes.
 - Avoid destructive commands unless explicitly requested.
+- Do not commit changes automatically; only commit when explicitly requested by the user.
 
 ## Output Expectations
 - Provide concise summaries with file paths.

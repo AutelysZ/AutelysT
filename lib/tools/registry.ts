@@ -887,6 +887,25 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "archiver",
+    name: "Archiver",
+    description: "Compress and decompress files in various archive formats including ZIP, TAR, GZIP, 7z, RAR, and more.",
+    category: "Utility",
+    route: "/tools/archiver",
+    keywords: [
+      "archive", "compress", "decompress", "zip", "unzip", "tar", "gzip", "7z", "rar",
+      "extract", "pack", "unpack", "file compression", "archive manager",
+    ],
+    seo: {
+      title: "Archiver - AutelysT",
+      description: "Online file archiver to compress and decompress ZIP, TAR, GZIP, 7z, RAR, and many other archive formats.",
+      keywords: [
+        "archiver", "compress", "decompress", "zip", "unzip", "tar", "gzip", "7z", "rar",
+        "extract files", "file compression", "online archive tool",
+      ],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
