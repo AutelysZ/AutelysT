@@ -6,6 +6,7 @@ Convert SVG files to PNG format with customizable dimensions and background colo
 
 - **File Upload**: Upload SVG files directly from your device
 - **Code Editor**: Paste or edit SVG code with syntax highlighting
+- **Pretty Print**: Format SVG markup for readability
 - **Real-time Preview**: See your SVG rendered instantly as you edit
 - **Custom Dimensions**: Set exact width and height for PNG output (1-8192px)
 - **Aspect Ratio Lock**: Maintain proportions when resizing

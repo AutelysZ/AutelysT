@@ -251,6 +251,9 @@ importers:
       pkijs:
         specifier: ^3.3.3
         version: 3.3.3
+      prettier:
+        specifier: ^3.8.0
+        version: 3.8.0
       protobufjs:
         specifier: ^7.4.0
         version: 7.5.4
@@ -324,9 +327,6 @@ importers:
       postcss:
         specifier: ^8.5
         version: 8.5.0
-      prettier:
-        specifier: ^3.8.0
-        version: 3.8.0
       tailwindcss:
         specifier: ^4.1.9
         version: 4.1.9
