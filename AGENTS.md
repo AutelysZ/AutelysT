@@ -64,27 +64,27 @@ When adding or updating a tool:
 
 ### Type Checking
 Only run type checking when explicitly requested:
-\`\`\`bash
+```bash
 npx tsc --noEmit
-\`\`\`
+```
 When run, execute type checking for the entire project (no single-file checks).
 Fix all TypeScript errors before committing. Use `pnpm build` to verify full compilation only when explicitly requested.
 
 ### Testing
 Add or update unit tests for all new or modified code. Only run tests when explicitly requested:
-\`\`\`bash
+```bash
 # Run all tests
 npx vitest run
 
 # Run tests with watch mode (during development)
 npx vitest watch tests/lib/encoding/base64.test.ts
-\`\`\`
+```
 When run, execute tests for the entire project (no single-file runs unless explicitly requested).
 
 Test file location: `tests/` directory mirroring source structure (e.g., `tests/lib/encoding/` for `lib/encoding/`).
 
 ### Build & Lint
-\`\`\`bash
+```bash
 # Full production build
 pnpm build
 
@@ -93,7 +93,7 @@ pnpm dev
 
 # Linting (if configured)
 pnpm lint
-\`\`\`
+```
 Only run build/lint commands when explicitly requested. When run, use the full-project commands above.
 
 ### Toolchain
