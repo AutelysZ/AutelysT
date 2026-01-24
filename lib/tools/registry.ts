@@ -956,6 +956,25 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "color",
+    name: "Color Converter",
+    description: "Parse, pick, and convert colors between HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, and CMYK formats.",
+    category: "Utility",
+    route: "/tools/color",
+    keywords: [
+      "color", "converter", "hex", "rgb", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "cmyk",
+      "color picker", "color format", "css color", "color code", "eyedropper",
+    ],
+    seo: {
+      title: "Color Converter - AutelysT",
+      description: "Online color converter supporting HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, CMYK and more CSS color formats with color picker and image eyedropper.",
+      keywords: [
+        "color converter", "hex to rgb", "rgb to hsl", "color picker", "css colors",
+        "oklab", "oklch", "color format", "color code converter",
+      ],
+    },
+  },
 ]
 
 export function getToolById(id: string): Tool | undefined {
