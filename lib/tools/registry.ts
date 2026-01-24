@@ -740,6 +740,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "html-renderer",
+    name: "HTML Renderer",
+    description: "Live HTML editor with real-time iframe preview. Edit HTML code and see instant rendered output.",
+    category: "Web",
+    route: "/tools/html-renderer",
+    keywords: ["html renderer", "html editor", "live preview", "iframe", "html viewer", "web editor"],
+    seo: {
+      title: "HTML Renderer - AutelysT",
+      description: "Live HTML editor with real-time iframe preview, full-page mode, and download capabilities.",
+      keywords: ["html renderer", "html editor", "live preview", "iframe", "html viewer", "web editor", "html sandbox"],
+    },
+  },
+  {
     id: "url-encode",
     name: "URL Encoder/Decoder",
     description: "Encode and decode URL strings with detailed parsing of components and query/hash params.",
