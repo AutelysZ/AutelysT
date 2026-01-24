@@ -122,6 +122,29 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "punycode",
+    name: "Punycode",
+    description: "Encode and decode internationalized domain names (IDN) with Punycode.",
+    category: "Encoding",
+    route: "/tools/punycode",
+    keywords: ["punycode", "idn", "internationalized domain", "unicode", "xn--", "domain", "encode", "decode"],
+    seo: {
+      title: "Punycode Encoder/Decoder - AutelysT",
+      description:
+        "Online Punycode encoder/decoder for internationalized domain names (IDN) with domain and raw label modes.",
+      keywords: [
+        "punycode",
+        "idn",
+        "internationalized domain name",
+        "unicode domain",
+        "xn--",
+        "domain encoder",
+        "domain decoder",
+        "ascii compatible encoding",
+      ],
+    },
+  },
   // Crypto Tools
   {
     id: "password-generator",

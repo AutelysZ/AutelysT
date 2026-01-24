@@ -11,7 +11,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "7z-wasm": "^1.2.0",
     "@bokuweb/zstd-wasm": "^0.0.27",
     "@edge-runtime/vm": "latest",
     "@hookform/resolvers": "^3.10.0",
@@ -60,9 +59,11 @@
     "@vitest/browser-preview": "latest",
     "@vitest/browser-webdriverio": "latest",
     "@vitest/ui": "latest",
+    "7z-wasm": "^1.2.0",
     "asn1js": "^3.0.7",
     "autoprefixer": "^10.4.20",
     "bson": "7.0.0",
+    "canvas": "latest",
     "cbor-x": "^1.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -98,6 +99,7 @@
     "nzh": "1.0.14",
     "openpgp": "^6.1.0",
     "pkijs": "^3.3.3",
+    "playwright": "latest",
     "prettier": "^3.8.0",
     "protobufjs": "^7.4.0",
     "react": "19.2.0",
@@ -115,6 +117,7 @@
     "ulid": "3.0.2",
     "uuid": "13.0.0",
     "vaul": "^1.1.2",
+    "webdriverio": "latest",
     "xlsx": "^0.18.5",
     "zod": "3.25.76"
   },
