@@ -348,6 +348,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "asn1-decoder",
+    name: "ASN.1 Decoder",
+    description: "Decode and visualize ASN.1 DER/BER encoded data structures with tree and text views.",
+    category: "Crypto",
+    route: "/tools/asn1-decoder",
+    keywords: ["asn1", "asn.1", "der", "ber", "decoder", "parser", "certificate", "x509", "pkcs", "oid"],
+    seo: {
+      title: "ASN.1 Decoder - AutelysT",
+      description: "Online ASN.1 decoder to parse and visualize DER/BER encoded data structures from PEM, hex, or base64.",
+      keywords: ["asn1", "asn.1", "der", "ber", "decoder", "parser", "certificate", "x509", "pkcs", "oid"],
+    },
+  },
+  {
     id: "jwt",
     name: "JWT",
     description: "Parse, edit, and generate JSON Web Tokens with claims editing and signature validation.",
