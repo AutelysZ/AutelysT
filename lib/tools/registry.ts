@@ -110,6 +110,20 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "url-escape",
+    name: "URL Escape",
+    description: "Encode and decode URL percent-encoding (%XX) with input encoding selection, mode control, and case options.",
+    category: "Encoding",
+    route: "/tools/url-escape",
+    keywords: ["url", "escape", "percent", "encode", "decode", "uri", "component"],
+    seo: {
+      title: "URL Escape Encoder/Decoder - AutelysT",
+      description:
+        "Online URL escape encoder/decoder for percent-encoding (%XX) with input encoding selection, encoding modes, and case control.",
+      keywords: ["url escape", "percent encoding", "encoder", "decoder", "%XX", "uri encoding", "component encoding"],
+    },
+  },
+  {
     id: "charset-converter",
     name: "Charset Converter",
     description: "Convert text between different charsets with various encoding formats including Base64, URL, and Hex Escape.",

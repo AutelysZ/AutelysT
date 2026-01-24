@@ -72,6 +72,7 @@ function UrlEscapeContent() {
         const encoded = encodeUrlEscape(bytes, { upperCase: state.upperCase, mode: state.mode as EncodeMode })
         setParam("rightText", encoded)
       } catch (err) {
+        console.error("URL escape encode failed", err)
         setLeftError(err instanceof Error ? err.message : "Encoding failed")
       }
     },
@@ -94,6 +95,7 @@ function UrlEscapeContent() {
         const text = decodeText(bytes, state.encoding)
         setParam("leftText", text)
       } catch (err) {
+        console.error("URL escape decode failed", err)
         setRightError(err instanceof Error ? err.message : "Decoding failed")
       }
     },
@@ -143,6 +145,7 @@ function UrlEscapeContent() {
           downloadName: file.name + ".url-escape.txt",
         })
       } catch (err) {
+        console.error("URL escape file encode failed", err)
         setLeftFileResult({
           status: "error",
           message: err instanceof Error ? err.message : "Encoding failed",
@@ -168,6 +171,7 @@ function UrlEscapeContent() {
         downloadName: baseName + ".raw",
       })
     } catch (err) {
+      console.error("URL escape file decode failed", err)
       setRightFileResult({
         status: "error",
         message: err instanceof Error ? err.message : "Decoding failed",

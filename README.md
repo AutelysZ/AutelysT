@@ -24,7 +24,7 @@
 ## 🌟 AI-Generated Features
 
 ### 🔤 Encoding & Conversion Tools
-**AI-Crafted Encoding Suite** - Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, HTML Encoder/Decoder with 100+ text encodings, file upload/download, and URL-safe modes.
+**AI-Crafted Encoding Suite** - Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Encoder/Decoder with 100+ text encodings, file upload/download, and URL-safe modes.
 
 ### 🔐 Cryptographic Tools (AI-Implemented)
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
