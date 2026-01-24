@@ -712,6 +712,19 @@ export const tools: Tool[] = [
       keywords: ["world clock", "time zone", "global time", "live clock", "time zones"],
     },
   },
+  {
+    id: "cron",
+    name: "Cron Expression Parser",
+    description: "Parse and visualize cron expressions with human-readable descriptions and next run times.",
+    category: "Date & Time",
+    route: "/tools/cron",
+    keywords: ["cron", "crontab", "schedule", "expression", "parser", "job", "task", "timer", "recurring"],
+    seo: {
+      title: "Cron Expression Parser - AutelysT",
+      description: "Online cron expression parser with human-readable descriptions, field breakdown, and next scheduled run times.",
+      keywords: ["cron parser", "cron expression", "crontab", "schedule parser", "cron validator", "next run time", "cron job"],
+    },
+  },
   // Web Tools
   {
     id: "html-encoder",
@@ -985,6 +998,27 @@ export const tools: Tool[] = [
       keywords: [
         "color converter", "hex to rgb", "rgb to hsl", "color picker", "css colors",
         "oklab", "oklch", "color format", "color code converter",
+      ],
+    },
+  },
+  {
+    id: "regex",
+    name: "Regex Tester",
+    description: "Test regular expressions with syntax highlighting and convert between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE flavors.",
+    category: "Utility",
+    route: "/tools/regex",
+    keywords: [
+      "regex", "regexp", "regular expression", "tester", "converter", "pattern", "match",
+      "ecmascript", "javascript", "re2", "pcre", "python", "java", "dotnet", "go", "rust", "bre", "ere", "posix",
+      "lookahead", "lookbehind", "capture group", "named group", "backreference",
+    ],
+    seo: {
+      title: "Regex Tester & Converter - AutelysT",
+      description: "Online regex tester with syntax highlighting, match visualization, and flavor conversion between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE.",
+      keywords: [
+        "regex tester", "regular expression", "regex converter", "pattern matcher",
+        "ecmascript regex", "pcre", "python regex", "java regex", "regex syntax",
+        "regex highlighter", "regex debugger", "regex validator",
       ],
     },
   },
