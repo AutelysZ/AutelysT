@@ -97,6 +97,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "unicode-escape",
+    name: "Unicode Escape",
+    description: "Encode and decode Unicode escape sequences (\\uXXXX) with selective character escaping modes.",
+    category: "Encoding",
+    route: "/tools/unicode-escape",
+    keywords: ["unicode", "escape", "encode", "decode", "\\u", "codepoint"],
+    seo: {
+      title: "Unicode Escape Encoder/Decoder - AutelysT",
+      description: "Online Unicode escape encoder/decoder for \\uXXXX sequences with modes for all, non-graphic ASCII, or non-graphic Latin characters.",
+      keywords: ["unicode escape", "encoder", "decoder", "\\uXXXX", "codepoint", "string escape"],
+    },
+  },
+  {
     id: "charset-converter",
     name: "Charset Converter",
     description: "Convert text between different charsets with various encoding formats including Base64, URL, and Hex Escape.",
