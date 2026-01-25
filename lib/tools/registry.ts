@@ -1164,6 +1164,27 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "mime",
+    name: "MIME Lookup",
+    description:
+      "Detect MIME types by filename and list known extensions for MIME types.",
+    category: "Web",
+    route: "/tools/mime",
+    keywords: ["mime", "content type", "file type", "extension", "lookup"],
+    seo: {
+      title: "MIME Lookup - AutelysT",
+      description:
+        "Lookup MIME types by filename and get known extensions for MIME types.",
+      keywords: [
+        "mime lookup",
+        "mime type",
+        "content type",
+        "file extension",
+        "lookup",
+      ],
+    },
+  },
+  {
     id: "source-map-viewer",
     name: "Source Map Viewer",
     description:

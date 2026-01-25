@@ -58,6 +58,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **CSP Builder** - Build and edit Content-Security-Policy headers with directive-aware editing
 - **Source Map Viewer** - Browse source maps with a tree view, Monaco preview, and downloads
 - **File Type Detector** - Detect file MIME types and preview printable files
+- **MIME Lookup** - Detect MIME types by filename and list known extensions
 
 ### 🔄 Converters (AI-Optimized)
 

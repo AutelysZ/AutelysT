@@ -272,6 +272,12 @@ importers:
       marked-highlight:
         specifier: ^2.2.3
         version: 2.2.3(marked@17.0.1)
+      mime-db:
+        specifier: ^1.54.0
+        version: 1.54.0
+      mime-score:
+        specifier: ^2.0.4
+        version: 2.0.4
       monaco-editor:
         specifier: ^0.52.0
         version: 0.52.2
@@ -3162,6 +3168,14 @@ packages:
   micromatch@4.0.8:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
+
+  mime-db@1.54.0:
+    resolution: {integrity: sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ==}
+    engines: {node: '>= 0.6'}
+
+  mime-score@2.0.4:
+    resolution: {integrity: sha512-8L4TUnElJSWVkeVJEdhJYmL+5ceyUcw+d6B2Zic12kFF264+AGS2CKszryI/Uz8vP93k9RE09rKwJnSLAn32jA==}
+    hasBin: true
 
   mimic-function@5.0.1:
     resolution: {integrity: sha512-VP79XUPxV2CigYP3jWwAUFSku2aKqBH7uTAapFWCBqutsbmDo96KY5o8uh6U+/YSIn5OxJnXp73beVkpqMIGhA==}
@@ -6843,6 +6857,10 @@ snapshots:
     dependencies:
       braces: 3.0.3
       picomatch: 2.3.1
+
+  mime-db@1.54.0: {}
+
+  mime-score@2.0.4: {}
 
   mimic-function@5.0.1: {}
 
