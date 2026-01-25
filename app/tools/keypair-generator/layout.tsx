@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Keypair Generator - AutelysT",
@@ -27,8 +27,12 @@ export const metadata: Metadata = {
     "jwk",
     "pem",
   ],
-}
+};
 
-export default function KeypairGeneratorLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function KeypairGeneratorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

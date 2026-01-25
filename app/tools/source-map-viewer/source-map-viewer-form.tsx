@@ -1,32 +1,37 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import Editor from "@monaco-editor/react"
-import { useTheme } from "next-themes"
-import { Download, FileDown, FolderUp, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import SourceMapFileTree from "./source-map-file-tree"
-import type { SourceFile, SourceMapBundle, SourceTreeNode } from "./source-map-viewer-types"
-import { getLanguageFromPath } from "./source-map-viewer-utils"
+import * as React from "react";
+import Editor from "@monaco-editor/react";
+import { useTheme } from "next-themes";
+import { Download, FileDown, FolderUp, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import SourceMapFileTree from "./source-map-file-tree";
+import type {
+  SourceFile,
+  SourceMapBundle,
+  SourceTreeNode,
+} from "./source-map-viewer-types";
+import { getLanguageFromPath } from "./source-map-viewer-utils";
 
-const ACCEPTED_FILE_TYPES = ".map,.js,.mjs,.cjs,.jsx,.ts,.tsx,.css,.scss,.sass,.less"
+const ACCEPTED_FILE_TYPES =
+  ".map,.js,.mjs,.cjs,.jsx,.ts,.tsx,.css,.scss,.sass,.less";
 
 type SourceMapViewerFormProps = {
-  bundles: SourceMapBundle[]
-  treeNodes: SourceTreeNode[]
-  activeBundle: SourceMapBundle | null
-  activeFile: SourceFile | null
-  parseErrors: string[]
-  downloadError: string | null
-  oversizeKeys: string[]
-  onFilesUpload: (files: File[]) => void
-  onClear: () => void
-  onSelectFile: (mapId: string, fileId: string) => void
-  onDownloadFile: () => void
-  onDownloadAll: () => void
-}
+  bundles: SourceMapBundle[];
+  treeNodes: SourceTreeNode[];
+  activeBundle: SourceMapBundle | null;
+  activeFile: SourceFile | null;
+  parseErrors: string[];
+  downloadError: string | null;
+  oversizeKeys: string[];
+  onFilesUpload: (files: File[]) => void;
+  onClear: () => void;
+  onSelectFile: (mapId: string, fileId: string) => void;
+  onDownloadFile: () => void;
+  onDownloadAll: () => void;
+};
 
 export default function SourceMapViewerForm({
   bundles,
@@ -42,45 +47,53 @@ export default function SourceMapViewerForm({
   onDownloadFile,
   onDownloadAll,
 }: SourceMapViewerFormProps) {
-  const { resolvedTheme } = useTheme()
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const { resolvedTheme } = useTheme();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const totalSources = React.useMemo(
     () => bundles.reduce((acc, bundle) => acc + bundle.sources.length, 0),
     [bundles],
-  )
+  );
 
   const missingSources = React.useMemo(
-    () => bundles.reduce((acc, bundle) => acc + bundle.sources.filter((source) => source.content === null).length, 0),
+    () =>
+      bundles.reduce(
+        (acc, bundle) =>
+          acc +
+          bundle.sources.filter((source) => source.content === null).length,
+        0,
+      ),
     [bundles],
-  )
+  );
 
   const handleFileChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = event.target.files
+      const files = event.target.files;
       if (files && files.length > 0) {
-        onFilesUpload(Array.from(files))
+        onFilesUpload(Array.from(files));
       }
-      event.target.value = ""
+      event.target.value = "";
     },
     [onFilesUpload],
-  )
+  );
 
   const handleUploadClick = React.useCallback(() => {
-    fileInputRef.current?.click()
-  }, [])
+    fileInputRef.current?.click();
+  }, []);
 
   const handleSelectNode = React.useCallback(
     (node: SourceTreeNode) => {
       if (node.fileId && node.mapId) {
-        onSelectFile(node.mapId, node.fileId)
+        onSelectFile(node.mapId, node.fileId);
       }
     },
     [onSelectFile],
-  )
+  );
 
-  const editorLanguage = activeFile ? getLanguageFromPath(activeFile.path) : "plaintext"
-  const editorContent = activeFile?.content ?? ""
+  const editorLanguage = activeFile
+    ? getLanguageFromPath(activeFile.path)
+    : "plaintext";
+  const editorContent = activeFile?.content ?? "";
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,7 +102,8 @@ export default function SourceMapViewerForm({
           <div>
             <div className="text-sm font-medium">Uploads</div>
             <p className="text-xs text-muted-foreground">
-              Upload source maps or JavaScript/CSS files with inline source maps. Multiple files are supported.
+              Upload source maps or JavaScript/CSS files with inline source
+              maps. Multiple files are supported.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -101,7 +115,13 @@ export default function SourceMapViewerForm({
               className="hidden"
               onChange={handleFileChange}
             />
-            <Button type="button" variant="secondary" size="sm" className="h-8 gap-1" onClick={handleUploadClick}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="h-8 gap-1"
+              onClick={handleUploadClick}
+            >
               <FolderUp className="h-4 w-4" />
               Upload
             </Button>
@@ -141,9 +161,13 @@ export default function SourceMapViewerForm({
             ))}
           </div>
         )}
-        {downloadError && <p className="mt-2 text-xs text-destructive">{downloadError}</p>}
+        {downloadError && (
+          <p className="mt-2 text-xs text-destructive">{downloadError}</p>
+        )}
         {oversizeKeys.length > 0 && (
-          <p className="mt-2 text-xs text-muted-foreground">Selection exceeds 2 KB and is not synced to URL.</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Selection exceeds 2 KB and is not synced to URL.
+          </p>
         )}
       </div>
 
@@ -152,7 +176,11 @@ export default function SourceMapViewerForm({
           <div className="min-h-[280px] border-r border-border/60 bg-muted/20">
             <ScrollArea className="h-[calc(100vh-16rem)] min-h-[280px]">
               <div className="px-2 py-3">
-                <SourceMapFileTree nodes={treeNodes} activeFileId={activeFile?.id ?? ""} onSelect={handleSelectNode} />
+                <SourceMapFileTree
+                  nodes={treeNodes}
+                  activeFileId={activeFile?.id ?? ""}
+                  onSelect={handleSelectNode}
+                />
               </div>
             </ScrollArea>
           </div>
@@ -205,12 +233,13 @@ export default function SourceMapViewerForm({
             </div>
             {activeFile && activeFile.content === null && (
               <p className="px-3 py-2 text-xs text-muted-foreground">
-                This source map does not embed source content for the selected file.
+                This source map does not embed source content for the selected
+                file.
               </p>
             )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

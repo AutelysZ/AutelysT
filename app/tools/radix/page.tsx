@@ -1,21 +1,38 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ArrowLeftRight, Check, Copy } from "lucide-react"
-import { convertRadix, toBase60, fromBase60, isValidBase60 } from "@/lib/numbers/radix"
-import { cn } from "@/lib/utils"
-import type { HistoryEntry } from "@/lib/history/db"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ArrowLeftRight, Check, Copy } from "lucide-react";
+import {
+  convertRadix,
+  toBase60,
+  fromBase60,
+  isValidBase60,
+} from "@/lib/numbers/radix";
+import { cn } from "@/lib/utils";
+import type { HistoryEntry } from "@/lib/history/db";
 
 const paramsSchema = z.object({
   leftRadix: z.string().default("10"),
@@ -29,7 +46,7 @@ const paramsSchema = z.object({
   activeSide: z.enum(["left", "right"]).default("left"),
   leftText: z.string().default(""),
   rightText: z.string().default(""),
-})
+});
 
 const RADIX_OPTIONS = [
   { value: "10", label: "Decimal (10)" },
@@ -38,127 +55,140 @@ const RADIX_OPTIONS = [
   { value: "2", label: "Binary (2)" },
   { value: "60", label: "Base 60" },
   { value: "custom", label: "Custom" },
-]
+];
 
-const PADDING_OPTIONS = ["0", "1", "2", "4", "8"]
-const PADDING_OPTIONS_BASE60 = ["0", "2"]
+const PADDING_OPTIONS = ["0", "1", "2", "4", "8"];
+const PADDING_OPTIONS_BASE60 = ["0", "2"];
 
 function RadixContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("radix", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-    inputSide: {
-      sideKey: "activeSide",
-      inputKeyBySide: {
-        left: "leftText",
-        right: "rightText",
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("radix", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+      inputSide: {
+        sideKey: "activeSide",
+        inputKeyBySide: {
+          left: "leftText",
+          right: "rightText",
+        },
       },
-    },
-  })
+    });
 
-  const [leftError, setLeftError] = React.useState<string | null>(null)
-  const [rightError, setRightError] = React.useState<string | null>(null)
-  const [copiedSide, setCopiedSide] = React.useState<"left" | "right" | null>(null)
+  const [leftError, setLeftError] = React.useState<string | null>(null);
+  const [rightError, setRightError] = React.useState<string | null>(null);
+  const [copiedSide, setCopiedSide] = React.useState<"left" | "right" | null>(
+    null,
+  );
 
   const handleCopy = React.useCallback(
     async (side: "left" | "right") => {
-      const value = side === "left" ? state.leftText : state.rightText
-      if (!value) return
+      const value = side === "left" ? state.leftText : state.rightText;
+      if (!value) return;
       try {
-        await navigator.clipboard.writeText(value)
-        setCopiedSide(side)
-        setTimeout(() => setCopiedSide(null), 1500)
+        await navigator.clipboard.writeText(value);
+        setCopiedSide(side);
+        setTimeout(() => setCopiedSide(null), 1500);
       } catch {}
     },
     [state.leftText, state.rightText],
-  )
+  );
 
   const getEffectiveRadix = (side: "left" | "right"): number => {
-    const radix = side === "left" ? state.leftRadix : state.rightRadix
-    const custom = side === "left" ? state.leftCustomRadix : state.rightCustomRadix
-    if (radix === "custom") return custom
-    return Number.parseInt(radix, 10)
-  }
+    const radix = side === "left" ? state.leftRadix : state.rightRadix;
+    const custom =
+      side === "left" ? state.leftCustomRadix : state.rightCustomRadix;
+    if (radix === "custom") return custom;
+    return Number.parseInt(radix, 10);
+  };
 
   const getPadding = (side: "left" | "right"): number => {
-    const padding = side === "left" ? state.leftPadding : state.rightPadding
-    return Number.parseInt(padding, 10)
-  }
+    const padding = side === "left" ? state.leftPadding : state.rightPadding;
+    return Number.parseInt(padding, 10);
+  };
 
   const convertValue = React.useCallback(
     (value: string, fromSide: "left" | "right") => {
-      const toSide = fromSide === "left" ? "right" : "left"
-      const fromRadix = getEffectiveRadix(fromSide)
-      const toRadix = getEffectiveRadix(toSide)
-      const toUpperCase = toSide === "left" ? state.leftUpperCase : state.rightUpperCase
-      const toPadding = getPadding(toSide)
+      const toSide = fromSide === "left" ? "right" : "left";
+      const fromRadix = getEffectiveRadix(fromSide);
+      const toRadix = getEffectiveRadix(toSide);
+      const toUpperCase =
+        toSide === "left" ? state.leftUpperCase : state.rightUpperCase;
+      const toPadding = getPadding(toSide);
 
       try {
-        if (fromSide === "left") setLeftError(null)
-        else setRightError(null)
+        if (fromSide === "left") setLeftError(null);
+        else setRightError(null);
 
         if (!value.trim()) {
-          setParam(toSide === "left" ? "leftText" : "rightText", "")
-          return
+          setParam(toSide === "left" ? "leftText" : "rightText", "");
+          return;
         }
 
-        let result: string
+        let result: string;
 
         // Handle base60 special case
         if (fromRadix === 60) {
-          if (!isValidBase60(value)) throw new Error("Invalid base60 format")
-          const decimal = fromBase60(value)
+          if (!isValidBase60(value)) throw new Error("Invalid base60 format");
+          const decimal = fromBase60(value);
           if (toRadix === 60) {
-            result = toBase60(decimal, toPadding as 0 | 2)
+            result = toBase60(decimal, toPadding as 0 | 2);
           } else {
             result = convertRadix(decimal.toString(), 10, toRadix, {
               upperCase: toUpperCase,
               padding: toPadding,
-            })
+            });
           }
         } else if (toRadix === 60) {
-          const decimal = BigInt(convertRadix(value, fromRadix, 10, { upperCase: true }))
-          result = toBase60(decimal, toPadding as 0 | 2)
+          const decimal = BigInt(
+            convertRadix(value, fromRadix, 10, { upperCase: true }),
+          );
+          result = toBase60(decimal, toPadding as 0 | 2);
         } else {
           result = convertRadix(value, fromRadix, toRadix, {
             upperCase: toUpperCase,
             padding: toPadding,
-          })
+          });
         }
 
-        setParam(toSide === "left" ? "leftText" : "rightText", result)
+        setParam(toSide === "left" ? "leftText" : "rightText", result);
       } catch (err) {
-        if (fromSide === "left") setLeftError(err instanceof Error ? err.message : "Conversion failed")
-        else setRightError(err instanceof Error ? err.message : "Conversion failed")
+        if (fromSide === "left")
+          setLeftError(
+            err instanceof Error ? err.message : "Conversion failed",
+          );
+        else
+          setRightError(
+            err instanceof Error ? err.message : "Conversion failed",
+          );
       }
     },
     [state, setParam],
-  )
+  );
 
   const handleLeftChange = React.useCallback(
     (value: string) => {
-      setParam("leftText", value)
-      setParam("activeSide", "left")
-      convertValue(value, "left")
+      setParam("leftText", value);
+      setParam("activeSide", "left");
+      convertValue(value, "left");
     },
     [setParam, convertValue],
-  )
+  );
 
   const handleRightChange = React.useCallback(
     (value: string) => {
-      setParam("rightText", value)
-      setParam("activeSide", "right")
-      convertValue(value, "right")
+      setParam("rightText", value);
+      setParam("activeSide", "right");
+      convertValue(value, "right");
     },
     [setParam, convertValue],
-  )
+  );
 
   // Reconvert when params change
   React.useEffect(() => {
     if (state.activeSide === "left" && state.leftText) {
-      convertValue(state.leftText, "left")
+      convertValue(state.leftText, "left");
     } else if (state.activeSide === "right" && state.rightText) {
-      convertValue(state.rightText, "right")
+      convertValue(state.rightText, "right");
     }
   }, [
     state.leftRadix,
@@ -169,34 +199,39 @@ function RadixContent() {
     state.rightCustomRadix,
     state.rightUpperCase,
     state.rightPadding,
-  ])
+  ]);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
-      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
-      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+      const { inputs, params } = entry;
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText);
+      if (inputs.rightText !== undefined)
+        setParam("rightText", inputs.rightText);
+      if (params.activeSide)
+        setParam("activeSide", params.activeSide as "left" | "right");
     },
     [setParam],
-  )
+  );
 
   const renderSidePanel = (side: "left" | "right") => {
-    const isLeft = side === "left"
-    const radix = isLeft ? state.leftRadix : state.rightRadix
-    const customRadix = isLeft ? state.leftCustomRadix : state.rightCustomRadix
-    const upperCase = isLeft ? state.leftUpperCase : state.rightUpperCase
-    const padding = isLeft ? state.leftPadding : state.rightPadding
-    const text = isLeft ? state.leftText : state.rightText
-    const error = isLeft ? leftError : rightError
-    const isActive = state.activeSide === side
+    const isLeft = side === "left";
+    const radix = isLeft ? state.leftRadix : state.rightRadix;
+    const customRadix = isLeft ? state.leftCustomRadix : state.rightCustomRadix;
+    const upperCase = isLeft ? state.leftUpperCase : state.rightUpperCase;
+    const padding = isLeft ? state.leftPadding : state.rightPadding;
+    const text = isLeft ? state.leftText : state.rightText;
+    const error = isLeft ? leftError : rightError;
+    const isActive = state.activeSide === side;
     const warning = oversizeKeys.includes(isLeft ? "leftText" : "rightText")
       ? "Input exceeds 2 KB and is not synced to the URL."
-      : null
+      : null;
 
-    const effectiveRadix = radix === "custom" ? customRadix : Number.parseInt(radix, 10)
-    const showPadding = effectiveRadix === 2 || effectiveRadix === 16 || effectiveRadix === 60
-    const paddingOptions = effectiveRadix === 60 ? PADDING_OPTIONS_BASE60 : PADDING_OPTIONS
+    const effectiveRadix =
+      radix === "custom" ? customRadix : Number.parseInt(radix, 10);
+    const showPadding =
+      effectiveRadix === 2 || effectiveRadix === 16 || effectiveRadix === 60;
+    const paddingOptions =
+      effectiveRadix === 60 ? PADDING_OPTIONS_BASE60 : PADDING_OPTIONS;
 
     return (
       <div className="flex flex-1 flex-col gap-3">
@@ -206,7 +241,12 @@ function RadixContent() {
               <div className="flex items-center gap-2">
                 <Label className="text-sm whitespace-nowrap">Radix</Label>
                 <div className="flex-1 min-w-0 sm:hidden">
-                  <Select value={radix} onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}>
+                  <Select
+                    value={radix}
+                    onValueChange={(v) =>
+                      setParam(isLeft ? "leftRadix" : "rightRadix", v, true)
+                    }
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
@@ -222,13 +262,24 @@ function RadixContent() {
                 <div className="hidden flex-1 sm:block">
                   <RadioGroup
                     value={radix}
-                    onValueChange={(v) => setParam(isLeft ? "leftRadix" : "rightRadix", v, true)}
+                    onValueChange={(v) =>
+                      setParam(isLeft ? "leftRadix" : "rightRadix", v, true)
+                    }
                     className="grid grid-cols-3 gap-2"
                   >
                     {RADIX_OPTIONS.map((opt) => (
-                      <div key={opt.value} className="flex items-center gap-1.5">
-                        <RadioGroupItem value={opt.value} id={`${side}-radix-${opt.value}`} />
-                        <Label htmlFor={`${side}-radix-${opt.value}`} className="text-sm cursor-pointer">
+                      <div
+                        key={opt.value}
+                        className="flex items-center gap-1.5"
+                      >
+                        <RadioGroupItem
+                          value={opt.value}
+                          id={`${side}-radix-${opt.value}`}
+                        />
+                        <Label
+                          htmlFor={`${side}-radix-${opt.value}`}
+                          className="text-sm cursor-pointer"
+                        >
                           {opt.label}
                         </Label>
                       </div>
@@ -263,9 +314,18 @@ function RadixContent() {
                 <Checkbox
                   id={`${side}-uppercase`}
                   checked={upperCase}
-                  onCheckedChange={(c) => setParam(isLeft ? "leftUpperCase" : "rightUpperCase", c === true, true)}
+                  onCheckedChange={(c) =>
+                    setParam(
+                      isLeft ? "leftUpperCase" : "rightUpperCase",
+                      c === true,
+                      true,
+                    )
+                  }
                 />
-                <Label htmlFor={`${side}-uppercase`} className="text-sm cursor-pointer">
+                <Label
+                  htmlFor={`${side}-uppercase`}
+                  className="text-sm cursor-pointer"
+                >
                   Upper case
                 </Label>
               </div>
@@ -276,7 +336,13 @@ function RadixContent() {
                   <div className="flex-1 min-w-0 sm:flex-none sm:w-20">
                     <Select
                       value={padding}
-                      onValueChange={(v) => setParam(isLeft ? "leftPadding" : "rightPadding", v, true)}
+                      onValueChange={(v) =>
+                        setParam(
+                          isLeft ? "leftPadding" : "rightPadding",
+                          v,
+                          true,
+                        )
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue />
@@ -300,7 +366,11 @@ function RadixContent() {
           <div className="relative">
             <Input
               value={text}
-              onChange={(e) => (isLeft ? handleLeftChange(e.target.value) : handleRightChange(e.target.value))}
+              onChange={(e) =>
+                isLeft
+                  ? handleLeftChange(e.target.value)
+                  : handleRightChange(e.target.value)
+              }
               placeholder={`Enter ${effectiveRadix === 60 ? "base60 (xx:xx:xx)" : `base ${effectiveRadix}`} number...`}
               className={cn(
                 "pr-10 font-mono",
@@ -316,15 +386,21 @@ function RadixContent() {
               disabled={!text}
               className="absolute right-1 top-1/2 h-7 -translate-y-1/2 px-2 text-xs"
             >
-              {copiedSide === side ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copiedSide === side ? (
+                <Check className="h-3 w-3" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
             </Button>
           </div>
           {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-          {warning && <p className="mt-1 text-xs text-muted-foreground">{warning}</p>}
+          {warning && (
+            <p className="mt-1 text-xs text-muted-foreground">{warning}</p>
+          )}
         </div>
       </div>
-    )
-  }
+    );
+  };
 
   return (
     <ToolPageWrapper
@@ -340,7 +416,7 @@ function RadixContent() {
         hydrationSource={hydrationSource}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function RadixInner({
@@ -349,14 +425,14 @@ function RadixInner({
   hasUrlParams,
   hydrationSource,
 }: {
-  state: z.infer<typeof paramsSchema>
-  renderSidePanel: (side: "left" | "right") => React.ReactNode
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
+  state: z.infer<typeof paramsSchema>;
+  renderSidePanel: (side: "left" | "right") => React.ReactNode;
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
   const paramsRef = React.useRef({
     leftRadix: state.leftRadix,
     leftCustomRadix: state.leftCustomRadix,
@@ -367,24 +443,26 @@ function RadixInner({
     rightUpperCase: state.rightUpperCase,
     rightPadding: state.rightPadding,
     activeSide: state.activeSide,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    lastInputRef.current = activeText
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    lastInputRef.current = activeText;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText]);
 
   React.useEffect(() => {
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    if (!activeText || activeText === lastInputRef.current) return
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    if (!activeText || activeText === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = activeText
+      lastInputRef.current = activeText;
       upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
         {
@@ -400,16 +478,17 @@ function RadixInner({
         },
         state.activeSide,
         activeText.slice(0, 100),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.leftText, state.rightText, state.activeSide, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state.leftText, state.rightText, state.activeSide, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
-      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      hasHandledUrlRef.current = true;
+      const activeText =
+        state.activeSide === "left" ? state.leftText : state.rightText;
       if (activeText) {
         upsertInputEntry(
           { leftText: state.leftText, rightText: state.rightText },
@@ -426,7 +505,7 @@ function RadixInner({
           },
           state.activeSide,
           activeText.slice(0, 100),
-        )
+        );
       } else {
         upsertParams(
           {
@@ -441,10 +520,17 @@ function RadixInner({
             activeSide: state.activeSide,
           },
           "interpretation",
-        )
+        );
       }
     }
-  }, [hasUrlParams, state.leftText, state.rightText, state.activeSide, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.leftText,
+    state.rightText,
+    state.activeSide,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
     const nextParams = {
@@ -457,11 +543,11 @@ function RadixInner({
       rightUpperCase: state.rightUpperCase,
       rightPadding: state.rightPadding,
       activeSide: state.activeSide,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     const same =
       paramsRef.current.leftRadix === nextParams.leftRadix &&
@@ -472,10 +558,10 @@ function RadixInner({
       paramsRef.current.rightCustomRadix === nextParams.rightCustomRadix &&
       paramsRef.current.rightUpperCase === nextParams.rightUpperCase &&
       paramsRef.current.rightPadding === nextParams.rightPadding &&
-      paramsRef.current.activeSide === nextParams.activeSide
-    if (same) return
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
+      paramsRef.current.activeSide === nextParams.activeSide;
+    if (same) return;
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
   }, [
     state.leftRadix,
     state.leftCustomRadix,
@@ -487,7 +573,7 @@ function RadixInner({
     state.rightPadding,
     state.activeSide,
     upsertParams,
-  ])
+  ]);
 
   return (
     <div className="flex flex-col gap-4 md:min-h-[400px] md:flex-row">
@@ -497,7 +583,7 @@ function RadixInner({
       </div>
       {renderSidePanel("right")}
     </div>
-  )
+  );
 }
 
 export default function RadixPage() {
@@ -505,5 +591,5 @@ export default function RadixPage() {
     <Suspense fallback={null}>
       <RadixContent />
     </Suspense>
-  )
+  );
 }

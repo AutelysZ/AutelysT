@@ -3,6 +3,7 @@
 This file defines how coding agents should operate in this repository. Follow it for all future requests.
 
 ## Repo Overview
+
 - Next.js App Router + TypeScript + Tailwind + shadcn/ui.
 - Tools live under `app/tools/<tool-id>`.
 - Registry lives in `lib/tools/registry.ts`.
@@ -10,6 +11,7 @@ This file defines how coding agents should operate in this repository. Follow it
 - Layout uses `AppShell` with sidebar tool navigation.
 
 ## Always-On Requirements
+
 - Preserve existing layout, structure, and UI interactions unless explicitly asked to change them.
 - Keep changes minimal and scoped to the user request.
 - Prefer reuse of existing components and helpers over new abstractions.
@@ -22,7 +24,9 @@ This file defines how coding agents should operate in this repository. Follow it
 - When catching errors in code, log them to the console (e.g., `console.error`) before handling.
 
 ## Tool Implementation Rules
+
 When adding or updating a tool:
+
 - Add route files: `app/tools/<tool-id>/page.tsx`, `layout.tsx`, `loading.tsx`.
 - Use `ToolPageWrapper` for layout and history integration.
 - Use `useUrlSyncedState(toolId, schema)` with zod defaults for parameters.
@@ -37,12 +41,14 @@ When adding or updating a tool:
 - Run type check and tests if necessary before marking a task complete.
 
 ## URL Sync & State Restore
+
 - Parameters and inputs must reflect in the URL query string.
 - On load and `popstate`, hydrate state from URL.
 - Debounce URL updates for text fields; keep responsive for toggles/radios.
 - If URL has no params, restore from latest history when appropriate.
 
 ## History (IndexedDB)
+
 - Use `useToolHistoryContext`:
   - `addHistoryEntry` when input text changes.
   - `updateHistoryParams` when params change (do not create new entry).
@@ -51,11 +57,13 @@ When adding or updating a tool:
 - Support delete and clear history (tool/all) via the built-in panel.
 
 ## Categorization & Search
+
 - Tools must be categorized and listed in the registry.
 - Keep keywords accurate for sidebar search and OpenSearch routing.
 - If adding new tools, ensure category is consistent with existing taxonomy.
 
 ## Core Platform Requirements (from initial spec)
+
 - Route-level code splitting: each tool as its own route.
 - Sidebar tool switcher with category collapsibles, search, and recently used.
 - Rich homepage with tool discovery.
@@ -66,15 +74,20 @@ When adding or updating a tool:
 ## Commands & Automation
 
 ### Type Checking
+
 Only run type checking when explicitly requested:
+
 ```bash
 npx tsc --noEmit
 ```
+
 When run, execute type checking for the entire project (no single-file checks).
 Fix all TypeScript errors before committing. Use `pnpm build` to verify full compilation only when explicitly requested.
 
 ### Testing
+
 Add or update unit tests for all new or modified code. Only run tests when explicitly requested:
+
 ```bash
 # Run all tests
 npx vitest run
@@ -82,11 +95,13 @@ npx vitest run
 # Run tests with watch mode (during development)
 npx vitest watch tests/lib/encoding/base64.test.ts
 ```
+
 When run, execute tests for the entire project (no single-file runs unless explicitly requested).
 
 Test file location: `tests/` directory mirroring source structure (e.g., `tests/lib/encoding/` for `lib/encoding/`).
 
 ### Build & Lint
+
 ```bash
 # Full production build
 pnpm build
@@ -97,10 +112,13 @@ pnpm dev
 # Linting (if configured)
 pnpm lint
 ```
+
 Only run build/lint commands when explicitly requested. When run, use the full-project commands above.
 
 ### Toolchain
+
 Use existing dependencies:
+
 - **Package manager**: `pnpm`
 - **TypeScript**: v5 with strict mode, path aliases (`@/*`)
 - **Framework**: Next.js 16 App Router
@@ -108,6 +126,7 @@ Use existing dependencies:
 - **Validation**: Zod for runtime schema validation
 
 ## Git & Safety
+
 - Do not rewrite history.
 - Avoid destructive commands unless explicitly requested.
 - Do not commit changes automatically; only commit when explicitly requested by the user.

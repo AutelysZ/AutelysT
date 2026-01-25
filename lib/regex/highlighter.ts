@@ -17,20 +17,20 @@ export interface HighlightToken {
     | "comment"
     | "unicode"
     | "delimiter"
-    | "inline-flag"
-  value: string
-  start: number
-  end: number
+    | "inline-flag";
+  value: string;
+  start: number;
+  end: number;
 }
 
 // Tokenize a regex pattern for syntax highlighting
 export function tokenizeRegex(pattern: string): HighlightToken[] {
-  const tokens: HighlightToken[] = []
-  let i = 0
+  const tokens: HighlightToken[] = [];
+  let i = 0;
 
   // Check for ECMAScript-style delimiters /pattern/flags
   if (pattern.startsWith("/")) {
-    const lastSlash = pattern.lastIndexOf("/")
+    const lastSlash = pattern.lastIndexOf("/");
     if (lastSlash > 0) {
       // Opening delimiter
       tokens.push({
@@ -38,17 +38,17 @@ export function tokenizeRegex(pattern: string): HighlightToken[] {
         value: "/",
         start: 0,
         end: 1,
-      })
+      });
 
       // Tokenize the inner pattern
-      const innerPattern = pattern.slice(1, lastSlash)
-      const innerTokens = tokenizeRegexCore(innerPattern)
+      const innerPattern = pattern.slice(1, lastSlash);
+      const innerTokens = tokenizeRegexCore(innerPattern);
       for (const token of innerTokens) {
         tokens.push({
           ...token,
           start: token.start + 1,
           end: token.end + 1,
-        })
+        });
       }
 
       // Closing delimiter
@@ -57,7 +57,7 @@ export function tokenizeRegex(pattern: string): HighlightToken[] {
         value: "/",
         start: lastSlash,
         end: lastSlash + 1,
-      })
+      });
 
       // Flags
       if (lastSlash + 1 < pattern.length) {
@@ -66,53 +66,55 @@ export function tokenizeRegex(pattern: string): HighlightToken[] {
           value: pattern.slice(lastSlash + 1),
           start: lastSlash + 1,
           end: pattern.length,
-        })
+        });
       }
 
-      return tokens
+      return tokens;
     }
   }
 
   // Check for inline flags at the start (?flags)pattern
-  const inlineFlagMatch = pattern.match(/^\(\?([a-zA-Z]+)\)/)
+  const inlineFlagMatch = pattern.match(/^\(\?([a-zA-Z]+)\)/);
   if (inlineFlagMatch) {
     tokens.push({
       type: "inline-flag",
       value: inlineFlagMatch[0],
       start: 0,
       end: inlineFlagMatch[0].length,
-    })
+    });
 
     // Tokenize the rest
-    const restTokens = tokenizeRegexCore(pattern.slice(inlineFlagMatch[0].length))
+    const restTokens = tokenizeRegexCore(
+      pattern.slice(inlineFlagMatch[0].length),
+    );
     for (const token of restTokens) {
       tokens.push({
         ...token,
         start: token.start + inlineFlagMatch[0].length,
         end: token.end + inlineFlagMatch[0].length,
-      })
+      });
     }
 
-    return tokens
+    return tokens;
   }
 
   // Check for Python raw string r"..." or r'...'
-  const rawMatch = pattern.match(/^r(["'])(.*)(\1)$/)
+  const rawMatch = pattern.match(/^r(["'])(.*)(\1)$/);
   if (rawMatch) {
     tokens.push({
       type: "delimiter",
       value: `r${rawMatch[1]}`,
       start: 0,
       end: 2,
-    })
+    });
 
-    const innerTokens = tokenizeRegexCore(rawMatch[2])
+    const innerTokens = tokenizeRegexCore(rawMatch[2]);
     for (const token of innerTokens) {
       tokens.push({
         ...token,
         start: token.start + 2,
         end: token.end + 2,
-      })
+      });
     }
 
     tokens.push({
@@ -120,57 +122,57 @@ export function tokenizeRegex(pattern: string): HighlightToken[] {
       value: rawMatch[3],
       start: pattern.length - 1,
       end: pattern.length,
-    })
+    });
 
-    return tokens
+    return tokens;
   }
 
   // Default: tokenize as plain pattern
-  return tokenizeRegexCore(pattern)
+  return tokenizeRegexCore(pattern);
 }
 
 // Core tokenizer for the pattern itself (without delimiters)
 function tokenizeRegexCore(pattern: string): HighlightToken[] {
-  const tokens: HighlightToken[] = []
-  let i = 0
+  const tokens: HighlightToken[] = [];
+  let i = 0;
 
   while (i < pattern.length) {
-    const char = pattern[i]
-    const start = i
+    const char = pattern[i];
+    const start = i;
 
     // Escape sequences
     if (char === "\\") {
       if (i + 1 < pattern.length) {
-        const next = pattern[i + 1]
+        const next = pattern[i + 1];
 
         // Unicode property escape \p{...} or \P{...}
         if ((next === "p" || next === "P") && pattern[i + 2] === "{") {
-          const closeBrace = pattern.indexOf("}", i + 3)
+          const closeBrace = pattern.indexOf("}", i + 3);
           if (closeBrace !== -1) {
             tokens.push({
               type: "unicode",
               value: pattern.slice(i, closeBrace + 1),
               start,
               end: closeBrace + 1,
-            })
-            i = closeBrace + 1
-            continue
+            });
+            i = closeBrace + 1;
+            continue;
           }
         }
 
         // Unicode code point \u{...} or \uXXXX
         if (next === "u") {
           if (pattern[i + 2] === "{") {
-            const closeBrace = pattern.indexOf("}", i + 3)
+            const closeBrace = pattern.indexOf("}", i + 3);
             if (closeBrace !== -1) {
               tokens.push({
                 type: "unicode",
                 value: pattern.slice(i, closeBrace + 1),
                 start,
                 end: closeBrace + 1,
-              })
-              i = closeBrace + 1
-              continue
+              });
+              i = closeBrace + 1;
+              continue;
             }
           } else if (/[0-9a-fA-F]{4}/.test(pattern.slice(i + 2, i + 6))) {
             tokens.push({
@@ -178,36 +180,39 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
               value: pattern.slice(i, i + 6),
               start,
               end: i + 6,
-            })
-            i += 6
-            continue
+            });
+            i += 6;
+            continue;
           }
         }
 
         // Hex escape \xXX
-        if (next === "x" && /[0-9a-fA-F]{2}/.test(pattern.slice(i + 2, i + 4))) {
+        if (
+          next === "x" &&
+          /[0-9a-fA-F]{2}/.test(pattern.slice(i + 2, i + 4))
+        ) {
           tokens.push({
             type: "escape",
             value: pattern.slice(i, i + 4),
             start,
             end: i + 4,
-          })
-          i += 4
-          continue
+          });
+          i += 4;
+          continue;
         }
 
         // Named backreference \k<name>
         if (next === "k" && pattern[i + 2] === "<") {
-          const closeAngle = pattern.indexOf(">", i + 3)
+          const closeAngle = pattern.indexOf(">", i + 3);
           if (closeAngle !== -1) {
             tokens.push({
               type: "special",
               value: pattern.slice(i, closeAngle + 1),
               start,
               end: closeAngle + 1,
-            })
-            i = closeAngle + 1
-            continue
+            });
+            i = closeAngle + 1;
+            continue;
           }
         }
 
@@ -217,49 +222,49 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
           value: pattern.slice(i, i + 2),
           start,
           end: i + 2,
-        })
-        i += 2
-        continue
+        });
+        i += 2;
+        continue;
       }
     }
 
     // Quantifiers
     if (char === "*" || char === "+" || char === "?") {
-      let value = char
+      let value = char;
       // Check for lazy or possessive modifier
       if (pattern[i + 1] === "?" || pattern[i + 1] === "+") {
-        value += pattern[i + 1]
-        i++
+        value += pattern[i + 1];
+        i++;
       }
       tokens.push({
         type: "quantifier",
         value,
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     // Counted quantifier {n}, {n,}, {n,m}
     if (char === "{") {
-      const match = pattern.slice(i).match(/^\{(\d+)(,(\d*)?)?\}/)
+      const match = pattern.slice(i).match(/^\{(\d+)(,(\d*)?)?\}/);
       if (match) {
-        let value = match[0]
-        let end = i + match[0].length
+        let value = match[0];
+        let end = i + match[0].length;
         // Check for lazy modifier
         if (pattern[end] === "?") {
-          value += "?"
-          end++
+          value += "?";
+          end++;
         }
         tokens.push({
           type: "quantifier",
           value,
           start,
           end,
-        })
-        i = end
-        continue
+        });
+        i = end;
+        continue;
       }
     }
 
@@ -270,9 +275,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value: char,
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     // Alternation
@@ -282,70 +287,80 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value: char,
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     // Groups
     if (char === "(") {
       // Look for special group types
       if (pattern[i + 1] === "?") {
-        const rest = pattern.slice(i)
+        const rest = pattern.slice(i);
 
         // Comment (?#...)
         if (rest.startsWith("(?#")) {
-          const closeParen = pattern.indexOf(")", i + 3)
+          const closeParen = pattern.indexOf(")", i + 3);
           if (closeParen !== -1) {
             tokens.push({
               type: "comment",
               value: pattern.slice(i, closeParen + 1),
               start,
               end: closeParen + 1,
-            })
-            i = closeParen + 1
-            continue
+            });
+            i = closeParen + 1;
+            continue;
           }
         }
 
         // Named group (?<name>...) or (?P<name>...) or (?'name'...)
-        const namedMatch = rest.match(/^\(\?(?:P?<([^>]+)>|'([^']+)')/)
+        const namedMatch = rest.match(/^\(\?(?:P?<([^>]+)>|'([^']+)')/);
         if (namedMatch) {
-          const fullMatch = namedMatch[0]
+          const fullMatch = namedMatch[0];
           tokens.push({
             type: "group",
-            value: fullMatch.slice(0, fullMatch.indexOf("<") + 1) || fullMatch.slice(0, fullMatch.indexOf("'") + 1),
+            value:
+              fullMatch.slice(0, fullMatch.indexOf("<") + 1) ||
+              fullMatch.slice(0, fullMatch.indexOf("'") + 1),
             start,
-            end: start + fullMatch.length - (namedMatch[1] || namedMatch[2]).length - 1,
-          })
-          const nameStart = start + fullMatch.length - (namedMatch[1] || namedMatch[2]).length - 1
+            end:
+              start +
+              fullMatch.length -
+              (namedMatch[1] || namedMatch[2]).length -
+              1,
+          });
+          const nameStart =
+            start +
+            fullMatch.length -
+            (namedMatch[1] || namedMatch[2]).length -
+            1;
           tokens.push({
             type: "group-name",
             value: namedMatch[1] || namedMatch[2],
             start: nameStart,
             end: nameStart + (namedMatch[1] || namedMatch[2]).length,
-          })
+          });
           tokens.push({
             type: "group",
             value: fullMatch.endsWith(">") ? ">" : "'",
             start: start + fullMatch.length - 1,
             end: start + fullMatch.length,
-          })
-          i += fullMatch.length
-          continue
+          });
+          i += fullMatch.length;
+          continue;
         }
 
         // Lookahead/lookbehind (?=...) (?!...) (?<=...) (?<!...)
-        const lookMatch = rest.match(/^\(\?<?[=!]/)
+        const lookMatch = rest.match(/^\(\?<?[=!]/);
         if (lookMatch) {
           tokens.push({
             type: "group",
             value: lookMatch[0],
             start,
             end: i + lookMatch[0].length,
-          })
-          i += lookMatch[0].length
-          continue
+          });
+          i += lookMatch[0].length;
+          continue;
         }
 
         // Atomic group (?>...)
@@ -355,9 +370,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
             value: "(?>",
             start,
             end: i + 3,
-          })
-          i += 3
-          continue
+          });
+          i += 3;
+          continue;
         }
 
         // Non-capturing group (?:...)
@@ -367,22 +382,22 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
             value: "(?:",
             start,
             end: i + 3,
-          })
-          i += 3
-          continue
+          });
+          i += 3;
+          continue;
         }
 
         // Flags (?i), (?im), (?i-m), etc.
-        const flagMatch = rest.match(/^\(\?([imnsxUJ-]+)\)/)
+        const flagMatch = rest.match(/^\(\?([imnsxUJ-]+)\)/);
         if (flagMatch) {
           tokens.push({
             type: "flag",
             value: flagMatch[0],
             start,
             end: i + flagMatch[0].length,
-          })
-          i += flagMatch[0].length
-          continue
+          });
+          i += flagMatch[0].length;
+          continue;
         }
 
         // Conditional (?(...)...)
@@ -392,9 +407,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
             value: "(?(",
             start,
             end: i + 3,
-          })
-          i += 3
-          continue
+          });
+          i += 3;
+          continue;
         }
 
         // Branch reset (?|...)
@@ -404,35 +419,35 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
             value: "(?|",
             start,
             end: i + 3,
-          })
-          i += 3
-          continue
+          });
+          i += 3;
+          continue;
         }
 
         // Recursion (?R) or (?0)
-        const recurMatch = rest.match(/^\(\?([R0])\)/)
+        const recurMatch = rest.match(/^\(\?([R0])\)/);
         if (recurMatch) {
           tokens.push({
             type: "special",
             value: recurMatch[0],
             start,
             end: i + recurMatch[0].length,
-          })
-          i += recurMatch[0].length
-          continue
+          });
+          i += recurMatch[0].length;
+          continue;
         }
 
         // Subroutine (?&name) or (?1)
-        const subMatch = rest.match(/^\(\?(?:&(\w+)|(\d+))\)/)
+        const subMatch = rest.match(/^\(\?(?:&(\w+)|(\d+))\)/);
         if (subMatch) {
           tokens.push({
             type: "special",
             value: subMatch[0],
             start,
             end: i + subMatch[0].length,
-          })
-          i += subMatch[0].length
-          continue
+          });
+          i += subMatch[0].length;
+          continue;
         }
       }
 
@@ -442,9 +457,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value: "(",
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     if (char === ")") {
@@ -453,40 +468,40 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value: ")",
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     // Character class [...]
     if (char === "[") {
-      let j = i + 1
-      let value = "["
+      let j = i + 1;
+      let value = "[";
 
       // Handle negation
       if (pattern[j] === "^") {
-        value += "^"
-        j++
+        value += "^";
+        j++;
       }
 
       // Handle ] at start
       if (pattern[j] === "]") {
-        value += "]"
-        j++
+        value += "]";
+        j++;
       }
 
       // Find closing bracket
       while (j < pattern.length) {
         if (pattern[j] === "\\") {
-          value += pattern.slice(j, j + 2)
-          j += 2
+          value += pattern.slice(j, j + 2);
+          j += 2;
         } else if (pattern[j] === "]") {
-          value += "]"
-          j++
-          break
+          value += "]";
+          j++;
+          break;
         } else {
-          value += pattern[j]
-          j++
+          value += pattern[j];
+          j++;
         }
       }
 
@@ -495,9 +510,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value,
         start,
         end: j,
-      })
-      i = j
-      continue
+      });
+      i = j;
+      continue;
     }
 
     // Special characters
@@ -507,9 +522,9 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
         value: ".",
         start,
         end: i + 1,
-      })
-      i++
-      continue
+      });
+      i++;
+      continue;
     }
 
     // Regular text
@@ -518,11 +533,11 @@ function tokenizeRegexCore(pattern: string): HighlightToken[] {
       value: char,
       start,
       end: i + 1,
-    })
-    i++
+    });
+    i++;
   }
 
-  return tokens
+  return tokens;
 }
 
 // CSS classes for token types
@@ -543,4 +558,4 @@ export const TOKEN_CLASSES: Record<HighlightToken["type"], string> = {
   unicode: "text-emerald-600 dark:text-emerald-400",
   delimiter: "text-gray-500 dark:text-gray-400",
   "inline-flag": "text-violet-600 dark:text-violet-400 font-medium",
-}
+};

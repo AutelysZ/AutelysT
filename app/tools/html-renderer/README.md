@@ -32,6 +32,7 @@ A live HTML editor with Monaco Editor syntax highlighting and real-time iframe p
 ## Editor Features
 
 ### Monaco Editor Capabilities
+
 - **Syntax Highlighting**: Full HTML syntax highlighting with proper color coding
 - **Line Numbers**: Easy navigation and reference
 - **Auto Wrapping**: Long lines automatically wrap for better readability
@@ -39,8 +40,9 @@ A live HTML editor with Monaco Editor syntax highlighting and real-time iframe p
 - **Smart Indentation**: Proper HTML indentation and formatting
 
 ### Pretty Print Feature
+
 - **Prettier Integration**: Uses industry-standard Prettier formatter
-- **Configurable Options**: 
+- **Configurable Options**:
   - 2-space indentation
   - 120 character line width
   - HTML-specific whitespace handling
@@ -50,12 +52,14 @@ A live HTML editor with Monaco Editor syntax highlighting and real-time iframe p
 ## Detection Modes
 
 ### HTML Snippet Mode (Auto-Detected)
+
 - Edit HTML fragments (like `<div>content</div>`)
 - Automatically wraps your code in a basic HTML structure for preview
 - Perfect for quick prototyping and testing components
 - Detected when no DOCTYPE, html, head, or body tags are found
 
 ### Full Document Mode (Auto-Detected)
+
 - Complete HTML documents with `<!DOCTYPE>`, `<html>`, `<head>`, `<body>`
 - Full control over CSS, JavaScript, and meta tags
 - Best for creating complete web pages
@@ -66,6 +70,7 @@ The tool automatically handles both snippets and full documents without manual c
 ## Security
 
 The iframe preview uses sandbox attributes for security:
+
 - `allow-scripts`: Allows JavaScript execution
 - `allow-same-origin`: Allows same-origin requests
 - `allow-forms`: Allows form submissions

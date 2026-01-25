@@ -1,11 +1,16 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Clock, Trash2, AlertTriangle, X, Copy, Check } from "lucide-react"
-import { format } from "date-fns"
-import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import * as React from "react";
+import { Clock, Trash2, AlertTriangle, X, Copy, Check } from "lucide-react";
+import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,24 +21,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import type { HistoryEntry } from "@/lib/history/db"
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { HistoryEntry } from "@/lib/history/db";
 
 interface HistoryPanelProps {
-  entries: HistoryEntry[]
-  loading: boolean
-  onSelect: (entry: HistoryEntry) => void
-  onDelete: (id: string) => void
-  onClear: (scope: "tool" | "all") => void
-  toolName: string
-  variant?: "default" | "password-generator"
+  entries: HistoryEntry[];
+  loading: boolean;
+  onSelect: (entry: HistoryEntry) => void;
+  onDelete: (id: string) => void;
+  onClear: (scope: "tool" | "all") => void;
+  toolName: string;
+  variant?: "default" | "password-generator";
 }
 
-export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, toolName, variant = "default" }: HistoryPanelProps) {
-  const [open, setOpen] = React.useState(false)
-  const [clearScope, setClearScope] = React.useState<"tool" | "all">("tool")
-  const [copiedEntryId, setCopiedEntryId] = React.useState<string | null>(null)
+export function HistoryPanel({
+  entries,
+  loading,
+  onSelect,
+  onDelete,
+  onClear,
+  toolName,
+  variant = "default",
+}: HistoryPanelProps) {
+  const [open, setOpen] = React.useState(false);
+  const [clearScope, setClearScope] = React.useState<"tool" | "all">("tool");
+  const [copiedEntryId, setCopiedEntryId] = React.useState<string | null>(null);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -54,7 +72,11 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
             <AlertDialog>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 gap-1 text-destructive hover:text-destructive">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 gap-1 text-destructive hover:text-destructive"
+                  >
                     <Trash2 className="h-4 w-4" />
                     Clear
                   </Button>
@@ -64,8 +86,8 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onSelect={(e) => {
-                        e.preventDefault()
-                        setClearScope("tool")
+                        e.preventDefault();
+                        setClearScope("tool");
                       }}
                     >
                       Clear {toolName} history
@@ -75,8 +97,8 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                     <DropdownMenuItem
                       className="text-destructive focus:text-destructive"
                       onSelect={(e) => {
-                        e.preventDefault()
-                        setClearScope("all")
+                        e.preventDefault();
+                        setClearScope("all");
                       }}
                     >
                       Clear all tools history
@@ -107,7 +129,12 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpen(false)}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setOpen(false)}
+            >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
             </Button>
@@ -116,7 +143,9 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
 
         <ScrollArea className="mt-4 h-[calc(100vh-120px)]">
           {loading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">Loading...</div>
+            <div className="flex items-center justify-center py-8 text-muted-foreground">
+              Loading...
+            </div>
           ) : entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-8 text-muted-foreground">
               <Clock className="h-8 w-8 opacity-50" />
@@ -127,10 +156,10 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
             <div className="space-y-2 px-2 pb-4">
               {entries.map((entry) => {
                 if (variant === "password-generator") {
-                  const label = entry.inputs?.label?.trim() || "Untitled"
-                  const password = entry.inputs?.password || ""
+                  const label = entry.inputs?.label?.trim() || "Untitled";
+                  const password = entry.inputs?.password || "";
                   if (!password) {
-                    return null
+                    return null;
                   }
                   return (
                     <div
@@ -141,20 +170,26 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                         {format(entry.createdAt, "MMM d, yyyy HH:mm")}
                       </div>
                       <div className="text-sm font-medium">{label}</div>
-                      <div className="mt-1 text-sm font-mono break-all">{password}</div>
+                      <div className="mt-1 text-sm font-mono break-all">
+                        {password}
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
                         className="absolute right-8 top-1 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                         onClick={async () => {
-                          if (!password) return
-                          await navigator.clipboard.writeText(password)
-                          setCopiedEntryId(entry.id)
-                          setTimeout(() => setCopiedEntryId(null), 2000)
+                          if (!password) return;
+                          await navigator.clipboard.writeText(password);
+                          setCopiedEntryId(entry.id);
+                          setTimeout(() => setCopiedEntryId(null), 2000);
                         }}
                         aria-label="Copy password"
                       >
-                        {copiedEntryId === entry.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copiedEntryId === entry.id ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
@@ -166,7 +201,7 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                         <Trash2 className="h-3 w-3 text-destructive" />
                       </Button>
                     </div>
-                  )
+                  );
                 }
 
                 return (
@@ -176,15 +211,19 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                   >
                     <button
                       onClick={() => {
-                        onSelect(entry)
-                        setOpen(false)
+                        onSelect(entry);
+                        setOpen(false);
                       }}
                       className="w-full text-left"
                     >
                       <div className="mb-1 text-xs text-muted-foreground">
                         {format(entry.createdAt, "MMM d, yyyy HH:mm")}
                       </div>
-                      {entry.preview && <div className="line-clamp-2 text-sm">{entry.preview}</div>}
+                      {entry.preview && (
+                        <div className="line-clamp-2 text-sm">
+                          {entry.preview}
+                        </div>
+                      )}
                       {Object.keys(entry.params).length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {Object.entries(entry.params)
@@ -209,12 +248,12 @@ export function HistoryPanel({ entries, loading, onSelect, onDelete, onClear, to
                       <Trash2 className="h-3 w-3 text-destructive" />
                     </Button>
                   </div>
-                )
+                );
               })}
             </div>
           )}
         </ScrollArea>
       </SheetContent>
     </Sheet>
-  )
+  );
 }

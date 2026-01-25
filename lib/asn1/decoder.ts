@@ -1,17 +1,17 @@
 // ASN.1 DER/BER Decoder
 
 export interface ASN1Node {
-  tagClass: "universal" | "application" | "context" | "private"
-  constructed: boolean
-  tag: number
-  tagName: string
-  length: number
-  headerLength: number
-  offset: number
-  value: Uint8Array
-  children?: ASN1Node[]
+  tagClass: "universal" | "application" | "context" | "private";
+  constructed: boolean;
+  tag: number;
+  tagName: string;
+  length: number;
+  headerLength: number;
+  offset: number;
+  value: Uint8Array;
+  children?: ASN1Node[];
   // Decoded value for display
-  decodedValue?: string
+  decodedValue?: string;
 }
 
 // Universal tag names
@@ -50,7 +50,7 @@ const UNIVERSAL_TAGS: Record<number, string> = {
   0x20: "TIME-OF-DAY",
   0x21: "DATE-TIME",
   0x22: "DURATION",
-}
+};
 
 // Well-known OIDs
 const KNOWN_OIDS: Record<string, string> = {
@@ -90,92 +90,103 @@ const KNOWN_OIDS: Record<string, string> = {
   "2.16.840.1.101.3.4.2.1": "sha256",
   "2.16.840.1.101.3.4.2.2": "sha384",
   "2.16.840.1.101.3.4.2.3": "sha512",
-}
+};
 
 export function decodeASN1(data: Uint8Array): ASN1Node {
   if (!data || data.length === 0) {
-    throw new Error("Empty input data")
+    throw new Error("Empty input data");
   }
   if (data.length < 2) {
-    throw new Error("Data too short to be valid ASN.1")
+    throw new Error("Data too short to be valid ASN.1");
   }
-  const result = parseNode(data, 0)
-  return result.node
+  const result = parseNode(data, 0);
+  return result.node;
 }
 
-function parseNode(data: Uint8Array, offset: number): { node: ASN1Node; bytesRead: number } {
+function parseNode(
+  data: Uint8Array,
+  offset: number,
+): { node: ASN1Node; bytesRead: number } {
   if (offset >= data.length) {
-    throw new Error(`Unexpected end of data at offset ${offset}`)
+    throw new Error(`Unexpected end of data at offset ${offset}`);
   }
 
-  const startOffset = offset
+  const startOffset = offset;
 
   // Parse tag
-  const tagByte = data[offset++]
-  const tagClass = getTagClass(tagByte)
-  const constructed = (tagByte & 0x20) !== 0
-  let tag = tagByte & 0x1f
+  const tagByte = data[offset++];
+  const tagClass = getTagClass(tagByte);
+  const constructed = (tagByte & 0x20) !== 0;
+  let tag = tagByte & 0x1f;
 
   // Long form tag
   if (tag === 0x1f) {
-    tag = 0
-    let b: number
+    tag = 0;
+    let b: number;
     do {
       if (offset >= data.length) {
-        throw new Error(`Unexpected end of data while parsing tag at offset ${startOffset}`)
+        throw new Error(
+          `Unexpected end of data while parsing tag at offset ${startOffset}`,
+        );
       }
-      b = data[offset++]
-      tag = (tag << 7) | (b & 0x7f)
-    } while (b & 0x80)
+      b = data[offset++];
+      tag = (tag << 7) | (b & 0x7f);
+    } while (b & 0x80);
   }
 
   // Parse length
   if (offset >= data.length) {
-    throw new Error(`Unexpected end of data while parsing length at offset ${startOffset}`)
+    throw new Error(
+      `Unexpected end of data while parsing length at offset ${startOffset}`,
+    );
   }
 
-  let length: number
-  const lengthByte = data[offset++]
+  let length: number;
+  const lengthByte = data[offset++];
 
   if (lengthByte === 0x80) {
     // Indefinite length (BER only) - search for end-of-content
-    length = -1
+    length = -1;
   } else if (lengthByte & 0x80) {
     // Long form length
-    const numOctets = lengthByte & 0x7f
+    const numOctets = lengthByte & 0x7f;
     if (offset + numOctets > data.length) {
-      throw new Error(`Unexpected end of data while parsing length octets at offset ${startOffset}`)
+      throw new Error(
+        `Unexpected end of data while parsing length octets at offset ${startOffset}`,
+      );
     }
-    length = 0
+    length = 0;
     for (let i = 0; i < numOctets; i++) {
-      length = (length << 8) | data[offset++]
+      length = (length << 8) | data[offset++];
     }
   } else {
     // Short form length
-    length = lengthByte
+    length = lengthByte;
   }
 
-  const headerLength = offset - startOffset
+  const headerLength = offset - startOffset;
 
   // Handle indefinite length
   if (length === -1) {
     // Find end-of-content (00 00)
-    let endOffset = offset
+    let endOffset = offset;
     while (endOffset < data.length - 1) {
       if (data[endOffset] === 0x00 && data[endOffset + 1] === 0x00) {
-        break
+        break;
       }
-      endOffset++
+      endOffset++;
     }
-    length = endOffset - offset
+    length = endOffset - offset;
   }
 
   // Validate we have enough data
   if (offset + length > data.length) {
-    throw new Error(`Content length ${length} exceeds available data at offset ${startOffset}`)
+    throw new Error(
+      `Content length ${length} exceeds available data at offset ${startOffset}`,
+    );
   }
 
-  const value = data.slice(offset, offset + length)
+  const value = data.slice(offset, offset + length);
 
   const node: ASN1Node = {
     tagClass,
@@ -186,108 +197,112 @@ function parseNode(data: Uint8Array, offset: number): { node: ASN1Node; bytesRea
     headerLength,
     offset: startOffset,
     value,
-  }
+  };
 
   // Parse children for constructed types
   if (constructed && length > 0) {
-    node.children = []
-    let childOffset = 0
+    node.children = [];
+    let childOffset = 0;
     while (childOffset < length) {
-      const childResult = parseNode(value, childOffset)
-      node.children.push(childResult.node)
-      childOffset += childResult.bytesRead
+      const childResult = parseNode(value, childOffset);
+      node.children.push(childResult.node);
+      childOffset += childResult.bytesRead;
     }
   }
 
   // Decode value for display
-  node.decodedValue = decodeValue(node)
+  node.decodedValue = decodeValue(node);
 
   return {
     node,
     bytesRead: headerLength + length,
-  }
+  };
 }
 
 function getTagClass(tagByte: number): ASN1Node["tagClass"] {
-  const cls = (tagByte >> 6) & 0x03
+  const cls = (tagByte >> 6) & 0x03;
   switch (cls) {
     case 0:
-      return "universal"
+      return "universal";
     case 1:
-      return "application"
+      return "application";
     case 2:
-      return "context"
+      return "context";
     case 3:
-      return "private"
+      return "private";
     default:
-      return "universal"
+      return "universal";
   }
 }
 
-function getTagName(tagClass: ASN1Node["tagClass"], tag: number, constructed: boolean): string {
+function getTagName(
+  tagClass: ASN1Node["tagClass"],
+  tag: number,
+  constructed: boolean,
+): string {
   if (tagClass === "universal") {
-    return UNIVERSAL_TAGS[tag] || `UNIVERSAL ${tag}`
+    return UNIVERSAL_TAGS[tag] || `UNIVERSAL ${tag}`;
   } else if (tagClass === "context") {
-    return `[${tag}]${constructed ? " (constructed)" : ""}`
+    return `[${tag}]${constructed ? " (constructed)" : ""}`;
   } else if (tagClass === "application") {
-    return `[APPLICATION ${tag}]`
+    return `[APPLICATION ${tag}]`;
   } else {
-    return `[PRIVATE ${tag}]`
+    return `[PRIVATE ${tag}]`;
   }
 }
 
 function decodeValue(node: ASN1Node): string {
   if (node.constructed) {
-    return `(${node.children?.length || 0} elements)`
+    return `(${node.children?.length || 0} elements)`;
   }
 
   if (node.tagClass !== "universal") {
     // Try to decode as string or show hex
-    const str = tryDecodeString(node.value)
-    if (str) return str
-    return toHexString(node.value)
+    const str = tryDecodeString(node.value);
+    if (str) return str;
+    return toHexString(node.value);
   }
 
   switch (node.tag) {
     case 0x01: // BOOLEAN
-      return node.value[0] === 0 ? "FALSE" : "TRUE"
+      return node.value[0] === 0 ? "FALSE" : "TRUE";
 
     case 0x02: // INTEGER
-      return decodeInteger(node.value)
+      return decodeInteger(node.value);
 
     case 0x03: // BIT STRING
       if (node.value.length > 0) {
-        const unusedBits = node.value[0]
-        const bits = node.value.slice(1)
+        const unusedBits = node.value[0];
+        const bits = node.value.slice(1);
         if (bits.length <= 8) {
-          return `(${unusedBits} unused) ${toHexString(bits)}`
+          return `(${unusedBits} unused) ${toHexString(bits)}`;
         }
-        return `(${unusedBits} unused) ${bits.length} bytes`
+        return `(${unusedBits} unused) ${bits.length} bytes`;
       }
-      return "(empty)"
+      return "(empty)";
 
     case 0x04: // OCTET STRING
       // Try to decode as nested ASN.1
       if (node.value.length > 2) {
         try {
-          const nested = decodeASN1(node.value)
+          const nested = decodeASN1(node.value);
           if (nested) {
-            return `(contains ASN.1)`
+            return `(contains ASN.1)`;
           }
         } catch {
           // Not nested ASN.1
         }
       }
       if (node.value.length <= 32) {
-        return toHexString(node.value)
+        return toHexString(node.value);
       }
-      return `${node.value.length} bytes`
+      return `${node.value.length} bytes`;
 
     case 0x05: // NULL
-      return ""
+      return "";
 
     case 0x06: // OBJECT IDENTIFIER
-      return decodeOID(node.value)
+      return decodeOID(node.value);
 
     case 0x0c: // UTF8String
     case 0x12: // NumericString
@@ -297,168 +312,172 @@ function decodeValue(node: ASN1Node): string {
     case 0x19: // GraphicString
     case 0x1a: // VisibleString
     case 0x1b: // GeneralString
-      return new TextDecoder("utf-8").decode(node.value)
+      return new TextDecoder("utf-8").decode(node.value);
 
     case 0x1e: // BMPString
-      return decodeBMPString(node.value)
+      return decodeBMPString(node.value);
 
     case 0x1c: // UniversalString
-      return decodeUniversalString(node.value)
+      return decodeUniversalString(node.value);
 
     case 0x17: // UTCTime
-      return decodeUTCTime(node.value)
+      return decodeUTCTime(node.value);
 
     case 0x18: // GeneralizedTime
-      return decodeGeneralizedTime(node.value)
+      return decodeGeneralizedTime(node.value);
 
     case 0x0a: // ENUMERATED
-      return decodeInteger(node.value)
+      return decodeInteger(node.value);
 
     default:
       if (node.value.length <= 32) {
-        return toHexString(node.value)
+        return toHexString(node.value);
       }
-      return `${node.value.length} bytes`
+      return `${node.value.length} bytes`;
   }
 }
 
 function decodeInteger(value: Uint8Array): string {
-  if (value.length === 0) return "0"
+  if (value.length === 0) return "0";
 
   // For small integers, show decimal value
   if (value.length <= 6) {
-    let num = 0n
-    const isNegative = (value[0] & 0x80) !== 0
+    let num = 0n;
+    const isNegative = (value[0] & 0x80) !== 0;
 
     for (const byte of value) {
-      num = (num << 8n) | BigInt(byte)
+      num = (num << 8n) | BigInt(byte);
     }
 
     if (isNegative) {
       // Two's complement
-      const bits = BigInt(value.length * 8)
-      num = num - (1n << bits)
+      const bits = BigInt(value.length * 8);
+      num = num - (1n << bits);
     }
 
-    return num.toString()
+    return num.toString();
   }
 
   // For large integers, show hex
-  return toHexString(value)
+  return toHexString(value);
 }
 
 function decodeOID(value: Uint8Array): string {
-  if (value.length === 0) return ""
+  if (value.length === 0) return "";
 
-  const components: number[] = []
+  const components: number[] = [];
 
   // First byte encodes first two components
-  const first = value[0]
-  components.push(Math.floor(first / 40))
-  components.push(first % 40)
+  const first = value[0];
+  components.push(Math.floor(first / 40));
+  components.push(first % 40);
 
   // Remaining bytes
-  let current = 0
+  let current = 0;
   for (let i = 1; i < value.length; i++) {
-    const byte = value[i]
-    current = (current << 7) | (byte & 0x7f)
+    const byte = value[i];
+    current = (current << 7) | (byte & 0x7f);
     if ((byte & 0x80) === 0) {
-      components.push(current)
-      current = 0
+      components.push(current);
+      current = 0;
     }
   }
 
-  const oid = components.join(".")
-  const name = KNOWN_OIDS[oid]
-  return name ? `${oid} (${name})` : oid
+  const oid = components.join(".");
+  const name = KNOWN_OIDS[oid];
+  return name ? `${oid} (${name})` : oid;
 }
 
 function decodeBMPString(value: Uint8Array): string {
-  const chars: string[] = []
+  const chars: string[] = [];
   for (let i = 0; i < value.length; i += 2) {
-    const code = (value[i] << 8) | value[i + 1]
-    chars.push(String.fromCharCode(code))
+    const code = (value[i] << 8) | value[i + 1];
+    chars.push(String.fromCharCode(code));
   }
-  return chars.join("")
+  return chars.join("");
 }
 
 function decodeUniversalString(value: Uint8Array): string {
-  const chars: string[] = []
+  const chars: string[] = [];
   for (let i = 0; i < value.length; i += 4) {
-    const code = (value[i] << 24) | (value[i + 1] << 16) | (value[i + 2] << 8) | value[i + 3]
-    chars.push(String.fromCodePoint(code))
+    const code =
+      (value[i] << 24) |
+      (value[i + 1] << 16) |
+      (value[i + 2] << 8) |
+      value[i + 3];
+    chars.push(String.fromCodePoint(code));
   }
-  return chars.join("")
+  return chars.join("");
 }
 
 function decodeUTCTime(value: Uint8Array): string {
-  const str = new TextDecoder().decode(value)
+  const str = new TextDecoder().decode(value);
   // Format: YYMMDDhhmmssZ or YYMMDDhhmmss+hhmm
-  const match = str.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?Z?/)
+  const match = str.match(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?Z?/);
   if (match) {
-    const [, yy, mm, dd, hh, min, ss] = match
-    const year = parseInt(yy) >= 50 ? `19${yy}` : `20${yy}`
-    return `${year}-${mm}-${dd} ${hh}:${min}:${ss || "00"} UTC`
+    const [, yy, mm, dd, hh, min, ss] = match;
+    const year = parseInt(yy) >= 50 ? `19${yy}` : `20${yy}`;
+    return `${year}-${mm}-${dd} ${hh}:${min}:${ss || "00"} UTC`;
   }
-  return str
+  return str;
 }
 
 function decodeGeneralizedTime(value: Uint8Array): string {
-  const str = new TextDecoder().decode(value)
+  const str = new TextDecoder().decode(value);
   // Format: YYYYMMDDhhmmss.fffZ
-  const match = str.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?/)
+  const match = str.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})?/);
   if (match) {
-    const [, yyyy, mm, dd, hh, min, ss] = match
-    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss || "00"} UTC`
+    const [, yyyy, mm, dd, hh, min, ss] = match;
+    return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss || "00"} UTC`;
   }
-  return str
+  return str;
 }
 
 function tryDecodeString(value: Uint8Array): string | null {
   try {
-    const str = new TextDecoder("utf-8", { fatal: true }).decode(value)
+    const str = new TextDecoder("utf-8", { fatal: true }).decode(value);
     // Check if it's printable
     if (/^[\x20-\x7e\r\n\t]+$/.test(str)) {
-      return str
+      return str;
     }
   } catch {
     // Not valid UTF-8
   }
-  return null
+  return null;
 }
 
 function toHexString(bytes: Uint8Array): string {
   return Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, "0").toUpperCase())
-    .join(" ")
+    .join(" ");
 }
 
 // Format ASN.1 tree as text
 export function formatASN1Tree(node: ASN1Node, indent: number = 0): string {
-  const prefix = "  ".repeat(indent)
-  const offsetStr = `[${node.offset}]`.padEnd(6)
-  const lengthStr = `(${node.headerLength}+${node.length})`.padEnd(10)
+  const prefix = "  ".repeat(indent);
+  const offsetStr = `[${node.offset}]`.padEnd(6);
+  const lengthStr = `(${node.headerLength}+${node.length})`.padEnd(10);
 
-  let line = `${prefix}${offsetStr} ${lengthStr} ${node.tagName}`
+  let line = `${prefix}${offsetStr} ${lengthStr} ${node.tagName}`;
 
   if (node.decodedValue && !node.constructed) {
     // Truncate long values
-    let value = node.decodedValue
+    let value = node.decodedValue;
     if (value.length > 60) {
-      value = value.slice(0, 57) + "..."
+      value = value.slice(0, 57) + "...";
     }
-    line += `: ${value}`
+    line += `: ${value}`;
   }
 
-  const lines = [line]
+  const lines = [line];
 
   if (node.children) {
     for (const child of node.children) {
-      lines.push(formatASN1Tree(child, indent + 1))
+      lines.push(formatASN1Tree(child, indent + 1));
     }
   }
 
-  return lines.join("\n")
+  return lines.join("\n");
 }
 
 // Parse PEM to DER
@@ -467,54 +486,54 @@ export function pemToDer(pem: string): Uint8Array {
   const base64 = pem
     .replace(/-----BEGIN [^-]+-----/g, "")
     .replace(/-----END [^-]+-----/g, "")
-    .replace(/\s/g, "")
+    .replace(/\s/g, "");
 
   // Decode base64
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
+    bytes[i] = binary.charCodeAt(i);
   }
-  return bytes
+  return bytes;
 }
 
 // Detect if input is PEM or hex or base64
 export function parseInput(input: string): Uint8Array | null {
-  const trimmed = input.trim()
+  const trimmed = input.trim();
 
   // Check for PEM format
   if (trimmed.startsWith("-----BEGIN")) {
     try {
-      return pemToDer(trimmed)
+      return pemToDer(trimmed);
     } catch {
-      return null
+      return null;
     }
   }
 
   // Check for hex format (with or without spaces/colons)
-  const hexClean = trimmed.replace(/[\s:]/g, "")
+  const hexClean = trimmed.replace(/[\s:]/g, "");
   if (/^[0-9a-fA-F]+$/.test(hexClean) && hexClean.length % 2 === 0) {
-    const bytes = new Uint8Array(hexClean.length / 2)
+    const bytes = new Uint8Array(hexClean.length / 2);
     for (let i = 0; i < hexClean.length; i += 2) {
-      bytes[i / 2] = parseInt(hexClean.slice(i, i + 2), 16)
+      bytes[i / 2] = parseInt(hexClean.slice(i, i + 2), 16);
     }
-    return bytes
+    return bytes;
   }
 
   // Try base64
   try {
-    const binary = atob(trimmed)
-    const bytes = new Uint8Array(binary.length)
+    const binary = atob(trimmed);
+    const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i)
+      bytes[i] = binary.charCodeAt(i);
     }
     // Validate it looks like ASN.1 (starts with valid tag)
     if (bytes.length > 0 && bytes[0] !== 0) {
-      return bytes
+      return bytes;
     }
   } catch {
     // Not valid base64
   }
 
-  return null
+  return null;
 }

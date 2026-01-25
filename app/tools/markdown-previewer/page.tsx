@@ -1,32 +1,45 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import Editor from "@monaco-editor/react"
-import { useTheme } from "next-themes"
-import { Marked } from "marked"
-import { markedHighlight } from "marked-highlight"
-import hljs from "highlight.js"
-import TurndownService from "turndown"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
-import { Download, FileDown, MoreHorizontal, Printer, RotateCcw, Upload } from "lucide-react"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import Editor from "@monaco-editor/react";
+import { useTheme } from "next-themes";
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import hljs from "highlight.js";
+import TurndownService from "turndown";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
+import {
+  Download,
+  FileDown,
+  MoreHorizontal,
+  Printer,
+  RotateCcw,
+  Upload,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 
 const paramsSchema = z.object({
   markdown: z.string().default(""),
   viewMode: z.enum(["split", "editor", "preview"]).default("split"),
-})
+});
 
 const defaultMarkdown = `# Markdown Previewer
 
@@ -45,7 +58,7 @@ Write Markdown on the left and see the preview on the right.
 type PreviewMode = "split" | "editor" | "preview"
 console.log("Hello, Markdown")
 \`\`\`
-`
+`;
 function buildHtmlDocument(renderedHtml: string): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -100,7 +113,7 @@ function buildHtmlDocument(renderedHtml: string): string {
 <body>
 ${renderedHtml}
 </body>
-</html>`
+</html>`;
 }
 
 export default function MarkdownPreviewerPage() {
@@ -108,36 +121,38 @@ export default function MarkdownPreviewerPage() {
     <Suspense fallback={null}>
       <MarkdownPreviewerContent />
     </Suspense>
-  )
+  );
 }
 
 function MarkdownPreviewerContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("markdown-previewer", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({
-      markdown: defaultMarkdown,
-    }),
-  })
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("markdown-previewer", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({
+        markdown: defaultMarkdown,
+      }),
+    });
 
-  const { resolvedTheme } = useTheme()
+  const { resolvedTheme } = useTheme();
   const markedParser = React.useMemo(() => {
-    const instance = new Marked({ gfm: true, breaks: true })
+    const instance = new Marked({ gfm: true, breaks: true });
     instance.use(
       markedHighlight({
         langPrefix: "hljs language-",
         highlight(code, language) {
-          const safeLanguage = language && hljs.getLanguage(language) ? language : "plaintext"
-          return hljs.highlight(code, { language: safeLanguage }).value
+          const safeLanguage =
+            language && hljs.getLanguage(language) ? language : "plaintext";
+          return hljs.highlight(code, { language: safeLanguage }).value;
         },
       }),
-    )
+    );
     instance.use({
       renderer: {
         html: () => "",
       },
-    })
-    return instance
-  }, [])
+    });
+    return instance;
+  }, []);
   const turndownService = React.useMemo(
     () =>
       new TurndownService({
@@ -145,160 +160,184 @@ function MarkdownPreviewerContent() {
         headingStyle: "atx",
       }),
     [],
-  )
-  const uploadInputRef = React.useRef<HTMLInputElement>(null)
-  const [isDragActive, setIsDragActive] = React.useState(false)
+  );
+  const uploadInputRef = React.useRef<HTMLInputElement>(null);
+  const [isDragActive, setIsDragActive] = React.useState(false);
 
   const handleMarkdownChange = React.useCallback(
     (value: string | undefined) => {
-      setParam("markdown", value ?? "")
+      setParam("markdown", value ?? "");
     },
     [setParam],
-  )
+  );
 
   const handleDownloadMarkdown = React.useCallback(() => {
-    const content = state.markdown
-    if (!content) return
-    const blob = new Blob([content], { type: "text/markdown" })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement("a")
-    anchor.href = url
-    anchor.download = "markdown.md"
-    document.body.appendChild(anchor)
-    anchor.click()
-    document.body.removeChild(anchor)
-    URL.revokeObjectURL(url)
-  }, [state.markdown])
+    const content = state.markdown;
+    if (!content) return;
+    const blob = new Blob([content], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "markdown.md";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, [state.markdown]);
 
   const getFileType = React.useCallback((file: File) => {
-    const name = file.name.toLowerCase()
-    if (name.endsWith(".html") || name.endsWith(".htm") || file.type === "text/html") return "html"
-    if (name.endsWith(".md") || name.endsWith(".markdown")) return "markdown"
-    return "unknown"
-  }, [])
+    const name = file.name.toLowerCase();
+    if (
+      name.endsWith(".html") ||
+      name.endsWith(".htm") ||
+      file.type === "text/html"
+    )
+      return "html";
+    if (name.endsWith(".md") || name.endsWith(".markdown")) return "markdown";
+    return "unknown";
+  }, []);
 
   const importFile = React.useCallback(
     async (file: File) => {
       try {
-        const fileType = getFileType(file)
-        const content = await file.text()
+        const fileType = getFileType(file);
+        const content = await file.text();
         if (fileType === "html") {
-          setParam("markdown", turndownService.turndown(content))
-          return
+          setParam("markdown", turndownService.turndown(content));
+          return;
         }
         if (fileType === "markdown") {
-          setParam("markdown", content)
+          setParam("markdown", content);
         }
       } catch (error) {
-        console.error("File import failed", error)
+        console.error("File import failed", error);
       }
     },
     [getFileType, setParam, turndownService],
-  )
+  );
 
   const handleUpload = React.useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      if (!file) return
-      await importFile(file)
-      event.target.value = ""
+      const file = event.target.files?.[0];
+      if (!file) return;
+      await importFile(file);
+      event.target.value = "";
     },
     [importFile],
-  )
+  );
 
   const handleExportHtml = React.useCallback(() => {
-    const content = state.markdown.trim()
-    if (!content) return
-    const html = buildHtmlDocument(markedParser.parse(content, { async: false }))
-    const blob = new Blob([html], { type: "text/html" })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement("a")
-    anchor.href = url
-    anchor.download = "markdown.html"
-    document.body.appendChild(anchor)
-    anchor.click()
-    document.body.removeChild(anchor)
-    URL.revokeObjectURL(url)
-  }, [markedParser, state.markdown])
+    const content = state.markdown.trim();
+    if (!content) return;
+    const html = buildHtmlDocument(
+      markedParser.parse(content, { async: false }),
+    );
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "markdown.html";
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, [markedParser, state.markdown]);
 
   const handlePrint = React.useCallback(() => {
-    const content = state.markdown.trim()
-    if (!content) return
-    const html = buildHtmlDocument(markedParser.parse(content, { async: false }))
-    const blob = new Blob([html], { type: "text/html" })
-    const url = URL.createObjectURL(blob)
-    const frame = document.createElement("iframe")
-    frame.style.position = "fixed"
-    frame.style.right = "0"
-    frame.style.bottom = "0"
-    frame.style.width = "0"
-    frame.style.height = "0"
-    frame.style.border = "0"
-    frame.style.visibility = "hidden"
-    frame.src = url
+    const content = state.markdown.trim();
+    if (!content) return;
+    const html = buildHtmlDocument(
+      markedParser.parse(content, { async: false }),
+    );
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const frame = document.createElement("iframe");
+    frame.style.position = "fixed";
+    frame.style.right = "0";
+    frame.style.bottom = "0";
+    frame.style.width = "0";
+    frame.style.height = "0";
+    frame.style.border = "0";
+    frame.style.visibility = "hidden";
+    frame.src = url;
     frame.onload = () => {
-      const printWindow = frame.contentWindow
+      const printWindow = frame.contentWindow;
       if (printWindow) {
-        printWindow.focus()
-        printWindow.print()
+        printWindow.focus();
+        printWindow.print();
       }
       setTimeout(() => {
-        URL.revokeObjectURL(url)
-        frame.remove()
-      }, 1000)
-    }
-    document.body.appendChild(frame)
-  }, [markedParser, state.markdown])
+        URL.revokeObjectURL(url);
+        frame.remove();
+      }, 1000);
+    };
+    document.body.appendChild(frame);
+  }, [markedParser, state.markdown]);
 
-  const handleDragOver = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    if (!event.dataTransfer.types.includes("Files")) return
-    event.preventDefault()
-  }, [])
+  const handleDragOver = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!event.dataTransfer.types.includes("Files")) return;
+      event.preventDefault();
+    },
+    [],
+  );
 
-  const handleDragEnter = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    if (!event.dataTransfer.types.includes("Files")) return
-    event.preventDefault()
-    setIsDragActive(true)
-  }, [])
+  const handleDragEnter = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (!event.dataTransfer.types.includes("Files")) return;
+      event.preventDefault();
+      setIsDragActive(true);
+    },
+    [],
+  );
 
-  const handleDragLeave = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return
-    setIsDragActive(false)
-  }, [])
+  const handleDragLeave = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      if (event.currentTarget.contains(event.relatedTarget as Node | null))
+        return;
+      setIsDragActive(false);
+    },
+    [],
+  );
 
   const handleDrop = React.useCallback(
     async (event: React.DragEvent<HTMLDivElement>) => {
-      if (!event.dataTransfer.types.includes("Files")) return
-      event.preventDefault()
-      setIsDragActive(false)
-      const file = event.dataTransfer.files?.[0]
-      if (!file) return
-      if (getFileType(file) === "unknown") return
-      await importFile(file)
+      if (!event.dataTransfer.types.includes("Files")) return;
+      event.preventDefault();
+      setIsDragActive(false);
+      const file = event.dataTransfer.files?.[0];
+      if (!file) return;
+      if (getFileType(file) === "unknown") return;
+      await importFile(file);
     },
     [getFileType, importFile],
-  )
+  );
 
   const handleViewModeChange = React.useCallback(
     (value: "split" | "editor" | "preview") => {
-      setParam("viewMode", value, true)
+      setParam("viewMode", value, true);
     },
     [setParam],
-  )
+  );
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.markdown !== undefined) setParam("markdown", inputs.markdown)
-      if (params.viewMode) setParam("viewMode", params.viewMode as "split" | "editor" | "preview", true)
+      const { inputs, params } = entry;
+      if (inputs.markdown !== undefined) setParam("markdown", inputs.markdown);
+      if (params.viewMode)
+        setParam(
+          "viewMode",
+          params.viewMode as "split" | "editor" | "preview",
+          true,
+        );
     },
     [setParam],
-  )
+  );
 
   const previewHtml = React.useMemo(
     () => markedParser.parse(state.markdown || "", { async: false }),
     [markedParser, state.markdown],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -329,7 +368,7 @@ function MarkdownPreviewerContent() {
         handleViewModeChange={handleViewModeChange}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function MarkdownPreviewerInner({
@@ -353,91 +392,97 @@ function MarkdownPreviewerInner({
   handleUpload,
   handleViewModeChange,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  resolvedTheme: string | undefined
-  uploadInputRef: React.RefObject<HTMLInputElement | null>
-  previewHtml: string
-  isDragActive: boolean
-  handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void
-  handleDragEnter: (event: React.DragEvent<HTMLDivElement>) => void
-  handleDragLeave: (event: React.DragEvent<HTMLDivElement>) => void
-  handleDrop: (event: React.DragEvent<HTMLDivElement>) => void
-  handleMarkdownChange: (value: string | undefined) => void
-  handleDownloadMarkdown: () => void
-  handleExportHtml: () => void
-  handlePrint: () => void
-  handleUpload: (event: React.ChangeEvent<HTMLInputElement>) => void
-  handleViewModeChange: (value: "split" | "editor" | "preview") => void
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  resolvedTheme: string | undefined;
+  uploadInputRef: React.RefObject<HTMLInputElement | null>;
+  previewHtml: string;
+  isDragActive: boolean;
+  handleDragOver: (event: React.DragEvent<HTMLDivElement>) => void;
+  handleDragEnter: (event: React.DragEvent<HTMLDivElement>) => void;
+  handleDragLeave: (event: React.DragEvent<HTMLDivElement>) => void;
+  handleDrop: (event: React.DragEvent<HTMLDivElement>) => void;
+  handleMarkdownChange: (value: string | undefined) => void;
+  handleDownloadMarkdown: () => void;
+  handleExportHtml: () => void;
+  handlePrint: () => void;
+  handleUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleViewModeChange: (value: "split" | "editor" | "preview") => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastInputRef = React.useRef("")
-  const hasHydratedInputRef = React.useRef(false)
-  const paramsRef = React.useRef({ viewMode: state.viewMode })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastInputRef = React.useRef("");
+  const hasHydratedInputRef = React.useRef(false);
+  const paramsRef = React.useRef({ viewMode: state.viewMode });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = state.markdown
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.markdown])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = state.markdown;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.markdown]);
 
   React.useEffect(() => {
-    if (state.markdown === lastInputRef.current) return
+    if (state.markdown === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = state.markdown
+      lastInputRef.current = state.markdown;
       upsertInputEntry(
         { markdown: state.markdown },
         { viewMode: state.viewMode },
         "left",
         state.markdown.slice(0, 120),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.markdown, state.viewMode, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state.markdown, state.viewMode, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.markdown) {
         upsertInputEntry(
           { markdown: state.markdown },
           { viewMode: state.viewMode },
           "left",
           state.markdown.slice(0, 120),
-        )
+        );
       } else {
-        upsertParams({ viewMode: state.viewMode }, "interpretation")
+        upsertParams({ viewMode: state.viewMode }, "interpretation");
       }
     }
-  }, [hasUrlParams, state.markdown, state.viewMode, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.markdown,
+    state.viewMode,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const nextParams = { viewMode: state.viewMode }
+    const nextParams = { viewMode: state.viewMode };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
-    if (paramsRef.current.viewMode === nextParams.viewMode) return
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [state.viewMode, upsertParams])
+    if (paramsRef.current.viewMode === nextParams.viewMode) return;
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [state.viewMode, upsertParams]);
 
-  const hasMarkdown = state.markdown.trim().length > 0
-  const showEditor = state.viewMode !== "preview"
-  const showPreview = state.viewMode !== "editor"
+  const hasMarkdown = state.markdown.trim().length > 0;
+  const showEditor = state.viewMode !== "preview";
+  const showPreview = state.viewMode !== "editor";
 
   return (
     <div className="flex flex-col gap-4">
@@ -509,7 +554,12 @@ function MarkdownPreviewerInner({
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -518,7 +568,11 @@ function MarkdownPreviewerInner({
                       <FileDown className="h-4 w-4" />
                       Export HTML
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setParam("markdown", defaultMarkdown, true)}>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        setParam("markdown", defaultMarkdown, true)
+                      }
+                    >
                       <RotateCcw className="h-4 w-4" />
                       Reset Sample
                     </DropdownMenuItem>
@@ -564,17 +618,26 @@ function MarkdownPreviewerInner({
               </div>
             </div>
             {oversizeKeys.includes("markdown") && (
-              <p className="text-xs text-muted-foreground">Markdown exceeds 2 KB and is not synced to URL.</p>
+              <p className="text-xs text-muted-foreground">
+                Markdown exceeds 2 KB and is not synced to URL.
+              </p>
             )}
           </div>
         )}
 
         {showPreview && (
-          <div className={cn("flex w-full flex-1 flex-col gap-2 md:w-0", showEditor ? "" : "md:w-full")}>
+          <div
+            className={cn(
+              "flex w-full flex-1 flex-col gap-2 md:w-0",
+              showEditor ? "" : "md:w-full",
+            )}
+          >
             <div className="flex h-8 items-center justify-between gap-2">
               <Label className="text-sm font-medium">Preview</Label>
               <div className="flex items-center gap-2">
-                <div className="text-xs text-muted-foreground">{hasMarkdown ? "Live" : "Empty"}</div>
+                <div className="text-xs text-muted-foreground">
+                  {hasMarkdown ? "Live" : "Empty"}
+                </div>
                 <Button
                   type="button"
                   variant="ghost"
@@ -642,7 +705,9 @@ function MarkdownPreviewerInner({
           border-radius: 8px;
         }
         .markdown-preview code {
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          font-family:
+            ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
           background: rgba(148, 163, 184, 0.2);
           padding: 0.2em 0.35em;
           border-radius: 4px;
@@ -997,5 +1062,5 @@ function MarkdownPreviewerInner({
         }
       `}</style>
     </div>
-  )
+  );
 }

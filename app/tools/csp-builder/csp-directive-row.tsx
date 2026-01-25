@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import { X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type CspDirectiveRowProps = {
-  name: string
-  valuesText: string
-  onNameChange: (value: string) => void
-  onValuesChange: (value: string) => void
-  onRemove: () => void
-}
+  name: string;
+  valuesText: string;
+  onNameChange: (value: string) => void;
+  onValuesChange: (value: string) => void;
+  onRemove: () => void;
+};
 
 export default function CspDirectiveRow({
   name,
@@ -44,10 +44,16 @@ export default function CspDirectiveRow({
             />
           </div>
         </div>
-        <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={onRemove}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={onRemove}
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>
     </div>
-  )
+  );
 }

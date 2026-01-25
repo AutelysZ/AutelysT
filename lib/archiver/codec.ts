@@ -1,5 +1,5 @@
-import * as fflate from "fflate"
-import { Archive } from "libarchive.js"
+import * as fflate from "fflate";
+import { Archive } from "libarchive.js";
 // WASM modules are dynamically imported to avoid loading during SSR/prerendering
 
 // ============================================================================
@@ -7,39 +7,39 @@ import { Archive } from "libarchive.js"
 // ============================================================================
 
 export interface FileNode {
-  id: string
-  name: string
-  type: "file" | "directory"
-  path: string
-  size?: number
-  data?: Uint8Array
-  children?: FileNode[]
-  selected: boolean
-  expanded?: boolean
+  id: string;
+  name: string;
+  type: "file" | "directory";
+  path: string;
+  size?: number;
+  data?: Uint8Array;
+  children?: FileNode[];
+  selected: boolean;
+  expanded?: boolean;
 }
 
 export interface CompressionFormat {
-  id: string
-  name: string
-  extensions: string[]
-  mimeTypes: string[]
-  supportsMultipleFiles: boolean
-  supportsPassword: boolean
-  supportsCompression: boolean
-  supportsDecompression: boolean
-  description: string
+  id: string;
+  name: string;
+  extensions: string[];
+  mimeTypes: string[];
+  supportsMultipleFiles: boolean;
+  supportsPassword: boolean;
+  supportsCompression: boolean;
+  supportsDecompression: boolean;
+  description: string;
 }
 
 export interface CompressionOptions {
-  format: string
-  password?: string
-  level?: number // 0-9 for compression level
+  format: string;
+  password?: string;
+  level?: number; // 0-9 for compression level
 }
 
 export interface DecompressionResult {
-  files: FileNode[]
-  format: string
-  encrypted: boolean
+  files: FileNode[];
+  format: string;
+  encrypted: boolean;
 }
 
 // ============================================================================
@@ -510,7 +510,7 @@ export const COMPRESSION_FORMATS: CompressionFormat[] = [
     supportsCompression: false,
     description: "Nintendo DS ROM (extract only)",
   },
-]
+];
 
 // Formats that are not supported in browser (listed for reference)
 export const UNSUPPORTED_FORMATS: CompressionFormat[] = [
@@ -926,22 +926,25 @@ export const UNSUPPORTED_FORMATS: CompressionFormat[] = [
     supportsCompression: false,
     description: "ZI archive",
   },
-]
+];
 
 // All formats combined for searching
-export const ALL_FORMATS: CompressionFormat[] = [...COMPRESSION_FORMATS, ...UNSUPPORTED_FORMATS]
+export const ALL_FORMATS: CompressionFormat[] = [
+  ...COMPRESSION_FORMATS,
+  ...UNSUPPORTED_FORMATS,
+];
 
 // Search formats by name, extension, or description
 export function searchFormats(query: string): CompressionFormat[] {
-  if (!query.trim()) return COMPRESSION_FORMATS
-  const lowerQuery = query.toLowerCase()
+  if (!query.trim()) return COMPRESSION_FORMATS;
+  const lowerQuery = query.toLowerCase();
   return COMPRESSION_FORMATS.filter(
     (f) =>
       f.name.toLowerCase().includes(lowerQuery) ||
       f.id.toLowerCase().includes(lowerQuery) ||
       f.extensions.some((ext) => ext.toLowerCase().includes(lowerQuery)) ||
-      f.description.toLowerCase().includes(lowerQuery)
-  )
+      f.description.toLowerCase().includes(lowerQuery),
+  );
 }
 
 // ============================================================================
@@ -949,48 +952,48 @@ export function searchFormats(query: string): CompressionFormat[] {
 // ============================================================================
 
 export function generateId(): string {
-  return Math.random().toString(36).substring(2, 11)
+  return Math.random().toString(36).substring(2, 11);
 }
 
 export function detectFormat(filename: string): CompressionFormat | null {
-  const lowerName = filename.toLowerCase()
+  const lowerName = filename.toLowerCase();
 
   // Check combined formats first (like .tar.gz)
   for (const format of COMPRESSION_FORMATS) {
     for (const ext of format.extensions) {
       if (lowerName.endsWith(ext)) {
-        return format
+        return format;
       }
     }
   }
 
-  return null
+  return null;
 }
 
 export function getFormatById(id: string): CompressionFormat | null {
-  return COMPRESSION_FORMATS.find((f) => f.id === id) || null
+  return COMPRESSION_FORMATS.find((f) => f.id === id) || null;
 }
 
 export function buildFileTree(files: FileNode[]): FileNode[] {
-  const root: FileNode[] = []
-  const pathMap = new Map<string, FileNode>()
+  const root: FileNode[] = [];
+  const pathMap = new Map<string, FileNode>();
 
   // Sort files so directories come first
   const sorted = [...files].sort((a, b) => {
-    const aDepth = a.path.split("/").length
-    const bDepth = b.path.split("/").length
-    return aDepth - bDepth
-  })
+    const aDepth = a.path.split("/").length;
+    const bDepth = b.path.split("/").length;
+    return aDepth - bDepth;
+  });
 
   for (const file of sorted) {
-    const parts = file.path.split("/").filter(Boolean)
-    let currentPath = ""
-    let currentLevel = root
+    const parts = file.path.split("/").filter(Boolean);
+    let currentPath = "";
+    let currentLevel = root;
 
     for (let i = 0; i < parts.length - 1; i++) {
-      currentPath += (currentPath ? "/" : "") + parts[i]
+      currentPath += (currentPath ? "/" : "") + parts[i];
 
-      let dir = pathMap.get(currentPath)
+      let dir = pathMap.get(currentPath);
       if (!dir) {
         dir = {
           id: generateId(),
@@ -1000,70 +1003,73 @@ export function buildFileTree(files: FileNode[]): FileNode[] {
           children: [],
           selected: true,
           expanded: true,
-        }
-        pathMap.set(currentPath, dir)
-        currentLevel.push(dir)
+        };
+        pathMap.set(currentPath, dir);
+        currentLevel.push(dir);
       }
-      currentLevel = dir.children!
+      currentLevel = dir.children!;
     }
 
-    currentLevel.push(file)
+    currentLevel.push(file);
   }
 
-  return root
+  return root;
 }
 
-export function flattenFileTree(nodes: FileNode[], selectedOnly = false): FileNode[] {
-  const result: FileNode[] = []
+export function flattenFileTree(
+  nodes: FileNode[],
+  selectedOnly = false,
+): FileNode[] {
+  const result: FileNode[] = [];
 
   function traverse(node: FileNode) {
-    if (selectedOnly && !node.selected) return
+    if (selectedOnly && !node.selected) return;
 
     if (node.type === "file") {
-      result.push(node)
+      result.push(node);
     }
 
     if (node.children) {
       for (const child of node.children) {
-        traverse(child)
+        traverse(child);
       }
     }
   }
 
   for (const node of nodes) {
-    traverse(node)
+    traverse(node);
   }
 
-  return result
+  return result;
 }
 
 export function calculateTotalSize(nodes: FileNode[]): number {
-  let total = 0
+  let total = 0;
 
   function traverse(node: FileNode) {
     if (node.type === "file" && node.size) {
-      total += node.size
+      total += node.size;
     }
     if (node.children) {
       for (const child of node.children) {
-        traverse(child)
+        traverse(child);
       }
     }
   }
 
   for (const node of nodes) {
-    traverse(node)
+    traverse(node);
   }
 
-  return total
+  return total;
 }
 
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return "0 B"
-  const k = 1024
-  const sizes = ["B", "KB", "MB", "GB", "TB"]
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
 }
 
 // ============================================================================
@@ -1072,470 +1078,502 @@ export function formatFileSize(bytes: number): string {
 
 export async function compressFiles(
   files: FileNode[],
-  options: CompressionOptions
+  options: CompressionOptions,
 ): Promise<Uint8Array> {
-  const selectedFiles = flattenFileTree(files, true)
+  const selectedFiles = flattenFileTree(files, true);
 
   if (selectedFiles.length === 0) {
-    throw new Error("No files selected for compression")
+    throw new Error("No files selected for compression");
   }
 
-  const format = getFormatById(options.format)
+  const format = getFormatById(options.format);
   if (!format) {
-    throw new Error(`Unknown format: ${options.format}`)
+    throw new Error(`Unknown format: ${options.format}`);
   }
 
   if (!format.supportsCompression) {
-    throw new Error(`Compression not supported for format: ${format.name}`)
+    throw new Error(`Compression not supported for format: ${format.name}`);
   }
 
   if (!format.supportsMultipleFiles && selectedFiles.length > 1) {
-    throw new Error(`${format.name} format only supports single file compression`)
+    throw new Error(
+      `${format.name} format only supports single file compression`,
+    );
   }
 
   switch (options.format) {
     case "zip":
     case "jar":
-      return compressZip(selectedFiles, options)
+      return compressZip(selectedFiles, options);
     case "gzip":
-      return compressGzip(selectedFiles[0], options)
+      return compressGzip(selectedFiles[0], options);
     case "zlib":
-      return compressZlib(selectedFiles[0], options)
+      return compressZlib(selectedFiles[0], options);
     case "tar":
-      return compressTar(selectedFiles)
+      return compressTar(selectedFiles);
     case "tar.gz":
-      return compressTarGz(selectedFiles, options)
+      return compressTarGz(selectedFiles, options);
     case "zstd":
-      return compressZstd(selectedFiles[0], options)
+      return compressZstd(selectedFiles[0], options);
     case "tar.zst":
-      return compressTarZst(selectedFiles, options)
+      return compressTarZst(selectedFiles, options);
     case "lz4":
-      return compressLz4(selectedFiles[0])
+      return compressLz4(selectedFiles[0]);
     case "tar.lz4":
-      return compressTarLz4(selectedFiles)
+      return compressTarLz4(selectedFiles);
     case "snappy":
-      return compressSnappy(selectedFiles[0])
+      return compressSnappy(selectedFiles[0]);
     case "tar.snappy":
-      return compressTarSnappy(selectedFiles)
+      return compressTarSnappy(selectedFiles);
     case "7z":
-      return compress7z(selectedFiles, options)
+      return compress7z(selectedFiles, options);
     default:
-      throw new Error(`Compression not implemented for format: ${format.name}`)
+      throw new Error(`Compression not implemented for format: ${format.name}`);
   }
 }
 
-type CompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+type CompressionLevel = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 function toCompressionLevel(level: number | undefined): CompressionLevel {
-  const l = level ?? 6
-  return Math.max(0, Math.min(9, l)) as CompressionLevel
+  const l = level ?? 6;
+  return Math.max(0, Math.min(9, l)) as CompressionLevel;
 }
 
-function compressZip(files: FileNode[], options: CompressionOptions): Promise<Uint8Array> {
+function compressZip(
+  files: FileNode[],
+  options: CompressionOptions,
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
-    const zipData: fflate.Zippable = {}
-    const level = toCompressionLevel(options.level)
+    const zipData: fflate.Zippable = {};
+    const level = toCompressionLevel(options.level);
 
     for (const file of files) {
       if (file.data) {
         const opts: fflate.ZipOptions = {
           level,
-        }
+        };
 
         if (options.password) {
           // fflate supports AES encryption
-          ;(opts as fflate.ZipOptions & { password?: string }).password = options.password
+          (opts as fflate.ZipOptions & { password?: string }).password =
+            options.password;
         }
 
-        zipData[file.path] = [file.data, opts]
+        zipData[file.path] = [file.data, opts];
       }
     }
 
     fflate.zip(zipData, { level }, (err, data) => {
       if (err) {
-        reject(err)
+        reject(err);
       } else {
-        resolve(data)
+        resolve(data);
       }
-    })
-  })
+    });
+  });
 }
 
-function compressGzip(file: FileNode, options: CompressionOptions): Promise<Uint8Array> {
+function compressGzip(
+  file: FileNode,
+  options: CompressionOptions,
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     if (!file.data) {
-      reject(new Error("No file data"))
-      return
+      reject(new Error("No file data"));
+      return;
     }
 
     try {
       const compressed = fflate.gzipSync(file.data, {
         level: toCompressionLevel(options.level),
         filename: file.name,
-      })
-      resolve(compressed)
+      });
+      resolve(compressed);
     } catch (err) {
-      reject(err)
+      reject(err);
     }
-  })
+  });
 }
 
-function compressZlib(file: FileNode, options: CompressionOptions): Promise<Uint8Array> {
+function compressZlib(
+  file: FileNode,
+  options: CompressionOptions,
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     if (!file.data) {
-      reject(new Error("No file data"))
-      return
+      reject(new Error("No file data"));
+      return;
     }
 
     try {
       const compressed = fflate.zlibSync(file.data, {
         level: toCompressionLevel(options.level),
-      })
-      resolve(compressed)
+      });
+      resolve(compressed);
     } catch (err) {
-      reject(err)
+      reject(err);
     }
-  })
+  });
 }
 
 // Simple TAR implementation (USTAR format)
 function createTarEntry(path: string, data: Uint8Array): Uint8Array {
-  const header = new Uint8Array(512)
-  const encoder = new TextEncoder()
+  const header = new Uint8Array(512);
+  const encoder = new TextEncoder();
 
   // File name (max 100 bytes)
-  const nameBytes = encoder.encode(path.slice(0, 100))
-  header.set(nameBytes, 0)
+  const nameBytes = encoder.encode(path.slice(0, 100));
+  header.set(nameBytes, 0);
 
   // File mode (octal)
-  header.set(encoder.encode("0000644\0"), 100)
+  header.set(encoder.encode("0000644\0"), 100);
 
   // UID and GID
-  header.set(encoder.encode("0000000\0"), 108)
-  header.set(encoder.encode("0000000\0"), 116)
+  header.set(encoder.encode("0000000\0"), 108);
+  header.set(encoder.encode("0000000\0"), 116);
 
   // File size (octal, 11 digits)
-  const sizeOctal = data.length.toString(8).padStart(11, "0")
-  header.set(encoder.encode(sizeOctal + "\0"), 124)
+  const sizeOctal = data.length.toString(8).padStart(11, "0");
+  header.set(encoder.encode(sizeOctal + "\0"), 124);
 
   // Modification time (octal)
-  const mtime = Math.floor(Date.now() / 1000).toString(8).padStart(11, "0")
-  header.set(encoder.encode(mtime + "\0"), 136)
+  const mtime = Math.floor(Date.now() / 1000)
+    .toString(8)
+    .padStart(11, "0");
+  header.set(encoder.encode(mtime + "\0"), 136);
 
   // Type flag (0 = regular file)
-  header[156] = 48 // ASCII '0'
+  header[156] = 48; // ASCII '0'
 
   // USTAR magic
-  header.set(encoder.encode("ustar\0"), 257)
-  header.set(encoder.encode("00"), 263)
+  header.set(encoder.encode("ustar\0"), 257);
+  header.set(encoder.encode("00"), 263);
 
   // Calculate checksum (sum of all header bytes, treating checksum field as spaces)
-  header.set(encoder.encode("        "), 148) // 8 spaces for checksum field
-  let checksum = 0
+  header.set(encoder.encode("        "), 148); // 8 spaces for checksum field
+  let checksum = 0;
   for (let i = 0; i < 512; i++) {
-    checksum += header[i]
+    checksum += header[i];
   }
-  const checksumOctal = checksum.toString(8).padStart(6, "0") + "\0 "
-  header.set(encoder.encode(checksumOctal), 148)
+  const checksumOctal = checksum.toString(8).padStart(6, "0") + "\0 ";
+  header.set(encoder.encode(checksumOctal), 148);
 
   // Pad data to 512-byte blocks
-  const paddedSize = Math.ceil(data.length / 512) * 512
-  const paddedData = new Uint8Array(paddedSize)
-  paddedData.set(data)
+  const paddedSize = Math.ceil(data.length / 512) * 512;
+  const paddedData = new Uint8Array(paddedSize);
+  paddedData.set(data);
 
   // Combine header and data
-  const entry = new Uint8Array(512 + paddedSize)
-  entry.set(header)
-  entry.set(paddedData, 512)
+  const entry = new Uint8Array(512 + paddedSize);
+  entry.set(header);
+  entry.set(paddedData, 512);
 
-  return entry
+  return entry;
 }
 
 function createTar(files: FileNode[]): Uint8Array {
-  const entries: Uint8Array[] = []
+  const entries: Uint8Array[] = [];
 
   for (const file of files) {
     if (file.data) {
-      entries.push(createTarEntry(file.path, file.data))
+      entries.push(createTarEntry(file.path, file.data));
     }
   }
 
   // Add two empty 512-byte blocks at the end
-  entries.push(new Uint8Array(1024))
+  entries.push(new Uint8Array(1024));
 
   // Calculate total size
-  const totalSize = entries.reduce((sum, entry) => sum + entry.length, 0)
-  const tar = new Uint8Array(totalSize)
+  const totalSize = entries.reduce((sum, entry) => sum + entry.length, 0);
+  const tar = new Uint8Array(totalSize);
 
-  let offset = 0
+  let offset = 0;
   for (const entry of entries) {
-    tar.set(entry, offset)
-    offset += entry.length
+    tar.set(entry, offset);
+    offset += entry.length;
   }
 
-  return tar
+  return tar;
 }
 
 function parseTar(data: Uint8Array): { path: string; data: Uint8Array }[] {
-  const files: { path: string; data: Uint8Array }[] = []
-  let offset = 0
+  const files: { path: string; data: Uint8Array }[] = [];
+  let offset = 0;
 
   while (offset < data.length - 512) {
     // Check for empty block (end of archive)
-    let isEmpty = true
+    let isEmpty = true;
     for (let i = 0; i < 512; i++) {
       if (data[offset + i] !== 0) {
-        isEmpty = false
-        break
+        isEmpty = false;
+        break;
       }
     }
-    if (isEmpty) break
+    if (isEmpty) break;
 
     // Parse header
-    const header = data.slice(offset, offset + 512)
-    const decoder = new TextDecoder()
+    const header = data.slice(offset, offset + 512);
+    const decoder = new TextDecoder();
 
     // Extract filename
-    let nameEnd = 0
-    while (nameEnd < 100 && header[nameEnd] !== 0) nameEnd++
-    const path = decoder.decode(header.slice(0, nameEnd))
+    let nameEnd = 0;
+    while (nameEnd < 100 && header[nameEnd] !== 0) nameEnd++;
+    const path = decoder.decode(header.slice(0, nameEnd));
 
     // Extract file size (octal)
-    const sizeStr = decoder.decode(header.slice(124, 135)).replace(/\0/g, "").trim()
-    const size = parseInt(sizeStr, 8) || 0
+    const sizeStr = decoder
+      .decode(header.slice(124, 135))
+      .replace(/\0/g, "")
+      .trim();
+    const size = parseInt(sizeStr, 8) || 0;
 
     // Extract type flag
-    const typeFlag = header[156]
+    const typeFlag = header[156];
 
     // Skip if not a regular file (typeFlag 0 or ASCII '0')
     if (typeFlag === 0 || typeFlag === 48) {
-      const fileData = data.slice(offset + 512, offset + 512 + size)
+      const fileData = data.slice(offset + 512, offset + 512 + size);
       if (path && size > 0) {
-        files.push({ path, data: fileData })
+        files.push({ path, data: fileData });
       }
     }
 
     // Move to next entry (header + padded data)
-    const paddedSize = Math.ceil(size / 512) * 512
-    offset += 512 + paddedSize
+    const paddedSize = Math.ceil(size / 512) * 512;
+    offset += 512 + paddedSize;
   }
 
-  return files
+  return files;
 }
 
 function compressTar(files: FileNode[]): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     try {
-      const tar = createTar(files)
-      resolve(tar)
+      const tar = createTar(files);
+      resolve(tar);
     } catch (err) {
-      reject(err)
+      reject(err);
     }
-  })
+  });
 }
 
-function compressTarGz(files: FileNode[], options: CompressionOptions): Promise<Uint8Array> {
+function compressTarGz(
+  files: FileNode[],
+  options: CompressionOptions,
+): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     try {
-      const tar = createTar(files)
+      const tar = createTar(files);
       const gzipped = fflate.gzipSync(tar, {
         level: toCompressionLevel(options.level),
-      })
-      resolve(gzipped)
+      });
+      resolve(gzipped);
     } catch (err) {
-      reject(err)
+      reject(err);
     }
-  })
+  });
 }
 
 // Initialize zstd-wasm (dynamically imported)
 let zstdModule: {
-  compress: (data: Uint8Array, level?: number) => Uint8Array
-  decompress: (data: Uint8Array) => Uint8Array
-} | null = null
+  compress: (data: Uint8Array, level?: number) => Uint8Array;
+  decompress: (data: Uint8Array) => Uint8Array;
+} | null = null;
 
 async function ensureZstdInitialized(): Promise<typeof zstdModule> {
   if (!zstdModule) {
-    const zstd = await import("@bokuweb/zstd-wasm")
-    await zstd.init()
+    const zstd = await import("@bokuweb/zstd-wasm");
+    await zstd.init();
     zstdModule = {
       compress: zstd.compress,
       decompress: zstd.decompress,
-    }
+    };
   }
-  return zstdModule
+  return zstdModule;
 }
 
 // Convert 0-9 compression level to zstd level (1-22, default 3)
 function toZstdLevel(level: number | undefined): number {
-  const l = level ?? 6
+  const l = level ?? 6;
   // Map 0-9 to 1-19 (zstd range is 1-22, but 19 is a good max for browser)
-  return Math.max(1, Math.min(19, Math.round(l * 2) + 1))
+  return Math.max(1, Math.min(19, Math.round(l * 2) + 1));
 }
 
-async function compressZstd(file: FileNode, options: CompressionOptions): Promise<Uint8Array> {
+async function compressZstd(
+  file: FileNode,
+  options: CompressionOptions,
+): Promise<Uint8Array> {
   if (!file.data) {
-    throw new Error("No file data")
+    throw new Error("No file data");
   }
 
-  const zstd = await ensureZstdInitialized()
-  const level = toZstdLevel(options.level)
-  const compressed = zstd!.compress(file.data, level)
-  return compressed
+  const zstd = await ensureZstdInitialized();
+  const level = toZstdLevel(options.level);
+  const compressed = zstd!.compress(file.data, level);
+  return compressed;
 }
 
-async function compressTarZst(files: FileNode[], options: CompressionOptions): Promise<Uint8Array> {
-  const tar = createTar(files)
-  const zstd = await ensureZstdInitialized()
-  const level = toZstdLevel(options.level)
-  const compressed = zstd!.compress(tar, level)
-  return compressed
+async function compressTarZst(
+  files: FileNode[],
+  options: CompressionOptions,
+): Promise<Uint8Array> {
+  const tar = createTar(files);
+  const zstd = await ensureZstdInitialized();
+  const level = toZstdLevel(options.level);
+  const compressed = zstd!.compress(tar, level);
+  return compressed;
 }
 
 // LZ4 compression (dynamically imported WASM implementation)
 let lz4Module: {
-  compress: (data: Uint8Array) => Uint8Array
-  decompress: (data: Uint8Array) => Uint8Array
-} | null = null
+  compress: (data: Uint8Array) => Uint8Array;
+  decompress: (data: Uint8Array) => Uint8Array;
+} | null = null;
 
 async function ensureLz4Initialized(): Promise<typeof lz4Module> {
   if (!lz4Module) {
-    const lz4 = await import("lz4-wasm")
+    const lz4 = await import("lz4-wasm");
     lz4Module = {
       compress: lz4.compress,
       decompress: lz4.decompress,
-    }
+    };
   }
-  return lz4Module
+  return lz4Module;
 }
 
 async function compressLz4(file: FileNode): Promise<Uint8Array> {
   if (!file.data) {
-    throw new Error("No file data")
+    throw new Error("No file data");
   }
-  const lz4 = await ensureLz4Initialized()
-  return lz4!.compress(file.data)
+  const lz4 = await ensureLz4Initialized();
+  return lz4!.compress(file.data);
 }
 
 async function compressTarLz4(files: FileNode[]): Promise<Uint8Array> {
-  const tar = createTar(files)
-  const lz4 = await ensureLz4Initialized()
-  return lz4!.compress(tar)
+  const tar = createTar(files);
+  const lz4 = await ensureLz4Initialized();
+  return lz4!.compress(tar);
 }
 
 // Snappy compression (using snappyjs - pure JS implementation)
 async function compressSnappy(file: FileNode): Promise<Uint8Array> {
   if (!file.data) {
-    throw new Error("No file data")
+    throw new Error("No file data");
   }
-  const snappy = await import("snappyjs")
-  return snappy.compress(file.data)
+  const snappy = await import("snappyjs");
+  return snappy.compress(file.data);
 }
 
 async function compressTarSnappy(files: FileNode[]): Promise<Uint8Array> {
-  const tar = createTar(files)
-  const snappy = await import("snappyjs")
-  return snappy.compress(tar)
+  const tar = createTar(files);
+  const snappy = await import("snappyjs");
+  return snappy.compress(tar);
 }
 
 // Initialize 7z-wasm (dynamically imported to avoid WASM loading during SSR)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-let sevenZipInstance: any = null
+let sevenZipInstance: any = null;
 
 async function ensure7zInitialized() {
   if (!sevenZipInstance) {
-    const SevenZip = (await import("7z-wasm")).default
-    sevenZipInstance = await SevenZip()
+    const SevenZip = (await import("7z-wasm")).default;
+    sevenZipInstance = await SevenZip();
   }
-  return sevenZipInstance
+  return sevenZipInstance;
 }
 
 // Convert 0-9 compression level to 7z level (0-9)
 function to7zLevel(level: number | undefined): number {
-  return level ?? 5
+  return level ?? 5;
 }
 
 // Helper to flatten file tree for 7z compression
-function flattenFilesFor7z(nodes: FileNode[], basePath: string = ""): Array<{ path: string; data: Uint8Array }> {
-  const result: Array<{ path: string; data: Uint8Array }> = []
+function flattenFilesFor7z(
+  nodes: FileNode[],
+  basePath: string = "",
+): Array<{ path: string; data: Uint8Array }> {
+  const result: Array<{ path: string; data: Uint8Array }> = [];
 
   for (const node of nodes) {
-    if (!node.selected) continue
+    if (!node.selected) continue;
 
-    const nodePath = basePath ? `${basePath}/${node.name}` : node.name
+    const nodePath = basePath ? `${basePath}/${node.name}` : node.name;
 
     if (node.type === "file" && node.data) {
-      result.push({ path: nodePath, data: node.data })
+      result.push({ path: nodePath, data: node.data });
     } else if (node.type === "directory" && node.children) {
-      result.push(...flattenFilesFor7z(node.children, nodePath))
+      result.push(...flattenFilesFor7z(node.children, nodePath));
     }
   }
 
-  return result
+  return result;
 }
 
-async function compress7z(files: FileNode[], options: CompressionOptions): Promise<Uint8Array> {
-  const sevenZip = await ensure7zInitialized()
-  const level = to7zLevel(options.level)
+async function compress7z(
+  files: FileNode[],
+  options: CompressionOptions,
+): Promise<Uint8Array> {
+  const sevenZip = await ensure7zInitialized();
+  const level = to7zLevel(options.level);
 
   // Flatten files
-  const flatFiles = flattenFilesFor7z(files)
+  const flatFiles = flattenFilesFor7z(files);
   if (flatFiles.length === 0) {
-    throw new Error("No files to compress")
+    throw new Error("No files to compress");
   }
 
   // Write files to virtual filesystem
   for (const file of flatFiles) {
     // Create parent directories if needed
-    const parts = file.path.split("/")
-    let currentPath = ""
+    const parts = file.path.split("/");
+    let currentPath = "";
     for (let i = 0; i < parts.length - 1; i++) {
-      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i]
+      currentPath = currentPath ? `${currentPath}/${parts[i]}` : parts[i];
       try {
-        sevenZip.FS.mkdir(`/${currentPath}`)
+        sevenZip.FS.mkdir(`/${currentPath}`);
       } catch {
         // Directory might already exist
       }
     }
-    sevenZip.FS.writeFile(`/${file.path}`, file.data)
+    sevenZip.FS.writeFile(`/${file.path}`, file.data);
   }
 
   // Build compression command
-  const archiveName = "/output.7z"
-  const args = ["a", `-mx=${level}`, archiveName]
+  const archiveName = "/output.7z";
+  const args = ["a", `-mx=${level}`, archiveName];
 
   // Add password if provided
   if (options.password) {
-    args.push(`-p${options.password}`)
+    args.push(`-p${options.password}`);
   }
 
   // Add all files
   for (const file of flatFiles) {
-    args.push(`/${file.path}`)
+    args.push(`/${file.path}`);
   }
 
   // Run compression
-  sevenZip.callMain(args)
+  sevenZip.callMain(args);
 
   // Read the result
-  const result = sevenZip.FS.readFile(archiveName)
+  const result = sevenZip.FS.readFile(archiveName);
 
   // Cleanup
   try {
-    sevenZip.FS.unlink(archiveName)
+    sevenZip.FS.unlink(archiveName);
   } catch {
     // Ignore
   }
 
   for (const file of flatFiles) {
     try {
-      sevenZip.FS.unlink(`/${file.path}`)
+      sevenZip.FS.unlink(`/${file.path}`);
     } catch {
       // Ignore
     }
   }
 
-  return result
+  return result;
 }
 
 // ============================================================================
@@ -1543,80 +1581,88 @@ async function compress7z(files: FileNode[], options: CompressionOptions): Promi
 // ============================================================================
 
 // Initialize libarchive.js worker
-let archiveWorkerInitialized = false
+let archiveWorkerInitialized = false;
 
 async function initArchiveWorker() {
   if (!archiveWorkerInitialized) {
     Archive.init({
       workerUrl: "/libarchive/worker-bundle.js",
-    })
-    archiveWorkerInitialized = true
+    });
+    archiveWorkerInitialized = true;
   }
 }
 
 export async function decompressFile(
   data: Uint8Array,
   filename: string,
-  password?: string
+  password?: string,
 ): Promise<DecompressionResult> {
-  const format = detectFormat(filename)
-  console.log(`decompressFile: ${filename}, detected format: ${format?.id || "unknown"}, data size: ${data.length}`)
+  const format = detectFormat(filename);
+  console.log(
+    `decompressFile: ${filename}, detected format: ${format?.id || "unknown"}, data size: ${data.length}`,
+  );
 
   // Try native decompression first for supported formats
   if (format) {
     switch (format.id) {
       case "zip":
       case "jar":
-        return decompressZip(data, password)
+        return decompressZip(data, password);
       case "gzip":
-        return decompressGzip(data, filename)
+        return decompressGzip(data, filename);
       case "zlib":
-        return decompressZlib(data, filename)
+        return decompressZlib(data, filename);
       case "tar":
-        return decompressTar(data)
+        return decompressTar(data);
       case "tar.gz":
-        return decompressTarGz(data)
+        return decompressTarGz(data);
       case "zstd":
-        return decompressZstdFile(data, filename)
+        return decompressZstdFile(data, filename);
       case "tar.zst":
-        return decompressTarZst(data)
+        return decompressTarZst(data);
       case "lz4":
-        return decompressLz4File(data, filename)
+        return decompressLz4File(data, filename);
       case "tar.lz4":
-        return decompressTarLz4(data)
+        return decompressTarLz4(data);
       case "snappy":
-        return decompressSnappyFile(data, filename)
+        return decompressSnappyFile(data, filename);
       case "tar.snappy":
-        return decompressTarSnappy(data)
+        return decompressTarSnappy(data);
       case "7z":
-        return decompress7z(data, filename, password)
+        return decompress7z(data, filename, password);
     }
   }
 
   // Fall back to libarchive.js for other formats (including RAR, etc.)
-  console.log(`Using libarchive.js fallback for ${filename}`)
-  return decompressWithLibarchive(data, filename, password)
+  console.log(`Using libarchive.js fallback for ${filename}`);
+  return decompressWithLibarchive(data, filename, password);
 }
 
-async function decompressZip(data: Uint8Array, password?: string): Promise<DecompressionResult> {
+async function decompressZip(
+  data: Uint8Array,
+  password?: string,
+): Promise<DecompressionResult> {
   return new Promise((resolve, reject) => {
-    const opts: fflate.UnzipOptions = {}
+    const opts: fflate.UnzipOptions = {};
     if (password) {
-      ;(opts as fflate.UnzipOptions & { password?: string }).password = password
+      (opts as fflate.UnzipOptions & { password?: string }).password = password;
     }
 
     fflate.unzip(data, opts, (err, unzipped) => {
       if (err) {
         // Check if it's a password error
-        if (err.message?.includes("password") || err.message?.includes("encrypted")) {
-          reject(new Error("Password required or incorrect password"))
+        if (
+          err.message?.includes("password") ||
+          err.message?.includes("encrypted")
+        ) {
+          reject(new Error("Password required or incorrect password"));
         } else {
-          reject(err)
+          reject(err);
         }
-        return
+        return;
       }
 
-      const files: FileNode[] = []
+      const files: FileNode[] = [];
       for (const [path, fileData] of Object.entries(unzipped)) {
         if (!path.endsWith("/")) {
           files.push({
@@ -1627,7 +1673,7 @@ async function decompressZip(data: Uint8Array, password?: string): Promise<Decom
             size: fileData.length,
             data: fileData,
             selected: true,
-          })
+          });
         }
       }
 
@@ -1635,14 +1681,17 @@ async function decompressZip(data: Uint8Array, password?: string): Promise<Decom
         files: buildFileTree(files),
         format: "zip",
         encrypted: !!password,
-      })
-    })
-  })
+      });
+    });
+  });
 }
 
-async function decompressGzip(data: Uint8Array, filename: string): Promise<DecompressionResult> {
-  const decompressed = fflate.gunzipSync(data)
-  const outputName = filename.replace(/\.(gz|gzip)$/i, "") || "decompressed"
+async function decompressGzip(
+  data: Uint8Array,
+  filename: string,
+): Promise<DecompressionResult> {
+  const decompressed = fflate.gunzipSync(data);
+  const outputName = filename.replace(/\.(gz|gzip)$/i, "") || "decompressed";
 
   return {
     files: [
@@ -1658,12 +1707,15 @@ async function decompressGzip(data: Uint8Array, filename: string): Promise<Decom
     ],
     format: "gzip",
     encrypted: false,
-  }
+  };
 }
 
-async function decompressZlib(data: Uint8Array, filename: string): Promise<DecompressionResult> {
-  const decompressed = fflate.unzlibSync(data)
-  const outputName = filename.replace(/\.(zz|zlib)$/i, "") || "decompressed"
+async function decompressZlib(
+  data: Uint8Array,
+  filename: string,
+): Promise<DecompressionResult> {
+  const decompressed = fflate.unzlibSync(data);
+  const outputName = filename.replace(/\.(zz|zlib)$/i, "") || "decompressed";
 
   return {
     files: [
@@ -1679,12 +1731,12 @@ async function decompressZlib(data: Uint8Array, filename: string): Promise<Decom
     ],
     format: "zlib",
     encrypted: false,
-  }
+  };
 }
 
 async function decompressTar(data: Uint8Array): Promise<DecompressionResult> {
-  const tarFiles = parseTar(data)
-  const files: FileNode[] = []
+  const tarFiles = parseTar(data);
+  const files: FileNode[] = [];
 
   for (const { path, data: fileData } of tarFiles) {
     if (!path.endsWith("/") && fileData.length > 0) {
@@ -1696,7 +1748,7 @@ async function decompressTar(data: Uint8Array): Promise<DecompressionResult> {
         size: fileData.length,
         data: fileData,
         selected: true,
-      })
+      });
     }
   }
 
@@ -1704,18 +1756,21 @@ async function decompressTar(data: Uint8Array): Promise<DecompressionResult> {
     files: buildFileTree(files),
     format: "tar",
     encrypted: false,
-  }
+  };
 }
 
 async function decompressTarGz(data: Uint8Array): Promise<DecompressionResult> {
-  const gunzipped = fflate.gunzipSync(data)
-  return decompressTar(gunzipped)
+  const gunzipped = fflate.gunzipSync(data);
+  return decompressTar(gunzipped);
 }
 
-async function decompressZstdFile(data: Uint8Array, filename: string): Promise<DecompressionResult> {
-  const zstd = await ensureZstdInitialized()
-  const decompressed = zstd!.decompress(data)
-  const outputName = filename.replace(/\.(zst|zstd)$/i, "") || "decompressed"
+async function decompressZstdFile(
+  data: Uint8Array,
+  filename: string,
+): Promise<DecompressionResult> {
+  const zstd = await ensureZstdInitialized();
+  const decompressed = zstd!.decompress(data);
+  const outputName = filename.replace(/\.(zst|zstd)$/i, "") || "decompressed";
 
   return {
     files: [
@@ -1731,19 +1786,24 @@ async function decompressZstdFile(data: Uint8Array, filename: string): Promise<D
     ],
     format: "zstd",
     encrypted: false,
-  }
+  };
 }
 
-async function decompressTarZst(data: Uint8Array): Promise<DecompressionResult> {
-  const zstd = await ensureZstdInitialized()
-  const decompressed = zstd!.decompress(data)
-  return decompressTar(decompressed)
+async function decompressTarZst(
+  data: Uint8Array,
+): Promise<DecompressionResult> {
+  const zstd = await ensureZstdInitialized();
+  const decompressed = zstd!.decompress(data);
+  return decompressTar(decompressed);
 }
 
-async function decompressLz4File(data: Uint8Array, filename: string): Promise<DecompressionResult> {
-  const lz4 = await ensureLz4Initialized()
-  const decompressed = lz4!.decompress(data)
-  const outputName = filename.replace(/\.lz4$/i, "") || "decompressed"
+async function decompressLz4File(
+  data: Uint8Array,
+  filename: string,
+): Promise<DecompressionResult> {
+  const lz4 = await ensureLz4Initialized();
+  const decompressed = lz4!.decompress(data);
+  const outputName = filename.replace(/\.lz4$/i, "") || "decompressed";
 
   return {
     files: [
@@ -1759,19 +1819,24 @@ async function decompressLz4File(data: Uint8Array, filename: string): Promise<De
     ],
     format: "lz4",
     encrypted: false,
-  }
+  };
 }
 
-async function decompressTarLz4(data: Uint8Array): Promise<DecompressionResult> {
-  const lz4 = await ensureLz4Initialized()
-  const decompressed = lz4!.decompress(data)
-  return decompressTar(decompressed)
+async function decompressTarLz4(
+  data: Uint8Array,
+): Promise<DecompressionResult> {
+  const lz4 = await ensureLz4Initialized();
+  const decompressed = lz4!.decompress(data);
+  return decompressTar(decompressed);
 }
 
-async function decompressSnappyFile(data: Uint8Array, filename: string): Promise<DecompressionResult> {
-  const snappy = await import("snappyjs")
-  const decompressed = snappy.uncompress(data)
-  const outputName = filename.replace(/\.(snappy|snz)$/i, "") || "decompressed"
+async function decompressSnappyFile(
+  data: Uint8Array,
+  filename: string,
+): Promise<DecompressionResult> {
+  const snappy = await import("snappyjs");
+  const decompressed = snappy.uncompress(data);
+  const outputName = filename.replace(/\.(snappy|snz)$/i, "") || "decompressed";
 
   return {
     files: [
@@ -1787,67 +1852,69 @@ async function decompressSnappyFile(data: Uint8Array, filename: string): Promise
     ],
     format: "snappy",
     encrypted: false,
-  }
+  };
 }
 
-async function decompressTarSnappy(data: Uint8Array): Promise<DecompressionResult> {
-  const snappy = await import("snappyjs")
-  const decompressed = snappy.uncompress(data)
-  return decompressTar(decompressed)
+async function decompressTarSnappy(
+  data: Uint8Array,
+): Promise<DecompressionResult> {
+  const snappy = await import("snappyjs");
+  const decompressed = snappy.uncompress(data);
+  return decompressTar(decompressed);
 }
 
 async function decompress7z(
   data: Uint8Array,
   filename: string,
-  password?: string
+  password?: string,
 ): Promise<DecompressionResult> {
-  const sevenZip = await ensure7zInitialized()
-  const archiveName = "/" + filename
-  const outputDir = "/output"
+  const sevenZip = await ensure7zInitialized();
+  const archiveName = "/" + filename;
+  const outputDir = "/output";
 
   // Write archive to virtual filesystem
-  sevenZip.FS.writeFile(archiveName, data)
+  sevenZip.FS.writeFile(archiveName, data);
 
   // Create output directory
   try {
-    sevenZip.FS.mkdir(outputDir)
+    sevenZip.FS.mkdir(outputDir);
   } catch {
     // Directory might already exist
   }
 
   // Build extraction command
-  const args = ["x", `-o${outputDir}`, archiveName]
+  const args = ["x", `-o${outputDir}`, archiveName];
   if (password) {
-    args.push(`-p${password}`)
+    args.push(`-p${password}`);
   }
 
   // Run extraction
   try {
-    sevenZip.callMain(args)
+    sevenZip.callMain(args);
   } catch (err) {
     // Check if it's a password error
-    const errMsg = String(err)
+    const errMsg = String(err);
     if (errMsg.includes("password") || errMsg.includes("Wrong password")) {
-      throw new Error("Password required or incorrect password")
+      throw new Error("Password required or incorrect password");
     }
-    throw err
+    throw err;
   }
 
   // Collect extracted files
-  const files: FileNode[] = []
+  const files: FileNode[] = [];
 
   const readDir = (path: string, relativePath: string = "") => {
-    const entries = sevenZip.FS.readdir(path)
+    const entries = sevenZip.FS.readdir(path);
     for (const entry of entries) {
-      if (entry === "." || entry === "..") continue
-      const fullPath = `${path}/${entry}`
-      const relPath = relativePath ? `${relativePath}/${entry}` : entry
-      const stat = sevenZip.FS.stat(fullPath)
+      if (entry === "." || entry === "..") continue;
+      const fullPath = `${path}/${entry}`;
+      const relPath = relativePath ? `${relativePath}/${entry}` : entry;
+      const stat = sevenZip.FS.stat(fullPath);
 
       if (sevenZip.FS.isDir(stat.mode)) {
-        readDir(fullPath, relPath)
+        readDir(fullPath, relPath);
       } else {
-        const fileData = sevenZip.FS.readFile(fullPath)
+        const fileData = sevenZip.FS.readFile(fullPath);
         files.push({
           id: generateId(),
           name: entry,
@@ -1856,66 +1923,68 @@ async function decompress7z(
           size: fileData.length,
           data: fileData,
           selected: true,
-        })
+        });
       }
     }
-  }
+  };
 
-  readDir(outputDir)
+  readDir(outputDir);
 
   // Cleanup
   try {
-    sevenZip.FS.unlink(archiveName)
+    sevenZip.FS.unlink(archiveName);
   } catch {
     // Ignore
   }
 
   const cleanupDir = (path: string) => {
     try {
-      const entries = sevenZip.FS.readdir(path)
+      const entries = sevenZip.FS.readdir(path);
       for (const entry of entries) {
-        if (entry === "." || entry === "..") continue
-        const fullPath = `${path}/${entry}`
-        const stat = sevenZip.FS.stat(fullPath)
+        if (entry === "." || entry === "..") continue;
+        const fullPath = `${path}/${entry}`;
+        const stat = sevenZip.FS.stat(fullPath);
         if (sevenZip.FS.isDir(stat.mode)) {
-          cleanupDir(fullPath)
-          sevenZip.FS.rmdir(fullPath)
+          cleanupDir(fullPath);
+          sevenZip.FS.rmdir(fullPath);
         } else {
-          sevenZip.FS.unlink(fullPath)
+          sevenZip.FS.unlink(fullPath);
         }
       }
     } catch {
       // Ignore
     }
-  }
-  cleanupDir(outputDir)
+  };
+  cleanupDir(outputDir);
 
   return {
     files: buildFileTree(files),
     format: "7z",
     encrypted: !!password,
-  }
+  };
 }
 
 async function decompressWithLibarchive(
   data: Uint8Array,
   filename: string,
-  password?: string
+  password?: string,
 ): Promise<DecompressionResult> {
-  await initArchiveWorker()
+  await initArchiveWorker();
 
-  const archive = await Archive.open(new File([data as Uint8Array<ArrayBuffer>], filename))
+  const archive = await Archive.open(
+    new File([data as Uint8Array<ArrayBuffer>], filename),
+  );
 
   if (password) {
-    await archive.usePassword(password)
+    await archive.usePassword(password);
   }
 
-  const entries = await archive.getFilesArray()
-  const files: FileNode[] = []
+  const entries = await archive.getFilesArray();
+  const files: FileNode[] = [];
 
   for (const entry of entries) {
     if (!entry.path.endsWith("/")) {
-      const fileData = await entry.file.arrayBuffer()
+      const fileData = await entry.file.arrayBuffer();
       files.push({
         id: generateId(),
         name: entry.path.split("/").pop() || entry.path,
@@ -1924,17 +1993,17 @@ async function decompressWithLibarchive(
         size: entry.file.size,
         data: new Uint8Array(fileData),
         selected: true,
-      })
+      });
     }
   }
 
-  const format = detectFormat(filename)
+  const format = detectFormat(filename);
 
   return {
     files: buildFileTree(files),
     format: format?.id || "unknown",
     encrypted: !!password,
-  }
+  };
 }
 
 // ============================================================================
@@ -1942,16 +2011,18 @@ async function decompressWithLibarchive(
 // ============================================================================
 
 export function downloadFile(data: Uint8Array, filename: string) {
-  const blob = new Blob([data as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = filename
-  link.click()
-  setTimeout(() => URL.revokeObjectURL(url), 0)
+  const blob = new Blob([data as Uint8Array<ArrayBuffer>], {
+    type: "application/octet-stream",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 export function getExtensionForFormat(formatId: string): string {
-  const format = getFormatById(formatId)
-  return format?.extensions[0] || ".zip"
+  const format = getFormatById(formatId);
+  return format?.extensions[0] || ".zip";
 }

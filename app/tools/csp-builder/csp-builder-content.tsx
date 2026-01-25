@@ -1,52 +1,60 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { z } from "zod"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import type { HistoryEntry } from "@/lib/history/db"
-import CspBuilderInner from "./csp-builder-inner"
-import type { CspDirective } from "./csp-builder-types"
-import { buildCspPolicy, DEFAULT_CSP_POLICY, parseCspPolicy } from "./csp-builder-utils"
+import * as React from "react";
+import { z } from "zod";
+import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
+import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state";
+import type { HistoryEntry } from "@/lib/history/db";
+import CspBuilderInner from "./csp-builder-inner";
+import type { CspDirective } from "./csp-builder-types";
+import {
+  buildCspPolicy,
+  DEFAULT_CSP_POLICY,
+  parseCspPolicy,
+} from "./csp-builder-utils";
 
 const paramsSchema = z.object({
   policy: z.string().default(DEFAULT_CSP_POLICY),
-})
+});
 
 export default function CspBuilderContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("csp-builder", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("csp-builder", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    });
 
-  const parseResult = React.useMemo(() => parseCspPolicy(state.policy), [state.policy])
+  const parseResult = React.useMemo(
+    () => parseCspPolicy(state.policy),
+    [state.policy],
+  );
   const normalizedPolicy = React.useMemo(
     () => buildCspPolicy(parseResult.directives),
     [parseResult.directives],
-  )
+  );
 
   const handlePolicyChange = React.useCallback(
     (value: string) => {
-      setParam("policy", value)
+      setParam("policy", value);
     },
     [setParam],
-  )
+  );
 
   const handleDirectivesChange = React.useCallback(
     (directives: CspDirective[]) => {
-      const nextPolicy = buildCspPolicy(directives)
-      setParam("policy", nextPolicy)
+      const nextPolicy = buildCspPolicy(directives);
+      setParam("policy", nextPolicy);
     },
     [setParam],
-  )
+  );
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs } = entry
-      if (inputs.policy !== undefined) setParam("policy", inputs.policy)
+      const { inputs } = entry;
+      if (inputs.policy !== undefined) setParam("policy", inputs.policy);
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -67,5 +75,5 @@ export default function CspBuilderContent() {
         onDirectivesChange={handleDirectivesChange}
       />
     </ToolPageWrapper>
-  )
+  );
 }

@@ -1,19 +1,30 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { Plus, X } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Button } from "@/components/ui/button"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { getAllTimezones, formatTimestamp, parseTimestamp, isUnixEpochTimezone } from "@/lib/timezone/timezone"
-import type { HistoryEntry } from "@/lib/history/db"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import { Plus, X } from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Button } from "@/components/ui/button";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getAllTimezones,
+  formatTimestamp,
+  parseTimestamp,
+  isUnixEpochTimezone,
+} from "@/lib/timezone/timezone";
+import type { HistoryEntry } from "@/lib/history/db";
 
 const paramsSchema = z.object({
   mode: z.enum(["live", "custom"]).default("live"),
@@ -21,28 +32,32 @@ const paramsSchema = z.object({
   zoneList: z
     .string()
     .default("local,UTC,America/New_York,Europe/London,Asia/Tokyo"),
-})
+});
 
-const timezoneOptions = getAllTimezones().filter((tz) => !isUnixEpochTimezone(tz.value))
-const timezoneMap = new Map(timezoneOptions.map((tz) => [tz.value, tz.label]))
+const timezoneOptions = getAllTimezones().filter(
+  (tz) => !isUnixEpochTimezone(tz.value),
+);
+const timezoneMap = new Map(timezoneOptions.map((tz) => [tz.value, tz.label]));
 
 function parseZoneList(value: string) {
-  const seen = new Set<string>()
+  const seen = new Set<string>();
   const zones = value
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
-    .filter((item) => timezoneMap.has(item) || item === "UTC" || item === "local")
+    .filter(
+      (item) => timezoneMap.has(item) || item === "UTC" || item === "local",
+    )
     .filter((item) => {
-      if (seen.has(item)) return false
-      seen.add(item)
-      return true
-    })
-  return zones
+      if (seen.has(item)) return false;
+      seen.add(item);
+      return true;
+    });
+  return zones;
 }
 
 function toZoneList(zones: string[]) {
-  return zones.join(",")
+  return zones.join(",");
 }
 
 export default function WorldClockPage() {
@@ -50,24 +65,27 @@ export default function WorldClockPage() {
     <Suspense fallback={null}>
       <WorldClockContent />
     </Suspense>
-  )
+  );
 }
 
 function WorldClockContent() {
-  const { state, setParam, hasUrlParams, hydrationSource } = useUrlSyncedState("world-clock", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
+  const { state, setParam, hasUrlParams, hydrationSource } = useUrlSyncedState(
+    "world-clock",
+    {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    },
+  );
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.baseTime !== undefined) setParam("baseTime", inputs.baseTime)
-      if (params.mode) setParam("mode", params.mode as "live" | "custom")
-      if (params.zoneList) setParam("zoneList", params.zoneList as string)
+      const { inputs, params } = entry;
+      if (inputs.baseTime !== undefined) setParam("baseTime", inputs.baseTime);
+      if (params.mode) setParam("mode", params.mode as "live" | "custom");
+      if (params.zoneList) setParam("zoneList", params.zoneList as string);
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -83,7 +101,7 @@ function WorldClockContent() {
         hydrationSource={hydrationSource}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function WorldClockInner({
@@ -92,142 +110,161 @@ function WorldClockInner({
   hasUrlParams,
   hydrationSource,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     updateHistory?: boolean,
-  ) => void
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
+  ) => void;
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [zoneToAdd, setZoneToAdd] = React.useState("local")
-  const [customError, setCustomError] = React.useState<string | null>(null)
-  const [tick, setTick] = React.useState(0)
-  const lastInputRef = React.useRef("")
-  const hasHydratedInputRef = React.useRef(false)
-  const paramsRef = React.useRef({ mode: state.mode, zoneList: state.zoneList })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [zoneToAdd, setZoneToAdd] = React.useState("local");
+  const [customError, setCustomError] = React.useState<string | null>(null);
+  const [tick, setTick] = React.useState(0);
+  const lastInputRef = React.useRef("");
+  const hasHydratedInputRef = React.useRef(false);
+  const paramsRef = React.useRef({
+    mode: state.mode,
+    zoneList: state.zoneList,
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
-  const zones = React.useMemo(() => parseZoneList(state.zoneList), [state.zoneList])
-
-  React.useEffect(() => {
-    if (state.mode !== "live") return
-    const id = window.setInterval(() => setTick((prev) => prev + 1), 1000)
-    return () => window.clearInterval(id)
-  }, [state.mode])
-
-  React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = state.baseTime
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.baseTime])
+  const zones = React.useMemo(
+    () => parseZoneList(state.zoneList),
+    [state.zoneList],
+  );
 
   React.useEffect(() => {
-    if (state.mode !== "custom") return
-    if (!state.baseTime || state.baseTime === lastInputRef.current) return
+    if (state.mode !== "live") return;
+    const id = window.setInterval(() => setTick((prev) => prev + 1), 1000);
+    return () => window.clearInterval(id);
+  }, [state.mode]);
+
+  React.useEffect(() => {
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = state.baseTime;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.baseTime]);
+
+  React.useEffect(() => {
+    if (state.mode !== "custom") return;
+    if (!state.baseTime || state.baseTime === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = state.baseTime
+      lastInputRef.current = state.baseTime;
       upsertInputEntry(
         { baseTime: state.baseTime },
         { mode: state.mode, zoneList: state.zoneList },
         "left",
         state.baseTime.slice(0, 80),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.baseTime, state.mode, state.zoneList, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state.baseTime, state.mode, state.zoneList, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.mode === "custom" && state.baseTime) {
         upsertInputEntry(
           { baseTime: state.baseTime },
           { mode: state.mode, zoneList: state.zoneList },
           "left",
           state.baseTime.slice(0, 80),
-        )
+        );
       } else {
-        upsertParams({ mode: state.mode, zoneList: state.zoneList }, "interpretation")
+        upsertParams(
+          { mode: state.mode, zoneList: state.zoneList },
+          "interpretation",
+        );
       }
     }
-  }, [hasUrlParams, state.baseTime, state.mode, state.zoneList, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.baseTime,
+    state.mode,
+    state.zoneList,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const nextParams = { mode: state.mode, zoneList: state.zoneList }
+    const nextParams = { mode: state.mode, zoneList: state.zoneList };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
-    if (paramsRef.current.mode === nextParams.mode && paramsRef.current.zoneList === nextParams.zoneList) {
-      return
+    if (
+      paramsRef.current.mode === nextParams.mode &&
+      paramsRef.current.zoneList === nextParams.zoneList
+    ) {
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [state.mode, state.zoneList, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [state.mode, state.zoneList, upsertParams]);
 
   const referenceDate = React.useMemo(() => {
     if (state.mode === "live") {
-      return new Date()
+      return new Date();
     }
     if (!state.baseTime) {
-      return null
+      return null;
     }
-    const parsed = parseTimestamp(state.baseTime, "local")
-    return parsed
-  }, [state.mode, state.baseTime, tick])
+    const parsed = parseTimestamp(state.baseTime, "local");
+    return parsed;
+  }, [state.mode, state.baseTime, tick]);
 
   React.useEffect(() => {
     if (state.mode === "live") {
-      setCustomError(null)
-      return
+      setCustomError(null);
+      return;
     }
     if (!state.baseTime) {
-      setCustomError("Enter a date/time to use a custom reference.")
-      return
+      setCustomError("Enter a date/time to use a custom reference.");
+      return;
     }
-    const parsed = parseTimestamp(state.baseTime, "local")
-    setCustomError(parsed ? null : "Invalid date/time format.")
-  }, [state.mode, state.baseTime])
+    const parsed = parseTimestamp(state.baseTime, "local");
+    setCustomError(parsed ? null : "Invalid date/time format.");
+  }, [state.mode, state.baseTime]);
 
   const handleAddZone = React.useCallback(() => {
-    if (!zoneToAdd) return
-    if (zones.includes(zoneToAdd)) return
-    const next = [...zones, zoneToAdd]
-    setParam("zoneList", toZoneList(next), true)
-  }, [zoneToAdd, zones, setParam])
+    if (!zoneToAdd) return;
+    if (zones.includes(zoneToAdd)) return;
+    const next = [...zones, zoneToAdd];
+    setParam("zoneList", toZoneList(next), true);
+  }, [zoneToAdd, zones, setParam]);
 
   const handleRemoveZone = React.useCallback(
     (zone: string) => {
-      const next = zones.filter((item) => item !== zone)
-      setParam("zoneList", toZoneList(next), true)
+      const next = zones.filter((item) => item !== zone);
+      setParam("zoneList", toZoneList(next), true);
     },
     [zones, setParam],
-  )
+  );
 
   const handleCustomInput = React.useCallback(
     (value: string) => {
-      setParam("baseTime", value)
+      setParam("baseTime", value);
     },
     [setParam],
-  )
+  );
 
   const handlePick = React.useCallback(
     (date: Date | undefined) => {
-      if (!date) return
-      const formatted = formatTimestamp(date, "local")
-      setParam("mode", "custom", true)
-      setParam("baseTime", formatted)
+      if (!date) return;
+      const formatted = formatTimestamp(date, "local");
+      setParam("mode", "custom", true);
+      setParam("baseTime", formatted);
     },
     [setParam],
-  )
+  );
 
   return (
     <div className="flex w-full flex-col gap-6 py-6">
@@ -239,7 +276,12 @@ function WorldClockInner({
 
           <div className="flex items-center gap-3">
             <Label className="w-28 shrink-0 text-sm">Mode</Label>
-            <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as "live" | "custom", true)}>
+            <Tabs
+              value={state.mode}
+              onValueChange={(value) =>
+                setParam("mode", value as "live" | "custom", true)
+              }
+            >
               <TabsList>
                 <TabsTrigger value="live">Live</TabsTrigger>
                 <TabsTrigger value="custom">Custom</TabsTrigger>
@@ -264,7 +306,9 @@ function WorldClockInner({
               />
             </div>
           </div>
-          {customError && <p className="text-xs text-destructive">{customError}</p>}
+          {customError && (
+            <p className="text-xs text-destructive">{customError}</p>
+          )}
 
           <div className="flex flex-col gap-3">
             <Label className="text-sm">Time Zones</Label>
@@ -286,7 +330,10 @@ function WorldClockInner({
             <div className="flex flex-wrap gap-2">
               {zones.length > 0 ? (
                 zones.map((zone) => (
-                  <div key={zone} className="inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs">
+                  <div
+                    key={zone}
+                    className="inline-flex items-center gap-2 rounded-md border px-2 py-1 text-xs"
+                  >
                     <span>{timezoneMap.get(zone) ?? zone}</span>
                     <button
                       type="button"
@@ -299,7 +346,9 @@ function WorldClockInner({
                   </div>
                 ))
               ) : (
-                <span className="text-xs text-muted-foreground">No time zones selected.</span>
+                <span className="text-xs text-muted-foreground">
+                  No time zones selected.
+                </span>
               )}
             </div>
           </div>
@@ -322,10 +371,16 @@ function WorldClockInner({
                     className="flex flex-col gap-1 rounded-lg border border-border px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm font-medium">{timezoneMap.get(zone) ?? zone}</span>
-                      <span className="text-xs text-muted-foreground">{zone}</span>
+                      <span className="text-sm font-medium">
+                        {timezoneMap.get(zone) ?? zone}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {zone}
+                      </span>
                     </div>
-                    <div className="text-sm font-mono">{formatTimestamp(referenceDate, zone)}</div>
+                    <div className="text-sm font-mono">
+                      {formatTimestamp(referenceDate, zone)}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -342,5 +397,5 @@ function WorldClockInner({
         </section>
       </div>
     </div>
-  )
+  );
 }

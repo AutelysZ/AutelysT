@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Non-Crypto Hash - AutelysT",
@@ -17,8 +17,12 @@ export const metadata: Metadata = {
     "fnv",
     "crc32",
   ],
-}
+};
 
-export default function NonCryptoHashLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function NonCryptoHashLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

@@ -1,16 +1,29 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { Clock, Copy, Check, ArrowRight, Calendar, RotateCcw } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { DateTimePicker } from "@/components/ui/date-time-picker"
-import { Badge } from "@/components/ui/badge"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  Clock,
+  Copy,
+  Check,
+  ArrowRight,
+  Calendar,
+  RotateCcw,
+} from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { DateTimePicker } from "@/components/ui/date-time-picker";
+import { Badge } from "@/components/ui/badge";
 import {
   parseDuration,
   buildDuration,
@@ -24,9 +37,9 @@ import {
   DURATION_PRESETS,
   EMPTY_DURATION,
   type DurationComponents,
-} from "@/lib/duration/duration"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
+} from "@/lib/duration/duration";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
 
 const paramsSchema = z.object({
   input: z.string().default(""),
@@ -39,58 +52,63 @@ const paramsSchema = z.object({
   seconds: z.coerce.number().default(0),
   startDate: z.string().default(""),
   mode: z.enum(["parse", "build"]).default("parse"),
-})
+});
 
-type ParamsType = z.infer<typeof paramsSchema>
+type ParamsType = z.infer<typeof paramsSchema>;
 
 export default function DurationPage() {
   return (
     <Suspense fallback={null}>
       <DurationContent />
     </Suspense>
-  )
+  );
 }
 
 function DurationContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("duration", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("duration", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    });
 
-  const [parseError, setParseError] = React.useState<string | null>(null)
-  const [copied, setCopied] = React.useState<string | null>(null)
+  const [parseError, setParseError] = React.useState<string | null>(null);
+  const [copied, setCopied] = React.useState<string | null>(null);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.input !== undefined) setParam("input", inputs.input)
-      if (params.mode) setParam("mode", params.mode as "parse" | "build")
-      if (params.years !== undefined) setParam("years", Number(params.years))
-      if (params.months !== undefined) setParam("months", Number(params.months))
-      if (params.weeks !== undefined) setParam("weeks", Number(params.weeks))
-      if (params.days !== undefined) setParam("days", Number(params.days))
-      if (params.hours !== undefined) setParam("hours", Number(params.hours))
-      if (params.minutes !== undefined) setParam("minutes", Number(params.minutes))
-      if (params.seconds !== undefined) setParam("seconds", Number(params.seconds))
-      if (params.startDate !== undefined) setParam("startDate", params.startDate as string)
+      const { inputs, params } = entry;
+      if (inputs.input !== undefined) setParam("input", inputs.input);
+      if (params.mode) setParam("mode", params.mode as "parse" | "build");
+      if (params.years !== undefined) setParam("years", Number(params.years));
+      if (params.months !== undefined)
+        setParam("months", Number(params.months));
+      if (params.weeks !== undefined) setParam("weeks", Number(params.weeks));
+      if (params.days !== undefined) setParam("days", Number(params.days));
+      if (params.hours !== undefined) setParam("hours", Number(params.hours));
+      if (params.minutes !== undefined)
+        setParam("minutes", Number(params.minutes));
+      if (params.seconds !== undefined)
+        setParam("seconds", Number(params.seconds));
+      if (params.startDate !== undefined)
+        setParam("startDate", params.startDate as string);
     },
     [setParam],
-  )
+  );
 
   // Parse mode: parse input and update components
   const parsedComponents = React.useMemo(() => {
     if (state.mode !== "parse" || !state.input) {
-      setParseError(null)
-      return null
+      setParseError(null);
+      return null;
     }
-    const { components, error } = parseDuration(state.input)
-    setParseError(error)
-    return error ? null : components
-  }, [state.mode, state.input])
+    const { components, error } = parseDuration(state.input);
+    setParseError(error);
+    return error ? null : components;
+  }, [state.mode, state.input]);
 
   // Build mode: build duration from components
   const builtDuration = React.useMemo(() => {
-    if (state.mode !== "build") return null
+    if (state.mode !== "build") return null;
     const components: DurationComponents = {
       years: state.years,
       months: state.months,
@@ -99,14 +117,23 @@ function DurationContent() {
       hours: state.hours,
       minutes: state.minutes,
       seconds: state.seconds,
-    }
-    return buildDuration(components)
-  }, [state.mode, state.years, state.months, state.weeks, state.days, state.hours, state.minutes, state.seconds])
+    };
+    return buildDuration(components);
+  }, [
+    state.mode,
+    state.years,
+    state.months,
+    state.weeks,
+    state.days,
+    state.hours,
+    state.minutes,
+    state.seconds,
+  ]);
 
   // Active components for display
   const activeComponents: DurationComponents = React.useMemo(() => {
     if (state.mode === "parse" && parsedComponents) {
-      return parsedComponents
+      return parsedComponents;
     }
     return {
       years: state.years,
@@ -116,13 +143,23 @@ function DurationContent() {
       hours: state.hours,
       minutes: state.minutes,
       seconds: state.seconds,
-    }
-  }, [state.mode, parsedComponents, state.years, state.months, state.weeks, state.days, state.hours, state.minutes, state.seconds])
+    };
+  }, [
+    state.mode,
+    parsedComponents,
+    state.years,
+    state.months,
+    state.weeks,
+    state.days,
+    state.hours,
+    state.minutes,
+    state.seconds,
+  ]);
 
   // Calculate totals
   const totals = React.useMemo(() => {
-    const hasValues = Object.values(activeComponents).some((v) => v !== 0)
-    if (!hasValues) return null
+    const hasValues = Object.values(activeComponents).some((v) => v !== 0);
+    if (!hasValues) return null;
     return {
       seconds: toTotalSeconds(activeComponents),
       minutes: toTotalMinutes(activeComponents),
@@ -130,58 +167,61 @@ function DurationContent() {
       days: toTotalDays(activeComponents),
       weeks: toTotalWeeks(activeComponents),
       humanReadable: toHumanReadable(activeComponents),
-    }
-  }, [activeComponents])
+    };
+  }, [activeComponents]);
 
   // End date calculation
   const endDate = React.useMemo(() => {
-    if (!state.startDate) return null
-    const start = new Date(state.startDate)
-    if (isNaN(start.getTime())) return null
-    return addDurationToDate(start, activeComponents)
-  }, [state.startDate, activeComponents])
+    if (!state.startDate) return null;
+    const start = new Date(state.startDate);
+    if (isNaN(start.getTime())) return null;
+    return addDurationToDate(start, activeComponents);
+  }, [state.startDate, activeComponents]);
 
   const handleCopy = async (value: string, key: string) => {
-    await navigator.clipboard.writeText(value)
-    setCopied(key)
-    setTimeout(() => setCopied(null), 2000)
-  }
+    await navigator.clipboard.writeText(value);
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const handlePreset = (preset: string) => {
-    setParam("input", preset)
-    setParam("mode", "parse")
-  }
+    setParam("input", preset);
+    setParam("mode", "parse");
+  };
 
   const handleReset = () => {
-    setParam("input", "")
-    setParam("years", 0)
-    setParam("months", 0)
-    setParam("weeks", 0)
-    setParam("days", 0)
-    setParam("hours", 0)
-    setParam("minutes", 0)
-    setParam("seconds", 0)
-    setParam("startDate", "")
-  }
+    setParam("input", "");
+    setParam("years", 0);
+    setParam("months", 0);
+    setParam("weeks", 0);
+    setParam("days", 0);
+    setParam("hours", 0);
+    setParam("minutes", 0);
+    setParam("seconds", 0);
+    setParam("startDate", "");
+  };
 
-  const handleComponentChange = (key: keyof DurationComponents, value: string) => {
-    const numValue = parseFloat(value) || 0
-    setParam(key, numValue)
-  }
+  const handleComponentChange = (
+    key: keyof DurationComponents,
+    value: string,
+  ) => {
+    const numValue = parseFloat(value) || 0;
+    setParam(key, numValue);
+  };
 
   const handleStartDateChange = (date: Date | undefined) => {
     if (date) {
-      setParam("startDate", date.toISOString())
+      setParam("startDate", date.toISOString());
     } else {
-      setParam("startDate", "")
+      setParam("startDate", "");
     }
-  }
+  };
 
   const currentStartDate = React.useMemo(() => {
-    if (!state.startDate) return undefined
-    const date = new Date(state.startDate)
-    return isNaN(date.getTime()) ? undefined : date
-  }, [state.startDate])
+    if (!state.startDate) return undefined;
+    const date = new Date(state.startDate);
+    return isNaN(date.getTime()) ? undefined : date;
+  }, [state.startDate]);
 
   return (
     <ToolPageWrapper
@@ -210,7 +250,7 @@ function DurationContent() {
         hasUrlParams={hasUrlParams}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function DurationInner({
@@ -232,48 +272,52 @@ function DurationInner({
   hydrationSource,
   hasUrlParams,
 }: {
-  state: ParamsType
-  setParam: <K extends keyof ParamsType>(key: K, value: ParamsType[K], updateHistory?: boolean) => void
-  parseError: string | null
-  parsedComponents: DurationComponents | null
-  builtDuration: string | null
-  activeComponents: DurationComponents
+  state: ParamsType;
+  setParam: <K extends keyof ParamsType>(
+    key: K,
+    value: ParamsType[K],
+    updateHistory?: boolean,
+  ) => void;
+  parseError: string | null;
+  parsedComponents: DurationComponents | null;
+  builtDuration: string | null;
+  activeComponents: DurationComponents;
   totals: {
-    seconds: number
-    minutes: number
-    hours: number
-    days: number
-    weeks: number
-    humanReadable: string
-  } | null
-  endDate: Date | null
-  currentStartDate: Date | undefined
-  copied: string | null
-  handleCopy: (value: string, key: string) => void
-  handlePreset: (preset: string) => void
-  handleReset: () => void
-  handleComponentChange: (key: keyof DurationComponents, value: string) => void
-  handleStartDateChange: (date: Date | undefined) => void
-  hydrationSource: "default" | "url" | "history"
-  hasUrlParams: boolean
+    seconds: number;
+    minutes: number;
+    hours: number;
+    days: number;
+    weeks: number;
+    humanReadable: string;
+  } | null;
+  endDate: Date | null;
+  currentStartDate: Date | undefined;
+  copied: string | null;
+  handleCopy: (value: string, key: string) => void;
+  handlePreset: (preset: string) => void;
+  handleReset: () => void;
+  handleComponentChange: (key: keyof DurationComponents, value: string) => void;
+  handleStartDateChange: (date: Date | undefined) => void;
+  hydrationSource: "default" | "url" | "history";
+  hasUrlParams: boolean;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = state.input
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.input])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = state.input;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.input]);
 
   React.useEffect(() => {
-    if (!state.input || state.input === lastInputRef.current) return
+    if (!state.input || state.input === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = state.input
+      lastInputRef.current = state.input;
       upsertInputEntry(
         { input: state.input },
         {
@@ -289,15 +333,15 @@ function DurationInner({
         },
         "input",
         state.input.slice(0, 100),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.input) {
         upsertInputEntry(
           { input: state.input },
@@ -314,14 +358,17 @@ function DurationInner({
           },
           "input",
           state.input.slice(0, 100),
-        )
+        );
       }
     }
-  }, [hasUrlParams, state, upsertInputEntry])
+  }, [hasUrlParams, state, upsertInputEntry]);
 
-  const durationOutput = state.mode === "parse" 
-    ? (parsedComponents ? buildDuration(parsedComponents) : null)
-    : builtDuration
+  const durationOutput =
+    state.mode === "parse"
+      ? parsedComponents
+        ? buildDuration(parsedComponents)
+        : null
+      : builtDuration;
 
   return (
     <div className="flex h-full flex-col gap-6">
@@ -345,7 +392,7 @@ function DurationInner({
             Build
           </Button>
         </div>
-        
+
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">Presets:</span>
           {DURATION_PRESETS.map((preset) => (
@@ -359,8 +406,13 @@ function DurationInner({
             </Badge>
           ))}
         </div>
-        
-        <Button variant="ghost" size="sm" onClick={handleReset} className="ml-auto gap-1.5">
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleReset}
+          className="ml-auto gap-1.5"
+        >
           <RotateCcw className="h-3.5 w-3.5" />
           Reset
         </Button>
@@ -373,7 +425,9 @@ function DurationInner({
           {state.mode === "parse" && (
             <div className="rounded-lg border p-4">
               <div className="mb-3 flex items-center justify-between">
-                <Label className="text-sm font-medium">ISO 8601 Duration String</Label>
+                <Label className="text-sm font-medium">
+                  ISO 8601 Duration String
+                </Label>
                 {state.input && !parseError && (
                   <Button
                     variant="ghost"
@@ -381,7 +435,11 @@ function DurationInner({
                     onClick={() => handleCopy(state.input, "input")}
                     className="h-7 gap-1 px-2 text-xs"
                   >
-                    {copied === "input" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied === "input" ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                     Copy
                   </Button>
                 )}
@@ -390,13 +448,17 @@ function DurationInner({
                 value={state.input}
                 onChange={(e) => setParam("input", e.target.value)}
                 placeholder="e.g., P1Y2M3DT4H5M6S"
-                className={cn("font-mono text-base", parseError && "border-destructive")}
+                className={cn(
+                  "font-mono text-base",
+                  parseError && "border-destructive",
+                )}
               />
               {parseError && (
                 <p className="mt-2 text-sm text-destructive">{parseError}</p>
               )}
               <p className="mt-2 text-xs text-muted-foreground">
-                Format: P[years]Y[months]M[weeks]W[days]DT[hours]H[minutes]M[seconds]S
+                Format:
+                P[years]Y[months]M[weeks]W[days]DT[hours]H[minutes]M[seconds]S
               </p>
             </div>
           )}
@@ -405,7 +467,9 @@ function DurationInner({
           {state.mode === "build" && (
             <div className="rounded-lg border p-4">
               <div className="mb-3 flex items-center justify-between">
-                <Label className="text-sm font-medium">Duration Components</Label>
+                <Label className="text-sm font-medium">
+                  Duration Components
+                </Label>
                 {builtDuration && (
                   <Button
                     variant="ghost"
@@ -413,16 +477,22 @@ function DurationInner({
                     onClick={() => handleCopy(builtDuration, "built")}
                     className="h-7 gap-1 px-2 text-xs"
                   >
-                    {copied === "built" ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied === "built" ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                     Copy
                   </Button>
                 )}
               </div>
-              
+
               {/* Built Duration Output */}
               {builtDuration && (
                 <div className="mb-4 rounded-md bg-muted/50 p-3">
-                  <code className="font-mono text-lg font-semibold">{builtDuration}</code>
+                  <code className="font-mono text-lg font-semibold">
+                    {builtDuration}
+                  </code>
                 </div>
               )}
 
@@ -435,19 +505,25 @@ function DurationInner({
                     min="0"
                     step="1"
                     value={state.years || ""}
-                    onChange={(e) => handleComponentChange("years", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("years", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Months</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Months
+                  </Label>
                   <Input
                     type="number"
                     min="0"
                     step="1"
                     value={state.months || ""}
-                    onChange={(e) => handleComponentChange("months", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("months", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
@@ -459,7 +535,9 @@ function DurationInner({
                     min="0"
                     step="1"
                     value={state.weeks || ""}
-                    onChange={(e) => handleComponentChange("weeks", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("weeks", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
@@ -471,12 +549,14 @@ function DurationInner({
                     min="0"
                     step="1"
                     value={state.days || ""}
-                    onChange={(e) => handleComponentChange("days", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("days", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
                 </div>
-                
+
                 {/* Time Components */}
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">Hours</Label>
@@ -485,31 +565,41 @@ function DurationInner({
                     min="0"
                     step="1"
                     value={state.hours || ""}
-                    onChange={(e) => handleComponentChange("hours", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("hours", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Minutes</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Minutes
+                  </Label>
                   <Input
                     type="number"
                     min="0"
                     step="1"
                     value={state.minutes || ""}
-                    onChange={(e) => handleComponentChange("minutes", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("minutes", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Seconds</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Seconds
+                  </Label>
                   <Input
                     type="number"
                     min="0"
                     step="0.001"
                     value={state.seconds || ""}
-                    onChange={(e) => handleComponentChange("seconds", e.target.value)}
+                    onChange={(e) =>
+                      handleComponentChange("seconds", e.target.value)
+                    }
                     placeholder="0"
                     className="font-mono"
                   />
@@ -521,12 +611,28 @@ function DurationInner({
           {/* Parsed Components Display (Parse Mode) */}
           {state.mode === "parse" && parsedComponents && (
             <div className="rounded-lg border p-4">
-              <Label className="mb-3 block text-sm font-medium">Parsed Components</Label>
+              <Label className="mb-3 block text-sm font-medium">
+                Parsed Components
+              </Label>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {(["years", "months", "weeks", "days", "hours", "minutes", "seconds"] as const).map((key) => (
+                {(
+                  [
+                    "years",
+                    "months",
+                    "weeks",
+                    "days",
+                    "hours",
+                    "minutes",
+                    "seconds",
+                  ] as const
+                ).map((key) => (
                   <div key={key} className="rounded-md bg-muted/50 p-2.5">
-                    <div className="text-xs text-muted-foreground capitalize">{key}</div>
-                    <div className="font-mono text-lg font-semibold">{parsedComponents[key]}</div>
+                    <div className="text-xs text-muted-foreground capitalize">
+                      {key}
+                    </div>
+                    <div className="font-mono text-lg font-semibold">
+                      {parsedComponents[key]}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -539,8 +645,12 @@ function DurationInner({
           {/* Human Readable */}
           {totals && (
             <div className="rounded-lg border p-4">
-              <Label className="mb-3 block text-sm font-medium">Human Readable</Label>
-              <p className="text-base leading-relaxed">{totals.humanReadable}</p>
+              <Label className="mb-3 block text-sm font-medium">
+                Human Readable
+              </Label>
+              <p className="text-base leading-relaxed">
+                {totals.humanReadable}
+              </p>
             </div>
           )}
 
@@ -549,27 +659,48 @@ function DurationInner({
             <div className="rounded-lg border p-4">
               <div className="mb-3 flex items-center justify-between">
                 <Label className="text-sm font-medium">Total Conversions</Label>
-                <span className="text-xs text-muted-foreground">(approximate)</span>
+                <span className="text-xs text-muted-foreground">
+                  (approximate)
+                </span>
               </div>
               <div className="space-y-2">
                 {[
-                  { label: "Total Seconds", value: totals.seconds, key: "seconds" },
-                  { label: "Total Minutes", value: totals.minutes, key: "minutes" },
+                  {
+                    label: "Total Seconds",
+                    value: totals.seconds,
+                    key: "seconds",
+                  },
+                  {
+                    label: "Total Minutes",
+                    value: totals.minutes,
+                    key: "minutes",
+                  },
                   { label: "Total Hours", value: totals.hours, key: "hours" },
                   { label: "Total Days", value: totals.days, key: "days" },
                   { label: "Total Weeks", value: totals.weeks, key: "weeks" },
                 ].map(({ label, value, key }) => (
-                  <div key={key} className="group flex items-center justify-between rounded-md bg-muted/50 px-3 py-2">
-                    <span className="text-sm text-muted-foreground">{label}</span>
+                  <div
+                    key={key}
+                    className="group flex items-center justify-between rounded-md bg-muted/50 px-3 py-2"
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {label}
+                    </span>
                     <div className="flex items-center gap-2">
-                      <code className="font-mono text-sm">{formatTotalValue(value)}</code>
+                      <code className="font-mono text-sm">
+                        {formatTotalValue(value)}
+                      </code>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => handleCopy(value.toString(), key)}
                         className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
                       >
-                        {copied === key ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        {copied === key ? (
+                          <Check className="h-3 w-3" />
+                        ) : (
+                          <Copy className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -580,7 +711,9 @@ function DurationInner({
 
           {/* Date Calculator */}
           <div className="rounded-lg border p-4">
-            <Label className="mb-3 block text-sm font-medium">Date Calculator</Label>
+            <Label className="mb-3 block text-sm font-medium">
+              Date Calculator
+            </Label>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <DateTimePicker
@@ -595,17 +728,25 @@ function DurationInner({
                   Now
                 </Button>
               </div>
-              
+
               {currentStartDate && totals && (
                 <div className="flex items-center gap-3 rounded-md bg-muted/50 p-3">
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">Start Date</div>
-                    <div className="font-mono text-sm">{formatDate(currentStartDate)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Start Date
+                    </div>
+                    <div className="font-mono text-sm">
+                      {formatDate(currentStartDate)}
+                    </div>
                   </div>
                   <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div className="flex-1">
-                    <div className="text-xs text-muted-foreground">End Date</div>
-                    <div className="font-mono text-sm">{endDate ? formatDate(endDate) : "—"}</div>
+                    <div className="text-xs text-muted-foreground">
+                      End Date
+                    </div>
+                    <div className="font-mono text-sm">
+                      {endDate ? formatDate(endDate) : "—"}
+                    </div>
                   </div>
                 </div>
               )}
@@ -618,10 +759,9 @@ function DurationInner({
               <div className="text-center text-muted-foreground">
                 <Clock className="mx-auto mb-2 h-8 w-8 opacity-50" />
                 <p className="text-sm">
-                  {state.mode === "parse" 
+                  {state.mode === "parse"
                     ? "Enter an ISO 8601 duration string to parse"
-                    : "Enter duration components to build"
-                  }
+                    : "Enter duration components to build"}
                 </p>
               </div>
             </div>
@@ -629,15 +769,15 @@ function DurationInner({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 function formatTotalValue(value: number): string {
   if (Number.isInteger(value)) {
-    return value.toLocaleString()
+    return value.toLocaleString();
   }
   // Show up to 4 decimal places, remove trailing zeros
-  return value.toLocaleString(undefined, { maximumFractionDigits: 4 })
+  return value.toLocaleString(undefined, { maximumFractionDigits: 4 });
 }
 
 function formatDate(date: Date): string {
@@ -648,5 +788,5 @@ function formatDate(date: Date): string {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  })
+  });
 }

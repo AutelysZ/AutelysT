@@ -1,21 +1,32 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import * as React from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface SearchableSelectProps {
-  value: string
-  onValueChange: (value: string) => void
-  options: { value: string; label: string }[]
-  placeholder?: string
-  searchPlaceholder?: string
-  className?: string
-  triggerClassName?: string
-  disabled?: boolean
+  value: string;
+  onValueChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder?: string;
+  searchPlaceholder?: string;
+  className?: string;
+  triggerClassName?: string;
+  disabled?: boolean;
 }
 
 export function SearchableSelect({
@@ -28,29 +39,36 @@ export function SearchableSelect({
   triggerClassName,
   disabled = false,
 }: SearchableSelectProps) {
-  const [open, setOpen] = React.useState(false)
-  const [mounted, setMounted] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [open, setOpen] = React.useState(false);
+  const [mounted, setMounted] = React.useState(false);
+  const [search, setSearch] = React.useState("");
 
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
-  const selectedOption = options.find((opt) => opt.value === value)
+  const selectedOption = options.find((opt) => opt.value === value);
 
   const filteredOptions = React.useMemo(() => {
-    if (!search) return options
-    const lowerSearch = search.toLowerCase()
-    return options.filter((opt) => opt.label.toLowerCase().includes(lowerSearch))
-  }, [options, search])
+    if (!search) return options;
+    const lowerSearch = search.toLowerCase();
+    return options.filter((opt) =>
+      opt.label.toLowerCase().includes(lowerSearch),
+    );
+  }, [options, search]);
 
   if (!mounted) {
     return (
-      <Button variant="outline" role="combobox" className={cn("justify-between", triggerClassName)} disabled={disabled}>
+      <Button
+        variant="outline"
+        role="combobox"
+        className={cn("justify-between", triggerClassName)}
+        disabled={disabled}
+      >
         {selectedOption?.label ?? placeholder}
         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
       </Button>
-    )
+    );
   }
 
   return (
@@ -70,7 +88,11 @@ export function SearchableSelect({
       </PopoverTrigger>
       <PopoverContent className={cn("p-0", className)} align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder={searchPlaceholder} value={search} onValueChange={setSearch} />
+          <CommandInput
+            placeholder={searchPlaceholder}
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
             <CommandGroup>
@@ -79,12 +101,17 @@ export function SearchableSelect({
                   key={option.value}
                   value={option.value}
                   onSelect={() => {
-                    onValueChange(option.value)
-                    setOpen(false)
-                    setSearch("")
+                    onValueChange(option.value);
+                    setOpen(false);
+                    setSearch("");
                   }}
                 >
-                  <Check className={cn("mr-2 h-4 w-4", value === option.value ? "opacity-100" : "opacity-0")} />
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.value ? "opacity-100" : "opacity-0",
+                    )}
+                  />
                   {option.label}
                 </CommandItem>
               ))}
@@ -93,5 +120,5 @@ export function SearchableSelect({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

@@ -7,12 +7,14 @@ A powerful Protocol Buffers encoder and decoder with smart type detection, field
 ### Three Schema Modes
 
 **1. No Schema (Smart Decode)**
+
 - Automatic wire type detection
 - Smart type inference with confidence levels
 - Detects nested/embedded messages automatically
 - Perfect for quick inspection of unknown protobuf data
 
 **2. Field Table Mode**
+
 - Visual field editor with type selection
 - No need to write .proto files
 - Auto-populates from decoded data
@@ -21,6 +23,7 @@ A powerful Protocol Buffers encoder and decoder with smart type detection, field
 - Toggle between encode/decode with same field definitions
 
 **3. Proto File Mode**
+
 - Full .proto schema file support
 - Multi-file schemas with imports
 - Visual message type selector
@@ -29,21 +32,25 @@ A powerful Protocol Buffers encoder and decoder with smart type detection, field
 ### Decode Mode
 
 **Input Formats:**
+
 - Base64 (auto-detects URL-safe variants)
 - Hex (with or without spaces)
 - Binary file upload
 
 **Output Formats:**
+
 - JSON (pretty-printed)
 - YAML
 
 ### Encode Mode
 
 **Input Formats:**
+
 - JSON
 - YAML
 
 **Output Formats:**
+
 - Base64
 - Base64URL
 - Hex
@@ -52,6 +59,7 @@ A powerful Protocol Buffers encoder and decoder with smart type detection, field
 ### Swap Button
 
 The **Swap** button allows you to:
+
 - Toggle between Encode and Decode modes
 - Swap input and output data
 - Preserve field table definitions
@@ -75,6 +83,7 @@ The **Swap** button allows you to:
 5. Use **Swap** to toggle modes while keeping your field definitions
 
 **Supported Field Types:**
+
 - `string` - UTF-8 text
 - `bytes` - Binary data (hex or base64 in JSON)
 - `int32`, `int64` - Signed integers
@@ -105,6 +114,7 @@ Define a simple message:
 | 3 | emails | string | ☑ |
 
 Input JSON:
+
 ```json
 {
   "username": "alice",
@@ -123,12 +133,12 @@ Input JSON:
 
 ## Wire Format Support
 
-| Wire Type | Types |
-|-----------|-------|
-| 0 (Varint) | int32, int64, uint32, uint64, sint32, sint64, bool |
-| 1 (64-bit) | fixed64, sfixed64, double |
-| 2 (Length-delimited) | string, bytes, embedded messages, packed repeated |
-| 5 (32-bit) | fixed32, sfixed32, float |
+| Wire Type            | Types                                              |
+| -------------------- | -------------------------------------------------- |
+| 0 (Varint)           | int32, int64, uint32, uint64, sint32, sint64, bool |
+| 1 (64-bit)           | fixed64, sfixed64, double                          |
+| 2 (Length-delimited) | string, bytes, embedded messages, packed repeated  |
+| 5 (32-bit)           | fixed32, sfixed32, float                           |
 
 ## Technical Details
 

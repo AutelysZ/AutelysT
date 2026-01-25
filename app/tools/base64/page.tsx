@@ -1,19 +1,33 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { SearchableSelect } from "@/components/ui/searchable-select"
-import { encodeBase64, decodeBase64, isValidBase64 } from "@/lib/encoding/base64"
-import { encodeText, decodeText, getAllEncodings } from "@/lib/encoding/text-encodings"
-import type { HistoryEntry } from "@/lib/history/db"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import {
+  encodeBase64,
+  decodeBase64,
+  isValidBase64,
+} from "@/lib/encoding/base64";
+import {
+  encodeText,
+  decodeText,
+  getAllEncodings,
+} from "@/lib/encoding/text-encodings";
+import type { HistoryEntry } from "@/lib/history/db";
 
 const paramsSchema = z.object({
   encoding: z.string().default("UTF-8"),
@@ -23,195 +37,201 @@ const paramsSchema = z.object({
   activeSide: z.enum(["left", "right"]).default("left"),
   leftText: z.string().default(""),
   rightText: z.string().default(""),
-})
+});
 
-const encodings = getAllEncodings()
+const encodings = getAllEncodings();
 
 export default function Base64Page() {
   return (
     <Suspense fallback={null}>
       <Base64Content />
     </Suspense>
-  )
+  );
 }
 
 function Base64Content() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("base64", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-    inputSide: {
-      sideKey: "activeSide",
-      inputKeyBySide: {
-        left: "leftText",
-        right: "rightText",
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("base64", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+      inputSide: {
+        sideKey: "activeSide",
+        inputKeyBySide: {
+          left: "leftText",
+          right: "rightText",
+        },
       },
-    },
-  })
+    });
 
-  const [leftError, setLeftError] = React.useState<string | null>(null)
-  const [rightError, setRightError] = React.useState<string | null>(null)
+  const [leftError, setLeftError] = React.useState<string | null>(null);
+  const [rightError, setRightError] = React.useState<string | null>(null);
   const [leftFileResult, setLeftFileResult] = React.useState<{
-    status: "success" | "error"
-    message: string
-    downloadUrl?: string
-    downloadName?: string
-  } | null>(null)
+    status: "success" | "error";
+    message: string;
+    downloadUrl?: string;
+    downloadName?: string;
+  } | null>(null);
   const [rightFileResult, setRightFileResult] = React.useState<{
-    status: "success" | "error"
-    message: string
-    downloadUrl?: string
-    downloadName?: string
-  } | null>(null)
-  const [downloadFilename, setDownloadFilename] = React.useState("")
+    status: "success" | "error";
+    message: string;
+    downloadUrl?: string;
+    downloadName?: string;
+  } | null>(null);
+  const [downloadFilename, setDownloadFilename] = React.useState("");
 
   // Encode left text to base64
   const encodeToBase64 = React.useCallback(
     (text: string) => {
       try {
-        setLeftError(null)
+        setLeftError(null);
         if (!text) {
-          setParam("rightText", "")
-          return
+          setParam("rightText", "");
+          return;
         }
 
-        const bytes = encodeText(text, state.encoding)
+        const bytes = encodeText(text, state.encoding);
         const encoded = encodeBase64(bytes, {
           padding: state.padding,
           urlSafe: state.urlSafe,
           mimeFormat: state.mimeFormat,
-        })
-        setParam("rightText", encoded)
+        });
+        setParam("rightText", encoded);
       } catch (err) {
-        setLeftError(err instanceof Error ? err.message : "Encoding failed")
+        setLeftError(err instanceof Error ? err.message : "Encoding failed");
       }
     },
     [state.encoding, state.padding, state.urlSafe, state.mimeFormat, setParam],
-  )
+  );
 
   // Decode base64 to text
   const decodeFromBase64 = React.useCallback(
     (base64: string) => {
       try {
-        setRightError(null)
+        setRightError(null);
         if (!base64) {
-          setParam("leftText", "")
-          return
+          setParam("leftText", "");
+          return;
         }
 
         if (!isValidBase64(base64)) {
-          setRightError("Invalid Base64 characters")
-          return
+          setRightError("Invalid Base64 characters");
+          return;
         }
 
-        const bytes = decodeBase64(base64)
-        const text = decodeText(bytes, state.encoding)
-        setParam("leftText", text)
+        const bytes = decodeBase64(base64);
+        const text = decodeText(bytes, state.encoding);
+        setParam("leftText", text);
       } catch (err) {
-        setRightError(err instanceof Error ? err.message : "Decoding failed")
+        setRightError(err instanceof Error ? err.message : "Decoding failed");
       }
     },
     [state.encoding, setParam],
-  )
+  );
 
   // Handle left text change
   const handleLeftChange = React.useCallback(
     (value: string) => {
-      setParam("leftText", value)
-      setParam("activeSide", "left")
-      encodeToBase64(value)
+      setParam("leftText", value);
+      setParam("activeSide", "left");
+      encodeToBase64(value);
     },
     [setParam, encodeToBase64],
-  )
+  );
 
   // Handle right text change
   const handleRightChange = React.useCallback(
     (value: string) => {
-      setParam("rightText", value)
-      setParam("activeSide", "right")
-      decodeFromBase64(value)
+      setParam("rightText", value);
+      setParam("activeSide", "right");
+      decodeFromBase64(value);
     },
     [setParam, decodeFromBase64],
-  )
+  );
 
   // Recompute when params change
   React.useEffect(() => {
     if (state.activeSide === "left" && state.leftText) {
-      encodeToBase64(state.leftText)
+      encodeToBase64(state.leftText);
     } else if (state.activeSide === "right" && state.rightText) {
-      decodeFromBase64(state.rightText)
+      decodeFromBase64(state.rightText);
     }
-  }, [state.encoding, state.padding, state.urlSafe, state.mimeFormat])
+  }, [state.encoding, state.padding, state.urlSafe, state.mimeFormat]);
 
   // Handle file upload to left (encode)
   const handleLeftFileUpload = React.useCallback(
     async (file: File) => {
       try {
-        const buffer = await file.arrayBuffer()
-        const bytes = new Uint8Array(buffer)
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
         const encoded = encodeBase64(bytes, {
           padding: state.padding,
           urlSafe: state.urlSafe,
           mimeFormat: state.mimeFormat,
-        })
+        });
 
-        const blob = new Blob([encoded], { type: "text/plain" })
-        const url = URL.createObjectURL(blob)
+        const blob = new Blob([encoded], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
 
-        setDownloadFilename(file.name + ".base64")
+        setDownloadFilename(file.name + ".base64");
         setLeftFileResult({
           status: "success",
           message: `Encoded ${file.name} (${bytes.length} bytes)`,
           downloadUrl: url,
           downloadName: file.name + ".base64",
-        })
+        });
       } catch (err) {
         setLeftFileResult({
           status: "error",
           message: err instanceof Error ? err.message : "Encoding failed",
-        })
+        });
       }
     },
     [state.padding, state.urlSafe, state.mimeFormat],
-  )
+  );
 
   // Handle file upload to right (decode)
   const handleRightFileUpload = React.useCallback(async (file: File) => {
     try {
-      const text = await file.text()
-      const bytes = decodeBase64(text)
+      const text = await file.text();
+      const bytes = decodeBase64(text);
 
-      const blob = new Blob([bytes], { type: "application/octet-stream" })
-      const url = URL.createObjectURL(blob)
+      const blob = new Blob([bytes], { type: "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
 
-      const baseName = file.name.replace(/\.base64$/i, "")
-      setDownloadFilename(baseName + ".raw")
+      const baseName = file.name.replace(/\.base64$/i, "");
+      setDownloadFilename(baseName + ".raw");
       setRightFileResult({
         status: "success",
         message: `Decoded ${file.name} (${bytes.length} bytes)`,
         downloadUrl: url,
         downloadName: baseName + ".raw",
-      })
+      });
     } catch (err) {
       setRightFileResult({
         status: "error",
         message: err instanceof Error ? err.message : "Decoding failed",
-      })
+      });
     }
-  }, [])
+  }, []);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText)
-      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText)
-      if (params.encoding) setParam("encoding", params.encoding as string)
-      if (params.padding !== undefined) setParam("padding", params.padding as boolean)
-      if (params.urlSafe !== undefined) setParam("urlSafe", params.urlSafe as boolean)
-      if (params.mimeFormat !== undefined) setParam("mimeFormat", params.mimeFormat as boolean)
-      if (params.activeSide) setParam("activeSide", params.activeSide as "left" | "right")
+      const { inputs, params } = entry;
+      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText);
+      if (inputs.rightText !== undefined)
+        setParam("rightText", inputs.rightText);
+      if (params.encoding) setParam("encoding", params.encoding as string);
+      if (params.padding !== undefined)
+        setParam("padding", params.padding as boolean);
+      if (params.urlSafe !== undefined)
+        setParam("urlSafe", params.urlSafe as boolean);
+      if (params.mimeFormat !== undefined)
+        setParam("mimeFormat", params.mimeFormat as boolean);
+      if (params.activeSide)
+        setParam("activeSide", params.activeSide as "left" | "right");
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -240,7 +260,7 @@ function Base64Content() {
         setDownloadFilename={setDownloadFilename}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function Base64Inner({
@@ -262,55 +282,67 @@ function Base64Inner({
   downloadFilename,
   setDownloadFilename,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     updateHistory?: boolean,
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  leftError: string | null
-  rightError: string | null
-  handleLeftChange: (value: string) => void
-  handleRightChange: (value: string) => void
-  handleLeftFileUpload: (file: File) => void
-  handleRightFileUpload: (file: File) => void
-  leftFileResult: { status: "success" | "error"; message: string; downloadUrl?: string; downloadName?: string } | null
-  rightFileResult: { status: "success" | "error"; message: string; downloadUrl?: string; downloadName?: string } | null
-  setLeftFileResult: (v: typeof leftFileResult) => void
-  setRightFileResult: (v: typeof rightFileResult) => void
-  downloadFilename: string
-  setDownloadFilename: (v: string) => void
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  leftError: string | null;
+  rightError: string | null;
+  handleLeftChange: (value: string) => void;
+  handleRightChange: (value: string) => void;
+  handleLeftFileUpload: (file: File) => void;
+  handleRightFileUpload: (file: File) => void;
+  leftFileResult: {
+    status: "success" | "error";
+    message: string;
+    downloadUrl?: string;
+    downloadName?: string;
+  } | null;
+  rightFileResult: {
+    status: "success" | "error";
+    message: string;
+    downloadUrl?: string;
+    downloadName?: string;
+  } | null;
+  setLeftFileResult: (v: typeof leftFileResult) => void;
+  setRightFileResult: (v: typeof rightFileResult) => void;
+  downloadFilename: string;
+  setDownloadFilename: (v: string) => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
   const paramsRef = React.useRef({
     encoding: state.encoding,
     padding: state.padding,
     urlSafe: state.urlSafe,
     mimeFormat: state.mimeFormat,
     activeSide: state.activeSide,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    lastInputRef.current = activeText
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    lastInputRef.current = activeText;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText]);
 
   React.useEffect(() => {
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    if (!activeText || activeText === lastInputRef.current) return
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    if (!activeText || activeText === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = activeText
+      lastInputRef.current = activeText;
       upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
         {
@@ -322,10 +354,10 @@ function Base64Inner({
         },
         state.activeSide,
         activeText.slice(0, 100),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
+    return () => clearTimeout(timer);
   }, [
     state.leftText,
     state.rightText,
@@ -335,12 +367,13 @@ function Base64Inner({
     state.urlSafe,
     state.mimeFormat,
     upsertInputEntry,
-  ])
+  ]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
-      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      hasHandledUrlRef.current = true;
+      const activeText =
+        state.activeSide === "left" ? state.leftText : state.rightText;
       if (activeText) {
         upsertInputEntry(
           { leftText: state.leftText, rightText: state.rightText },
@@ -353,7 +386,7 @@ function Base64Inner({
           },
           state.activeSide,
           activeText.slice(0, 100),
-        )
+        );
       } else {
         upsertParams(
           {
@@ -364,7 +397,7 @@ function Base64Inner({
             activeSide: state.activeSide,
           },
           "interpretation",
-        )
+        );
       }
     }
   }, [
@@ -378,7 +411,7 @@ function Base64Inner({
     state.mimeFormat,
     upsertInputEntry,
     upsertParams,
-  ])
+  ]);
 
   React.useEffect(() => {
     const nextParams = {
@@ -387,11 +420,11 @@ function Base64Inner({
       urlSafe: state.urlSafe,
       mimeFormat: state.mimeFormat,
       activeSide: state.activeSide,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.encoding === nextParams.encoding &&
@@ -400,18 +433,25 @@ function Base64Inner({
       paramsRef.current.mimeFormat === nextParams.mimeFormat &&
       paramsRef.current.activeSide === nextParams.activeSide
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [state.encoding, state.padding, state.urlSafe, state.mimeFormat, state.activeSide, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [
+    state.encoding,
+    state.padding,
+    state.urlSafe,
+    state.mimeFormat,
+    state.activeSide,
+    upsertParams,
+  ]);
 
   const leftWarning = oversizeKeys.includes("leftText")
     ? "Input exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const rightWarning = oversizeKeys.includes("rightText")
     ? "Input exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
 
   return (
     <DualPaneLayout
@@ -487,7 +527,10 @@ function Base64Inner({
 
           {leftFileResult && (
             <div className="flex items-center gap-2">
-              <Label htmlFor="downloadName" className="text-sm whitespace-nowrap">
+              <Label
+                htmlFor="downloadName"
+                className="text-sm whitespace-nowrap"
+              >
                 Filename
               </Label>
               <Input
@@ -501,5 +544,5 @@ function Base64Inner({
         </CardContent>
       </Card>
     </DualPaneLayout>
-  )
+  );
 }

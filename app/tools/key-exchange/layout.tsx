@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Key Exchange (ECDH/X25519/ML-KEM) - AutelysT",
@@ -22,8 +22,12 @@ export const metadata: Metadata = {
     "pem",
     "jwk",
   ],
-}
+};
 
-export default function KeyExchangeLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function KeyExchangeLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

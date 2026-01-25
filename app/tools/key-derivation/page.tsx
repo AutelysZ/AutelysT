@@ -1,43 +1,49 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { AlertCircle, Check, Copy, Download, RefreshCcw } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Slider } from "@/components/ui/slider"
-import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
-import { decodeHex, encodeHex } from "@/lib/encoding/hex"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import { AlertCircle, Check, Copy, Download, RefreshCcw } from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64";
+import { decodeHex, encodeHex } from "@/lib/encoding/hex";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
 
-const inputEncodings = ["utf8", "base64", "hex"] as const
-const outputEncodings = ["base64", "base64url", "hex"] as const
-const paramEncodings = ["utf8", "base64", "hex"] as const
-const kdfAlgorithms = ["HKDF", "PBKDF2"] as const
-const kdfHashes = ["SHA-256", "SHA-384", "SHA-512"] as const
-const lengthPresets = ["256", "384", "512", "custom"] as const
+const inputEncodings = ["utf8", "base64", "hex"] as const;
+const outputEncodings = ["base64", "base64url", "hex"] as const;
+const paramEncodings = ["utf8", "base64", "hex"] as const;
+const kdfAlgorithms = ["HKDF", "PBKDF2"] as const;
+const kdfHashes = ["SHA-256", "SHA-384", "SHA-512"] as const;
+const lengthPresets = ["256", "384", "512", "custom"] as const;
 
-type InputEncoding = (typeof inputEncodings)[number]
-type OutputEncoding = (typeof outputEncodings)[number]
-type ParamEncoding = (typeof paramEncodings)[number]
-type KdfAlgorithm = (typeof kdfAlgorithms)[number]
-type KdfHash = (typeof kdfHashes)[number]
-type LengthPreset = (typeof lengthPresets)[number]
+type InputEncoding = (typeof inputEncodings)[number];
+type OutputEncoding = (typeof outputEncodings)[number];
+type ParamEncoding = (typeof paramEncodings)[number];
+type KdfAlgorithm = (typeof kdfAlgorithms)[number];
+type KdfHash = (typeof kdfHashes)[number];
+type LengthPreset = (typeof lengthPresets)[number];
 
 const encodingLabels = {
   utf8: "UTF-8",
   base64: "Base64",
   base64url: "Base64url",
   hex: "Hex",
-} as const
+} as const;
 
 const paramsSchema = z.object({
   input: z.string().default(""),
@@ -51,102 +57,140 @@ const paramsSchema = z.object({
   info: z.string().default(""),
   infoEncoding: z.enum(paramEncodings).default("base64"),
   iterations: z.coerce.number().int().min(1).max(10000000).default(100000),
-})
+});
 
-type KeyDerivationState = z.infer<typeof paramsSchema>
+type KeyDerivationState = z.infer<typeof paramsSchema>;
 
-const textEncoder = new TextEncoder()
-const SALT_DEFAULT_LENGTH = 16
+const textEncoder = new TextEncoder();
+const SALT_DEFAULT_LENGTH = 16;
 
 function randomBytes(length: number) {
   if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("Secure random generation is unavailable.")
+    throw new Error("Secure random generation is unavailable.");
   }
-  const bytes = new Uint8Array(length)
-  crypto.getRandomValues(bytes)
-  return bytes
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return bytes;
 }
 
 function randomAsciiString(length: number) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  const bytes = randomBytes(length)
-  let value = ""
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = randomBytes(length);
+  let value = "";
   for (let i = 0; i < bytes.length; i += 1) {
-    value += alphabet[bytes[i] % alphabet.length]
+    value += alphabet[bytes[i] % alphabet.length];
   }
-  return value
+  return value;
 }
 
 function getMaxKdfLengthBytes(hash: KdfHash) {
-  if (hash === "SHA-384") return 255 * 48
-  if (hash === "SHA-512") return 255 * 64
-  return 255 * 32
+  if (hash === "SHA-384") return 255 * 48;
+  if (hash === "SHA-512") return 255 * 64;
+  return 255 * 32;
 }
 
 function getLengthPreset(value: number): LengthPreset | null {
-  if (value === 32) return "256"
-  if (value === 48) return "384"
-  if (value === 64) return "512"
-  return null
+  if (value === 32) return "256";
+  if (value === 48) return "384";
+  if (value === 64) return "512";
+  return null;
 }
 
 function encodeParamValue(bytes: Uint8Array, encoding: ParamEncoding) {
-  if (encoding === "utf8") return randomAsciiString(bytes.length)
-  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
-  return encodeBase64(bytes, { urlSafe: false, padding: true })
+  if (encoding === "utf8") return randomAsciiString(bytes.length);
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false });
+  return encodeBase64(bytes, { urlSafe: false, padding: true });
 }
 
 function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
-  if (encoding === "hex") return encodeHex(bytes, { upperCase: false })
-  if (encoding === "base64") return encodeBase64(bytes, { urlSafe: false, padding: true })
-  return encodeBase64(bytes, { urlSafe: true, padding: false })
+  if (encoding === "hex") return encodeHex(bytes, { upperCase: false });
+  if (encoding === "base64")
+    return encodeBase64(bytes, { urlSafe: false, padding: true });
+  return encodeBase64(bytes, { urlSafe: true, padding: false });
 }
 
-function decodeInputBytes(value: string, encoding: InputEncoding): Uint8Array<ArrayBuffer> {
-  if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
-  if (encoding === "hex") return decodeHex(value)
-  return decodeBase64(value)
+function decodeInputBytes(
+  value: string,
+  encoding: InputEncoding,
+): Uint8Array<ArrayBuffer> {
+  if (!value) return new Uint8Array();
+  if (encoding === "utf8")
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>;
+  if (encoding === "hex") return decodeHex(value);
+  return decodeBase64(value);
 }
 
-function decodeParamValue(value: string, encoding: ParamEncoding): Uint8Array<ArrayBuffer> {
-  if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
-  if (encoding === "hex") return decodeHex(value)
-  return decodeBase64(value)
+function decodeParamValue(
+  value: string,
+  encoding: ParamEncoding,
+): Uint8Array<ArrayBuffer> {
+  if (!value) return new Uint8Array();
+  if (encoding === "utf8")
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>;
+  if (encoding === "hex") return decodeHex(value);
+  return decodeBase64(value);
 }
 
-async function deriveKeyBytes(inputBytes: Uint8Array<ArrayBuffer>, state: KeyDerivationState) {
+async function deriveKeyBytes(
+  inputBytes: Uint8Array<ArrayBuffer>,
+  state: KeyDerivationState,
+) {
   if (!globalThis.crypto?.subtle) {
-    throw new Error("Web Crypto is unavailable in this environment.")
+    throw new Error("Web Crypto is unavailable in this environment.");
   }
-  const lengthBits = state.length * 8
-  const salt = decodeParamValue(state.salt, state.saltEncoding)
+  const lengthBits = state.length * 8;
+  const salt = decodeParamValue(state.salt, state.saltEncoding);
   if (state.kdfAlgorithm === "HKDF") {
-    const info = decodeParamValue(state.info, state.infoEncoding)
-    const keyMaterial = await crypto.subtle.importKey("raw", inputBytes, "HKDF", false, ["deriveBits"])
+    const info = decodeParamValue(state.info, state.infoEncoding);
+    const keyMaterial = await crypto.subtle.importKey(
+      "raw",
+      inputBytes,
+      "HKDF",
+      false,
+      ["deriveBits"],
+    );
     const bits = await crypto.subtle.deriveBits(
       { name: "HKDF", hash: { name: state.kdfHash }, salt, info },
       keyMaterial,
       lengthBits,
-    )
-    return new Uint8Array(bits)
+    );
+    return new Uint8Array(bits);
   }
-  const keyMaterial = await crypto.subtle.importKey("raw", inputBytes, "PBKDF2", false, ["deriveBits"])
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    inputBytes,
+    "PBKDF2",
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", hash: { name: state.kdfHash }, salt, iterations: state.iterations },
+    {
+      name: "PBKDF2",
+      hash: { name: state.kdfHash },
+      salt,
+      iterations: state.iterations,
+    },
     keyMaterial,
     lengthBits,
-  )
-  return new Uint8Array(bits)
+  );
+  return new Uint8Array(bits);
 }
 
-function ScrollableTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+function ScrollableTabsList({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div className="min-w-0 w-full overflow-x-auto">
-      <TabsList className={cn("inline-flex w-max justify-start", className)}>{children}</TabsList>
+      <TabsList className={cn("inline-flex w-max justify-start", className)}>
+        {children}
+      </TabsList>
     </div>
-  )
+  );
 }
 
 export default function KeyDerivationPage() {
@@ -154,31 +198,37 @@ export default function KeyDerivationPage() {
     <Suspense fallback={null}>
       <KeyDerivationContent />
     </Suspense>
-  )
+  );
 }
 
 function KeyDerivationContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } = useUrlSyncedState(
-    "key-derivation",
-    {
-      schema: paramsSchema,
-      defaults: paramsSchema.parse({}),
-    },
-  )
+  const {
+    state,
+    setParam,
+    oversizeKeys,
+    hasUrlParams,
+    hydrationSource,
+    resetToDefaults,
+  } = useUrlSyncedState("key-derivation", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  });
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.input !== undefined) setParam("input", inputs.input)
-      const typedParams = params as Partial<KeyDerivationState>
-      ;(Object.keys(paramsSchema.shape) as (keyof KeyDerivationState)[]).forEach((key) => {
-        if (typedParams[key] !== undefined) {
-          setParam(key, typedParams[key] as KeyDerivationState[typeof key])
-        }
-      })
+      const { inputs, params } = entry;
+      if (inputs.input !== undefined) setParam("input", inputs.input);
+      const typedParams = params as Partial<KeyDerivationState>;
+      (Object.keys(paramsSchema.shape) as (keyof KeyDerivationState)[]).forEach(
+        (key) => {
+          if (typedParams[key] !== undefined) {
+            setParam(key, typedParams[key] as KeyDerivationState[typeof key]);
+          }
+        },
+      );
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -196,7 +246,7 @@ function KeyDerivationContent() {
         resetToDefaults={resetToDefaults}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function KeyDerivationInner({
@@ -207,22 +257,28 @@ function KeyDerivationInner({
   hydrationSource,
   resetToDefaults,
 }: {
-  state: KeyDerivationState
-  setParam: <K extends keyof KeyDerivationState>(key: K, value: KeyDerivationState[K], immediate?: boolean) => void
-  oversizeKeys: (keyof KeyDerivationState)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  resetToDefaults: () => void
+  state: KeyDerivationState;
+  setParam: <K extends keyof KeyDerivationState>(
+    key: K,
+    value: KeyDerivationState[K],
+    immediate?: boolean,
+  ) => void;
+  oversizeKeys: (keyof KeyDerivationState)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  resetToDefaults: () => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [output, setOutput] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
-  const [isWorking, setIsWorking] = React.useState(false)
-  const [copied, setCopied] = React.useState(false)
-  const [lengthMode, setLengthMode] = React.useState<LengthPreset>(() => getLengthPreset(state.length) ?? "custom")
-  const lastInputRef = React.useRef("")
-  const hasHydratedInputRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [output, setOutput] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [isWorking, setIsWorking] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const [lengthMode, setLengthMode] = React.useState<LengthPreset>(
+    () => getLengthPreset(state.length) ?? "custom",
+  );
+  const lastInputRef = React.useRef("");
+  const hasHydratedInputRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
   const paramsRef = React.useRef({
     inputEncoding: state.inputEncoding,
     outputEncoding: state.outputEncoding,
@@ -234,24 +290,27 @@ function KeyDerivationInner({
     info: state.info,
     infoEncoding: state.infoEncoding,
     iterations: state.iterations,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const runRef = React.useRef(0)
-  const maxKdfLength = React.useMemo(() => getMaxKdfLengthBytes(state.kdfHash), [state.kdfHash])
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const runRef = React.useRef(0);
+  const maxKdfLength = React.useMemo(
+    () => getMaxKdfLengthBytes(state.kdfHash),
+    [state.kdfHash],
+  );
 
   React.useEffect(() => {
     if (state.length > maxKdfLength) {
-      setParam("length", maxKdfLength, true)
+      setParam("length", maxKdfLength, true);
     }
-  }, [state.length, maxKdfLength, setParam])
+  }, [state.length, maxKdfLength, setParam]);
 
   React.useEffect(() => {
-    if (lengthMode === "custom") return
-    const preset = getLengthPreset(state.length) ?? "custom"
+    if (lengthMode === "custom") return;
+    const preset = getLengthPreset(state.length) ?? "custom";
     if (preset !== lengthMode) {
-      setLengthMode(preset)
+      setLengthMode(preset);
     }
-  }, [state.length, lengthMode])
+  }, [state.length, lengthMode]);
 
   const historyParams = React.useMemo(
     () => ({
@@ -278,43 +337,59 @@ function KeyDerivationInner({
       state.infoEncoding,
       state.iterations,
     ],
-  )
+  );
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = state.input
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.input])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = state.input;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.input]);
 
   React.useEffect(() => {
-    if (!state.input || state.input === lastInputRef.current) return
+    if (!state.input || state.input === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = state.input
-      upsertInputEntry({ input: state.input }, historyParams, "left", state.input.slice(0, 100))
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      lastInputRef.current = state.input;
+      upsertInputEntry(
+        { input: state.input },
+        historyParams,
+        "left",
+        state.input.slice(0, 100),
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.input, historyParams, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state.input, historyParams, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.input) {
-        upsertInputEntry({ input: state.input }, historyParams, "left", state.input.slice(0, 100))
+        upsertInputEntry(
+          { input: state.input },
+          historyParams,
+          "left",
+          state.input.slice(0, 100),
+        );
       } else {
-        upsertParams(historyParams, "interpretation")
+        upsertParams(historyParams, "interpretation");
       }
     }
-  }, [hasUrlParams, state.input, historyParams, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.input,
+    historyParams,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const nextParams = historyParams
+    const nextParams = historyParams;
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.inputEncoding === nextParams.inputEncoding &&
@@ -328,44 +403,44 @@ function KeyDerivationInner({
       paramsRef.current.infoEncoding === nextParams.infoEncoding &&
       paramsRef.current.iterations === nextParams.iterations
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [historyParams, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [historyParams, upsertParams]);
 
   React.useEffect(() => {
     if (!state.input.trim()) {
-      setOutput("")
-      setError(null)
-      setIsWorking(false)
-      return
+      setOutput("");
+      setError(null);
+      setIsWorking(false);
+      return;
     }
 
-    const runId = ++runRef.current
-    setIsWorking(true)
-    setError(null)
+    const runId = ++runRef.current;
+    setIsWorking(true);
+    setError(null);
 
     const run = async () => {
       try {
-        const inputBytes = decodeInputBytes(state.input, state.inputEncoding)
-        const derived = await deriveKeyBytes(inputBytes, state)
-        const outputText = encodeOutputBytes(derived, state.outputEncoding)
-        if (runRef.current !== runId) return
-        setOutput(outputText)
-        setError(null)
+        const inputBytes = decodeInputBytes(state.input, state.inputEncoding);
+        const derived = await deriveKeyBytes(inputBytes, state);
+        const outputText = encodeOutputBytes(derived, state.outputEncoding);
+        if (runRef.current !== runId) return;
+        setOutput(outputText);
+        setError(null);
       } catch (err) {
-        if (runRef.current !== runId) return
-        setError(err instanceof Error ? err.message : "Failed to derive key.")
-        setOutput("")
+        if (runRef.current !== runId) return;
+        setError(err instanceof Error ? err.message : "Failed to derive key.");
+        setOutput("");
       } finally {
         if (runRef.current === runId) {
-          setIsWorking(false)
+          setIsWorking(false);
         }
       }
-    }
+    };
 
-    run()
+    run();
   }, [
     state.input,
     state.inputEncoding,
@@ -378,57 +453,62 @@ function KeyDerivationInner({
     state.info,
     state.infoEncoding,
     state.iterations,
-  ])
+  ]);
 
   const handleLengthPresetChange = (value: LengthPreset) => {
-    setLengthMode(value)
-    if (value === "256") setParam("length", 32, true)
-    if (value === "384") setParam("length", 48, true)
-    if (value === "512") setParam("length", 64, true)
-  }
+    setLengthMode(value);
+    if (value === "256") setParam("length", 32, true);
+    if (value === "384") setParam("length", 48, true);
+    if (value === "512") setParam("length", 64, true);
+  };
 
   const handleGenerateSalt = () => {
     try {
-      const bytes = randomBytes(SALT_DEFAULT_LENGTH)
-      const encoded = encodeParamValue(bytes, state.saltEncoding)
-      setParam("salt", encoded)
+      const bytes = randomBytes(SALT_DEFAULT_LENGTH);
+      const encoded = encodeParamValue(bytes, state.saltEncoding);
+      setParam("salt", encoded);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to generate salt.")
+      setError(err instanceof Error ? err.message : "Unable to generate salt.");
     }
-  }
+  };
 
   const handleCopyOutput = async () => {
-    if (!output) return
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownloadOutput = () => {
-    if (!output) return
-    const blob = new Blob([output], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "derived-key.txt"
-    link.click()
-    URL.revokeObjectURL(url)
-  }
+    if (!output) return;
+    const blob = new Blob([output], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "derived-key.txt";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleClearAll = React.useCallback(() => {
-    runRef.current += 1
-    resetToDefaults()
-    setOutput("")
-    setError(null)
-    setIsWorking(false)
-    setCopied(false)
-  }, [resetToDefaults])
+    runRef.current += 1;
+    resetToDefaults();
+    setOutput("");
+    setError(null);
+    setIsWorking(false);
+    setCopied(false);
+  }, [resetToDefaults]);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-base font-semibold">Key Derivation</h2>
-        <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearAll}
+          className="h-8 px-3 text-sm"
+        >
           Clear
         </Button>
       </div>
@@ -440,7 +520,9 @@ function KeyDerivationInner({
               <Label className="w-24 text-sm sm:w-32">Algorithm</Label>
               <Tabs
                 value={state.kdfAlgorithm}
-                onValueChange={(value) => setParam("kdfAlgorithm", value as KdfAlgorithm, true)}
+                onValueChange={(value) =>
+                  setParam("kdfAlgorithm", value as KdfAlgorithm, true)
+                }
               >
                 <TabsList className="h-8">
                   {kdfAlgorithms.map((alg) => (
@@ -453,7 +535,12 @@ function KeyDerivationInner({
             </div>
             <div className="flex items-center gap-3">
               <Label className="w-24 text-sm sm:w-32">Hash</Label>
-              <Tabs value={state.kdfHash} onValueChange={(value) => setParam("kdfHash", value as KdfHash, true)}>
+              <Tabs
+                value={state.kdfHash}
+                onValueChange={(value) =>
+                  setParam("kdfHash", value as KdfHash, true)
+                }
+              >
                 <ScrollableTabsList>
                   {kdfHashes.map((hash) => (
                     <TabsTrigger key={hash} value={hash} className="text-xs">
@@ -465,7 +552,12 @@ function KeyDerivationInner({
             </div>
             <div className="flex items-center gap-3">
               <Label className="w-24 text-sm sm:w-32">Length</Label>
-              <Tabs value={lengthMode} onValueChange={(value) => handleLengthPresetChange(value as LengthPreset)}>
+              <Tabs
+                value={lengthMode}
+                onValueChange={(value) =>
+                  handleLengthPresetChange(value as LengthPreset)
+                }
+              >
                 <TabsList className="h-8">
                   <TabsTrigger value="256" className="text-xs">
                     256-bit
@@ -491,9 +583,13 @@ function KeyDerivationInner({
                     min={1}
                     max={maxKdfLength}
                     step={1}
-                    onValueChange={(value) => setParam("length", value[0] ?? 1, true)}
+                    onValueChange={(value) =>
+                      setParam("length", value[0] ?? 1, true)
+                    }
                   />
-                  <p className="text-xs text-muted-foreground">{state.length * 8} bits</p>
+                  <p className="text-xs text-muted-foreground">
+                    {state.length * 8} bits
+                  </p>
                 </div>
               </div>
             )}
@@ -506,8 +602,12 @@ function KeyDerivationInner({
                   max={10000000}
                   value={state.iterations}
                   onChange={(event) => {
-                    const value = Number.parseInt(event.target.value, 10)
-                    setParam("iterations", Number.isNaN(value) ? 100000 : value, true)
+                    const value = Number.parseInt(event.target.value, 10);
+                    setParam(
+                      "iterations",
+                      Number.isNaN(value) ? 100000 : value,
+                      true,
+                    );
                   }}
                   className="h-9 w-32"
                 />
@@ -520,16 +620,25 @@ function KeyDerivationInner({
                   value={state.salt}
                   onChange={(event) => setParam("salt", event.target.value)}
                   placeholder="Enter salt..."
-                  className={cn("h-8 font-mono text-xs", oversizeKeys.includes("salt") && "border-destructive")}
+                  className={cn(
+                    "h-8 font-mono text-xs",
+                    oversizeKeys.includes("salt") && "border-destructive",
+                  )}
                 />
                 <div className="flex items-center gap-2">
                   <Tabs
                     value={state.saltEncoding}
-                    onValueChange={(value) => setParam("saltEncoding", value as ParamEncoding, true)}
+                    onValueChange={(value) =>
+                      setParam("saltEncoding", value as ParamEncoding, true)
+                    }
                   >
                     <TabsList className="h-6">
                       {paramEncodings.map((encoding) => (
-                        <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                        <TabsTrigger
+                          key={encoding}
+                          value={encoding}
+                          className="text-[10px] sm:text-xs px-2"
+                        >
                           {encodingLabels[encoding]}
                         </TabsTrigger>
                       ))}
@@ -556,16 +665,25 @@ function KeyDerivationInner({
                     value={state.info}
                     onChange={(event) => setParam("info", event.target.value)}
                     placeholder="Enter info..."
-                    className={cn("h-8 font-mono text-xs", oversizeKeys.includes("info") && "border-destructive")}
+                    className={cn(
+                      "h-8 font-mono text-xs",
+                      oversizeKeys.includes("info") && "border-destructive",
+                    )}
                   />
                   <div className="flex items-center">
                     <Tabs
                       value={state.infoEncoding}
-                      onValueChange={(value) => setParam("infoEncoding", value as ParamEncoding, true)}
+                      onValueChange={(value) =>
+                        setParam("infoEncoding", value as ParamEncoding, true)
+                      }
                     >
                       <TabsList className="h-6">
                         {paramEncodings.map((encoding) => (
-                          <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                          <TabsTrigger
+                            key={encoding}
+                            value={encoding}
+                            className="text-[10px] sm:text-xs px-2"
+                          >
                             {encodingLabels[encoding]}
                           </TabsTrigger>
                         ))}
@@ -584,12 +702,18 @@ function KeyDerivationInner({
               <Label className="text-sm">Input</Label>
               <Tabs
                 value={state.inputEncoding}
-                onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
+                onValueChange={(value) =>
+                  setParam("inputEncoding", value as InputEncoding, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList className="h-6">
                   {inputEncodings.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs flex-none">
+                    <TabsTrigger
+                      key={encoding}
+                      value={encoding}
+                      className="text-[10px] sm:text-xs flex-none"
+                    >
                       {encodingLabels[encoding]}
                     </TabsTrigger>
                   ))}
@@ -606,7 +730,9 @@ function KeyDerivationInner({
               )}
             />
             {oversizeKeys.includes("input") && (
-              <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+              <p className="text-xs text-muted-foreground">
+                Input exceeds 2 KB and is not synced to the URL.
+              </p>
             )}
           </div>
 
@@ -615,12 +741,18 @@ function KeyDerivationInner({
               <Label className="text-sm">Derived Key</Label>
               <Tabs
                 value={state.outputEncoding}
-                onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
+                onValueChange={(value) =>
+                  setParam("outputEncoding", value as OutputEncoding, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList className="h-6">
                   {outputEncodings.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs flex-none">
+                    <TabsTrigger
+                      key={encoding}
+                      value={encoding}
+                      className="text-[10px] sm:text-xs flex-none"
+                    >
                       {encodingLabels[encoding]}
                     </TabsTrigger>
                   ))}
@@ -635,7 +767,11 @@ function KeyDerivationInner({
                   aria-label="Copy derived key"
                   disabled={!output}
                 >
-                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
@@ -657,7 +793,9 @@ function KeyDerivationInner({
             />
           </div>
 
-          {isWorking && <p className="text-xs text-muted-foreground">Deriving key...</p>}
+          {isWorking && (
+            <p className="text-xs text-muted-foreground">Deriving key...</p>
+          )}
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
@@ -667,5 +805,5 @@ function KeyDerivationInner({
         </div>
       </div>
     </div>
-  )
+  );
 }

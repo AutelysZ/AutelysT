@@ -1,13 +1,14 @@
-import type { Tool, ToolCategory } from "./types"
+import type { Tool, ToolCategory } from "./types";
 
-export type { Tool, ToolCategory }
+export type { Tool, ToolCategory };
 
 export const tools: Tool[] = [
   // Encoding Tools
   {
     id: "base64",
     name: "Base64",
-    description: "Encode and decode Base64 with URL-safe mode, MIME line breaks, 100+ text encodings, and file input.",
+    description:
+      "Encode and decode Base64 with URL-safe mode, MIME line breaks, 100+ text encodings, and file input.",
     category: "Encoding",
     route: "/tools/base64",
     keywords: ["base64", "encode", "decode", "binary", "text", "file"],
@@ -15,121 +16,216 @@ export const tools: Tool[] = [
       title: "Base64 Encoder/Decoder - AutelysT",
       description:
         "Online Base64 encoder/decoder with URL-safe mode, MIME line breaks, 100+ text encodings, and file input.",
-      keywords: ["base64", "encoder", "decoder", "url-safe", "mime", "text encoding", "file to base64"],
+      keywords: [
+        "base64",
+        "encoder",
+        "decoder",
+        "url-safe",
+        "mime",
+        "text encoding",
+        "file to base64",
+      ],
     },
   },
   {
     id: "base58",
     name: "Base58",
-    description: "Encode and decode Base58 for Bitcoin/IPFS with raw byte file support.",
+    description:
+      "Encode and decode Base58 for Bitcoin/IPFS with raw byte file support.",
     category: "Encoding",
     route: "/tools/base58",
     keywords: ["base58", "encode", "decode", "bitcoin", "cryptocurrency"],
     seo: {
       title: "Base58 Encoder/Decoder - AutelysT",
-      description: "Online Base58 encoder/decoder for Bitcoin and IPFS with raw byte file support.",
+      description:
+        "Online Base58 encoder/decoder for Bitcoin and IPFS with raw byte file support.",
       keywords: ["base58", "encoder", "decoder", "bitcoin", "ipfs", "binary"],
     },
   },
   {
     id: "base45",
     name: "Base45",
-    description: "Encode and decode Base45 for QR payloads and EU Digital COVID Certificates.",
+    description:
+      "Encode and decode Base45 for QR payloads and EU Digital COVID Certificates.",
     category: "Encoding",
     route: "/tools/base45",
     keywords: ["base45", "encode", "decode", "qr", "covid", "certificate"],
     seo: {
       title: "Base45 Encoder/Decoder - AutelysT",
-      description: "Online Base45 encoder/decoder for QR payloads and EU Digital COVID Certificates.",
-      keywords: ["base45", "encoder", "decoder", "qr", "digital covid certificate", "dcc"],
+      description:
+        "Online Base45 encoder/decoder for QR payloads and EU Digital COVID Certificates.",
+      keywords: [
+        "base45",
+        "encoder",
+        "decoder",
+        "qr",
+        "digital covid certificate",
+        "dcc",
+      ],
     },
   },
   {
     id: "base36",
     name: "Base36",
-    description: "Encode and decode Base36 with text encoding selection, case control, and file input.",
+    description:
+      "Encode and decode Base36 with text encoding selection, case control, and file input.",
     category: "Encoding",
     route: "/tools/base36",
     keywords: ["base36", "encode", "decode", "alphanumeric"],
     seo: {
       title: "Base36 Encoder/Decoder - AutelysT",
-      description: "Online Base36 encoder/decoder with text encoding selection, case control, and file input.",
-      keywords: ["base36", "encoder", "decoder", "alphanumeric", "text encoding", "case"],
+      description:
+        "Online Base36 encoder/decoder with text encoding selection, case control, and file input.",
+      keywords: [
+        "base36",
+        "encoder",
+        "decoder",
+        "alphanumeric",
+        "text encoding",
+        "case",
+      ],
     },
   },
   {
     id: "base32",
     name: "Base32",
-    description: "Encode and decode Base32 with text encoding selection, case control, and file input.",
+    description:
+      "Encode and decode Base32 with text encoding selection, case control, and file input.",
     category: "Encoding",
     route: "/tools/base32",
     keywords: ["base32", "encode", "decode", "totp", "2fa"],
     seo: {
       title: "Base32 Encoder/Decoder - AutelysT",
-      description: "Online Base32 encoder/decoder for TOTP and file systems with text encoding selection and file input.",
-      keywords: ["base32", "encoder", "decoder", "totp", "2fa", "text encoding"],
+      description:
+        "Online Base32 encoder/decoder for TOTP and file systems with text encoding selection and file input.",
+      keywords: [
+        "base32",
+        "encoder",
+        "decoder",
+        "totp",
+        "2fa",
+        "text encoding",
+      ],
     },
   },
   {
     id: "hex",
     name: "Hex (Base16)",
-    description: "Encode and decode hex (Base16) with text encoding selection, case control, and file input.",
+    description:
+      "Encode and decode hex (Base16) with text encoding selection, case control, and file input.",
     category: "Encoding",
     route: "/tools/hex",
     keywords: ["hex", "hexadecimal", "base16", "encode", "decode"],
     seo: {
       title: "Hex (Base16) Encoder/Decoder - AutelysT",
-      description: "Online hex (Base16) encoder/decoder with text encoding selection, case control, and file input.",
-      keywords: ["hex", "hexadecimal", "base16", "encoder", "decoder", "text encoding", "hex to text"],
+      description:
+        "Online hex (Base16) encoder/decoder with text encoding selection, case control, and file input.",
+      keywords: [
+        "hex",
+        "hexadecimal",
+        "base16",
+        "encoder",
+        "decoder",
+        "text encoding",
+        "hex to text",
+      ],
     },
   },
   {
     id: "hex-escape",
     name: "Hex Escape",
-    description: "Encode and decode hex escape sequences (\\xFF) with text encoding selection and case control.",
+    description:
+      "Encode and decode hex escape sequences (\\xFF) with text encoding selection and case control.",
     category: "Encoding",
     route: "/tools/hex-escape",
     keywords: ["hex", "escape", "encode", "decode", "byte"],
     seo: {
       title: "Hex Escape Encoder/Decoder - AutelysT",
-      description: "Online hex escape encoder/decoder for \\xFF sequences with text encoding selection and case control.",
-      keywords: ["hex escape", "encoder", "decoder", "byte escape", "string escape", "xFF"],
+      description:
+        "Online hex escape encoder/decoder for \\xFF sequences with text encoding selection and case control.",
+      keywords: [
+        "hex escape",
+        "encoder",
+        "decoder",
+        "byte escape",
+        "string escape",
+        "xFF",
+      ],
     },
   },
   {
     id: "unicode-escape",
     name: "Unicode Escape",
-    description: "Encode and decode Unicode escape sequences (\\uXXXX) with selective character escaping modes.",
+    description:
+      "Encode and decode Unicode escape sequences (\\uXXXX) with selective character escaping modes.",
     category: "Encoding",
     route: "/tools/unicode-escape",
     keywords: ["unicode", "escape", "encode", "decode", "\\u", "codepoint"],
     seo: {
       title: "Unicode Escape Encoder/Decoder - AutelysT",
-      description: "Online Unicode escape encoder/decoder for \\uXXXX sequences with modes for all, non-graphic ASCII, or non-graphic Latin characters.",
-      keywords: ["unicode escape", "encoder", "decoder", "\\uXXXX", "codepoint", "string escape"],
+      description:
+        "Online Unicode escape encoder/decoder for \\uXXXX sequences with modes for all, non-graphic ASCII, or non-graphic Latin characters.",
+      keywords: [
+        "unicode escape",
+        "encoder",
+        "decoder",
+        "\\uXXXX",
+        "codepoint",
+        "string escape",
+      ],
     },
   },
   {
     id: "url-escape",
     name: "URL Escape",
-    description: "Encode and decode URL percent-encoding (%XX) with input encoding selection, mode control, and case options.",
+    description:
+      "Encode and decode URL percent-encoding (%XX) with input encoding selection, mode control, and case options.",
     category: "Encoding",
     route: "/tools/url-escape",
-    keywords: ["url", "escape", "percent", "encode", "decode", "uri", "component"],
+    keywords: [
+      "url",
+      "escape",
+      "percent",
+      "encode",
+      "decode",
+      "uri",
+      "component",
+    ],
     seo: {
       title: "URL Escape Encoder/Decoder - AutelysT",
       description:
         "Online URL escape encoder/decoder for percent-encoding (%XX) with input encoding selection, encoding modes, and case control.",
-      keywords: ["url escape", "percent encoding", "encoder", "decoder", "%XX", "uri encoding", "component encoding"],
+      keywords: [
+        "url escape",
+        "percent encoding",
+        "encoder",
+        "decoder",
+        "%XX",
+        "uri encoding",
+        "component encoding",
+      ],
     },
   },
   {
     id: "charset-converter",
     name: "Charset Converter",
-    description: "Convert text between different charsets with various encoding formats including Base64, URL, and Hex Escape.",
+    description:
+      "Convert text between different charsets with various encoding formats including Base64, URL, and Hex Escape.",
     category: "Encoding",
     route: "/tools/charset-converter",
-    keywords: ["charset", "encoding", "convert", "iconv", "utf-8", "utf-16", "gbk", "shift_jis", "base64", "url", "hex"],
+    keywords: [
+      "charset",
+      "encoding",
+      "convert",
+      "iconv",
+      "utf-8",
+      "utf-16",
+      "gbk",
+      "shift_jis",
+      "base64",
+      "url",
+      "hex",
+    ],
     seo: {
       title: "Text Charset Converter - AutelysT",
       description:
@@ -152,10 +248,20 @@ export const tools: Tool[] = [
   {
     id: "punycode",
     name: "Punycode",
-    description: "Encode and decode internationalized domain names (IDN) with Punycode.",
+    description:
+      "Encode and decode internationalized domain names (IDN) with Punycode.",
     category: "Encoding",
     route: "/tools/punycode",
-    keywords: ["punycode", "idn", "internationalized domain", "unicode", "xn--", "domain", "encode", "decode"],
+    keywords: [
+      "punycode",
+      "idn",
+      "internationalized domain",
+      "unicode",
+      "xn--",
+      "domain",
+      "encode",
+      "decode",
+    ],
     seo: {
       title: "Punycode Encoder/Decoder - AutelysT",
       description:
@@ -176,10 +282,22 @@ export const tools: Tool[] = [
   {
     id: "password-generator",
     name: "Password Generator",
-    description: "Generate secure passwords with Graphic ASCII and base encodings, plus length presets.",
+    description:
+      "Generate secure passwords with Graphic ASCII and base encodings, plus length presets.",
     category: "Crypto",
     route: "/tools/password-generator",
-    keywords: ["password", "generator", "random", "secure", "ascii", "base64", "base58", "base45", "base32", "hex"],
+    keywords: [
+      "password",
+      "generator",
+      "random",
+      "secure",
+      "ascii",
+      "base64",
+      "base58",
+      "base45",
+      "base32",
+      "hex",
+    ],
     seo: {
       title: "Password Generator - AutelysT",
       description:
@@ -309,61 +427,150 @@ export const tools: Tool[] = [
   {
     id: "key-derivation",
     name: "Key Derivation",
-    description: "Derive keys with HKDF or PBKDF2 using configurable hash, salt, and output length.",
+    description:
+      "Derive keys with HKDF or PBKDF2 using configurable hash, salt, and output length.",
     category: "Crypto",
     route: "/tools/key-derivation",
-    keywords: ["key derivation", "hkdf", "pbkdf2", "salt", "hash", "derived key", "base64", "hex"],
+    keywords: [
+      "key derivation",
+      "hkdf",
+      "pbkdf2",
+      "salt",
+      "hash",
+      "derived key",
+      "base64",
+      "hex",
+    ],
     seo: {
       title: "Key Derivation (HKDF/PBKDF2) - AutelysT",
       description:
         "Online key derivation tool with HKDF and PBKDF2, flexible encodings, and configurable salt and output length.",
-      keywords: ["key derivation", "hkdf", "pbkdf2", "salt", "hash", "derived key", "base64", "hex"],
+      keywords: [
+        "key derivation",
+        "hkdf",
+        "pbkdf2",
+        "salt",
+        "hash",
+        "derived key",
+        "base64",
+        "hex",
+      ],
     },
   },
   {
     id: "key-extractor",
     name: "Key Extractor",
-    description: "Parse and convert PEM, JWK, and DER keys with algorithm detection, key details, and downloads.",
+    description:
+      "Parse and convert PEM, JWK, and DER keys with algorithm detection, key details, and downloads.",
     category: "Crypto",
     route: "/tools/key-extractor",
-    keywords: ["key extractor", "key parser", "pem", "jwk", "der", "key converter", "rsa", "ec", "okp"],
+    keywords: [
+      "key extractor",
+      "key parser",
+      "pem",
+      "jwk",
+      "der",
+      "key converter",
+      "rsa",
+      "ec",
+      "okp",
+    ],
     seo: {
       title: "Key Extractor (PEM/JWK/DER) - AutelysT",
       description:
         "Online key extractor to parse and convert PEM, JWK, and DER keys with algorithm detection, key parameter details, and downloads.",
-      keywords: ["key extractor", "pem", "jwk", "der", "key conversion", "rsa", "ec", "okp", "key parameters"],
+      keywords: [
+        "key extractor",
+        "pem",
+        "jwk",
+        "der",
+        "key conversion",
+        "rsa",
+        "ec",
+        "okp",
+        "key parameters",
+      ],
     },
   },
   {
     id: "x509",
     name: "X.509",
-    description: "Create, view, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 support.",
+    description:
+      "Create, view, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 support.",
     category: "Crypto",
     route: "/tools/x509",
-    keywords: ["x509", "certificate", "pem", "der", "pkcs12", "p12", "tls", "ssl", "openssl", "ca"],
+    keywords: [
+      "x509",
+      "certificate",
+      "pem",
+      "der",
+      "pkcs12",
+      "p12",
+      "tls",
+      "ssl",
+      "openssl",
+      "ca",
+    ],
     seo: {
       title: "X.509 Certificate Tool - AutelysT",
-      description: "Create, inspect, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 formats.",
-      keywords: ["x509", "certificate", "pem", "der", "pkcs12", "p12", "tls", "ssl", "openssl", "ca"],
+      description:
+        "Create, inspect, validate, and convert X.509 certificates with PEM, DER, and PKCS#12 formats.",
+      keywords: [
+        "x509",
+        "certificate",
+        "pem",
+        "der",
+        "pkcs12",
+        "p12",
+        "tls",
+        "ssl",
+        "openssl",
+        "ca",
+      ],
     },
   },
   {
     id: "asn1-decoder",
     name: "ASN.1 Decoder",
-    description: "Decode and visualize ASN.1 DER/BER encoded data structures with tree and text views.",
+    description:
+      "Decode and visualize ASN.1 DER/BER encoded data structures with tree and text views.",
     category: "Crypto",
     route: "/tools/asn1-decoder",
-    keywords: ["asn1", "asn.1", "der", "ber", "decoder", "parser", "certificate", "x509", "pkcs", "oid"],
+    keywords: [
+      "asn1",
+      "asn.1",
+      "der",
+      "ber",
+      "decoder",
+      "parser",
+      "certificate",
+      "x509",
+      "pkcs",
+      "oid",
+    ],
     seo: {
       title: "ASN.1 Decoder - AutelysT",
-      description: "Online ASN.1 decoder to parse and visualize DER/BER encoded data structures from PEM, hex, or base64.",
-      keywords: ["asn1", "asn.1", "der", "ber", "decoder", "parser", "certificate", "x509", "pkcs", "oid"],
+      description:
+        "Online ASN.1 decoder to parse and visualize DER/BER encoded data structures from PEM, hex, or base64.",
+      keywords: [
+        "asn1",
+        "asn.1",
+        "der",
+        "ber",
+        "decoder",
+        "parser",
+        "certificate",
+        "x509",
+        "pkcs",
+        "oid",
+      ],
     },
   },
   {
     id: "jwt",
     name: "JWT",
-    description: "Parse, edit, and generate JSON Web Tokens with claims editing and signature validation.",
+    description:
+      "Parse, edit, and generate JSON Web Tokens with claims editing and signature validation.",
     category: "Crypto",
     route: "/tools/jwt",
     keywords: ["jwt", "json web token", "token", "claims", "signature", "hmac"],
@@ -371,13 +578,24 @@ export const tools: Tool[] = [
       title: "JWT Parser/Generator - AutelysT",
       description:
         "Online JWT parser and generator with claims editor, HMAC/PEM signature validation, and header/payload editing.",
-      keywords: ["jwt", "json web token", "jwt parser", "jwt generator", "claims", "signature", "hmac", "rsa", "ecdsa"],
+      keywords: [
+        "jwt",
+        "json web token",
+        "jwt parser",
+        "jwt generator",
+        "claims",
+        "signature",
+        "hmac",
+        "rsa",
+        "ecdsa",
+      ],
     },
   },
   {
     id: "signature",
     name: "Signature",
-    description: "Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, Schnorr, ML-DSA, and SLH-DSA.",
+    description:
+      "Sign and verify messages with HMAC, RSA, ECDSA, EdDSA, Schnorr, ML-DSA, and SLH-DSA.",
     category: "Crypto",
     route: "/tools/signature",
     keywords: [
@@ -433,13 +651,24 @@ export const tools: Tool[] = [
   {
     id: "asymmetric-encryption",
     name: "Asymmetric Encryption",
-    description: "Encrypt and decrypt with RSA-OAEP using PEM/JWK keys and configurable hashing.",
+    description:
+      "Encrypt and decrypt with RSA-OAEP using PEM/JWK keys and configurable hashing.",
     category: "Crypto",
     route: "/tools/asymmetric-encryption",
-    keywords: ["asymmetric", "encrypt", "decrypt", "rsa-oaep", "public key", "private key", "pem", "jwk"],
+    keywords: [
+      "asymmetric",
+      "encrypt",
+      "decrypt",
+      "rsa-oaep",
+      "public key",
+      "private key",
+      "pem",
+      "jwk",
+    ],
     seo: {
       title: "Asymmetric Encryption (RSA-OAEP) - AutelysT",
-      description: "Online RSA-OAEP encryption/decryption with PEM/JWK keys, configurable hash, and keypair generation.",
+      description:
+        "Online RSA-OAEP encryption/decryption with PEM/JWK keys, configurable hash, and keypair generation.",
       keywords: [
         "asymmetric encryption",
         "rsa-oaep",
@@ -455,10 +684,21 @@ export const tools: Tool[] = [
   {
     id: "hybrid-encryption",
     name: "Hybrid Encryption",
-    description: "Encrypt and decrypt with CMS, OpenPGP, JWE, or HPKE using modern hybrid encryption standards.",
+    description:
+      "Encrypt and decrypt with CMS, OpenPGP, JWE, or HPKE using modern hybrid encryption standards.",
     category: "Crypto",
     route: "/tools/hybrid-encryption",
-    keywords: ["hybrid encryption", "cms", "pkcs7", "openpgp", "jwe", "hpke", "encrypt", "decrypt", "a256gcm"],
+    keywords: [
+      "hybrid encryption",
+      "cms",
+      "pkcs7",
+      "openpgp",
+      "jwe",
+      "hpke",
+      "encrypt",
+      "decrypt",
+      "a256gcm",
+    ],
     seo: {
       title: "Hybrid Encryption (CMS/OpenPGP/JWE/HPKE) - AutelysT",
       description:
@@ -479,7 +719,8 @@ export const tools: Tool[] = [
   {
     id: "hash-generator",
     name: "Hash",
-    description: "Generate cryptographic hash digests from text or files with MD, SHA, SHA-3, and BLAKE.",
+    description:
+      "Generate cryptographic hash digests from text or files with MD, SHA, SHA-3, and BLAKE.",
     category: "Crypto",
     route: "/tools/hash-generator",
     keywords: ["hash", "digest", "checksum", "md5", "sha", "sha3", "blake"],
@@ -540,10 +781,22 @@ export const tools: Tool[] = [
   {
     id: "symmetric-encryption",
     name: "Symmetric Encryption",
-    description: "Encrypt and decrypt with AES, ChaCha20, Salsa20, Twofish, Blowfish, DES/3DES, plus key derivation.",
+    description:
+      "Encrypt and decrypt with AES, ChaCha20, Salsa20, Twofish, Blowfish, DES/3DES, plus key derivation.",
     category: "Crypto",
     route: "/tools/symmetric-encryption",
-    keywords: ["symmetric", "encrypt", "decrypt", "aes", "chacha20", "salsa20", "twofish", "blowfish", "des", "3des"],
+    keywords: [
+      "symmetric",
+      "encrypt",
+      "decrypt",
+      "aes",
+      "chacha20",
+      "salsa20",
+      "twofish",
+      "blowfish",
+      "des",
+      "3des",
+    ],
     seo: {
       title: "Symmetric Encryption - AutelysT",
       description:
@@ -567,62 +820,119 @@ export const tools: Tool[] = [
   {
     id: "uuid",
     name: "UUID",
-    description: "Generate and parse UUIDs v1/v4/v6/v7 with timestamp and field extraction.",
+    description:
+      "Generate and parse UUIDs v1/v4/v6/v7 with timestamp and field extraction.",
     category: "Identifier",
     route: "/tools/uuid",
-    keywords: ["uuid", "guid", "generate", "parse", "v1", "v4", "v6", "v7", "timestamp"],
+    keywords: [
+      "uuid",
+      "guid",
+      "generate",
+      "parse",
+      "v1",
+      "v4",
+      "v6",
+      "v7",
+      "timestamp",
+    ],
     seo: {
       title: "UUID Generator/Parser - AutelysT",
-      description: "Online UUID generator and parser for v1/v4/v6/v7 with timestamp and node/clock fields.",
-      keywords: ["uuid", "uuid generator", "uuid parser", "guid", "v1", "v4", "v6", "v7", "timestamp"],
+      description:
+        "Online UUID generator and parser for v1/v4/v6/v7 with timestamp and node/clock fields.",
+      keywords: [
+        "uuid",
+        "uuid generator",
+        "uuid parser",
+        "guid",
+        "v1",
+        "v4",
+        "v6",
+        "v7",
+        "timestamp",
+      ],
     },
   },
   {
     id: "ulid",
     name: "ULID",
-    description: "Generate and parse ULIDs with timestamp and randomness extraction.",
+    description:
+      "Generate and parse ULIDs with timestamp and randomness extraction.",
     category: "Identifier",
     route: "/tools/ulid",
     keywords: ["ulid", "generate", "parse", "sortable", "timestamp", "unique"],
     seo: {
       title: "ULID Generator/Parser - AutelysT",
-      description: "Online ULID generator and parser with timestamp and randomness extraction.",
-      keywords: ["ulid", "ulid generator", "ulid parser", "sortable identifier", "timestamp"],
+      description:
+        "Online ULID generator and parser with timestamp and randomness extraction.",
+      keywords: [
+        "ulid",
+        "ulid generator",
+        "ulid parser",
+        "sortable identifier",
+        "timestamp",
+      ],
     },
   },
   {
     id: "ksuid",
     name: "KSUID",
-    description: "Generate and parse KSUIDs with timestamp and payload extraction.",
+    description:
+      "Generate and parse KSUIDs with timestamp and payload extraction.",
     category: "Identifier",
     route: "/tools/ksuid",
     keywords: ["ksuid", "generate", "parse", "sortable", "timestamp", "unique"],
     seo: {
       title: "KSUID Generator/Parser - AutelysT",
-      description: "Online KSUID generator and parser with timestamp and payload extraction.",
-      keywords: ["ksuid", "ksuid generator", "ksuid parser", "sortable identifier", "timestamp"],
+      description:
+        "Online KSUID generator and parser with timestamp and payload extraction.",
+      keywords: [
+        "ksuid",
+        "ksuid generator",
+        "ksuid parser",
+        "sortable identifier",
+        "timestamp",
+      ],
     },
   },
   {
     id: "objectid",
     name: "BSON ObjectID",
-    description: "Generate and parse MongoDB BSON ObjectIDs with timestamp and machine fields.",
+    description:
+      "Generate and parse MongoDB BSON ObjectIDs with timestamp and machine fields.",
     category: "Identifier",
     route: "/tools/objectid",
     keywords: ["objectid", "mongodb", "bson", "generate", "parse", "timestamp"],
     seo: {
       title: "BSON ObjectID Generator/Parser - AutelysT",
-      description: "Online BSON ObjectID generator and parser with timestamp, machine ID, and counter fields.",
-      keywords: ["objectid", "bson", "mongodb", "objectid generator", "objectid parser", "timestamp"],
+      description:
+        "Online BSON ObjectID generator and parser with timestamp, machine ID, and counter fields.",
+      keywords: [
+        "objectid",
+        "bson",
+        "mongodb",
+        "objectid generator",
+        "objectid parser",
+        "timestamp",
+      ],
     },
   },
   {
     id: "snowflake-id",
     name: "Snowflake ID",
-    description: "Generate and parse Twitter Snowflake IDs with timestamp and node fields.",
+    description:
+      "Generate and parse Twitter Snowflake IDs with timestamp and node fields.",
     category: "Identifier",
     route: "/tools/snowflake-id",
-    keywords: ["snowflake", "snowflake id", "twitter", "generate", "parse", "timestamp", "datacenter", "worker"],
+    keywords: [
+      "snowflake",
+      "snowflake id",
+      "twitter",
+      "generate",
+      "parse",
+      "timestamp",
+      "datacenter",
+      "worker",
+    ],
     seo: {
       title: "Snowflake ID Generator/Parser - AutelysT",
       description:
@@ -643,10 +953,20 @@ export const tools: Tool[] = [
   {
     id: "radix",
     name: "Base Conversion",
-    description: "Convert numbers between bases including binary, octal, decimal, hex, base60, and custom.",
+    description:
+      "Convert numbers between bases including binary, octal, decimal, hex, base60, and custom.",
     category: "Numbers",
     route: "/tools/radix",
-    keywords: ["radix", "base", "convert", "binary", "octal", "decimal", "hex", "base60"],
+    keywords: [
+      "radix",
+      "base",
+      "convert",
+      "binary",
+      "octal",
+      "decimal",
+      "hex",
+      "base60",
+    ],
     seo: {
       title: "Base Converter (Radix) - AutelysT",
       description:
@@ -666,10 +986,19 @@ export const tools: Tool[] = [
   {
     id: "number-format",
     name: "Number Format",
-    description: "Convert number formats including grouping, Chinese numerals, Roman numerals, and scientific notation.",
+    description:
+      "Convert number formats including grouping, Chinese numerals, Roman numerals, and scientific notation.",
     category: "Numbers",
     route: "/tools/number-format",
-    keywords: ["number", "format", "thousand", "separator", "chinese", "roman", "scientific"],
+    keywords: [
+      "number",
+      "format",
+      "thousand",
+      "separator",
+      "chinese",
+      "roman",
+      "scientific",
+    ],
     seo: {
       title: "Number Format Converter - AutelysT",
       description:
@@ -688,145 +1017,308 @@ export const tools: Tool[] = [
   {
     id: "timezone",
     name: "Time Zone Converter",
-    description: "Convert times between IANA time zones with Unix epoch support (s/ms/us/ns).",
+    description:
+      "Convert times between IANA time zones with Unix epoch support (s/ms/us/ns).",
     category: "Date & Time",
     route: "/tools/timezone",
-    keywords: ["timezone", "time", "date", "convert", "epoch", "unix", "utc", "iana"],
+    keywords: [
+      "timezone",
+      "time",
+      "date",
+      "convert",
+      "epoch",
+      "unix",
+      "utc",
+      "iana",
+    ],
     seo: {
       title: "Time Zone Converter - AutelysT",
       description:
         "Online time zone converter with IANA zones and Unix epoch support in seconds, milliseconds, microseconds, and nanoseconds.",
-      keywords: ["time zone converter", "timezone", "unix timestamp", "epoch", "utc", "iana"],
+      keywords: [
+        "time zone converter",
+        "timezone",
+        "unix timestamp",
+        "epoch",
+        "utc",
+        "iana",
+      ],
     },
   },
   {
     id: "world-clock",
     name: "World Clock",
-    description: "Track multiple time zones with live updates or a custom reference time.",
+    description:
+      "Track multiple time zones with live updates or a custom reference time.",
     category: "Date & Time",
     route: "/tools/world-clock",
     keywords: ["world clock", "time zone", "time", "date", "global"],
     seo: {
       title: "World Clock - AutelysT",
-      description: "Online world clock with multiple time zones, live updates, and custom reference time.",
-      keywords: ["world clock", "time zone", "global time", "live clock", "time zones"],
+      description:
+        "Online world clock with multiple time zones, live updates, and custom reference time.",
+      keywords: [
+        "world clock",
+        "time zone",
+        "global time",
+        "live clock",
+        "time zones",
+      ],
     },
   },
   {
     id: "cron",
     name: "Cron Expression Parser",
-    description: "Parse and visualize cron expressions with human-readable descriptions and next run times.",
+    description:
+      "Parse and visualize cron expressions with human-readable descriptions and next run times.",
     category: "Date & Time",
     route: "/tools/cron",
-    keywords: ["cron", "crontab", "schedule", "expression", "parser", "job", "task", "timer", "recurring"],
+    keywords: [
+      "cron",
+      "crontab",
+      "schedule",
+      "expression",
+      "parser",
+      "job",
+      "task",
+      "timer",
+      "recurring",
+    ],
     seo: {
       title: "Cron Expression Parser - AutelysT",
-      description: "Online cron expression parser with human-readable descriptions, field breakdown, and next scheduled run times.",
-      keywords: ["cron parser", "cron expression", "crontab", "schedule parser", "cron validator", "next run time", "cron job"],
+      description:
+        "Online cron expression parser with human-readable descriptions, field breakdown, and next scheduled run times.",
+      keywords: [
+        "cron parser",
+        "cron expression",
+        "crontab",
+        "schedule parser",
+        "cron validator",
+        "next run time",
+        "cron job",
+      ],
     },
   },
   {
     id: "duration",
     name: "ISO 8601 Duration",
-    description: "Parse and build ISO 8601 duration strings with human-readable output and date calculations.",
+    description:
+      "Parse and build ISO 8601 duration strings with human-readable output and date calculations.",
     category: "Date & Time",
     route: "/tools/duration",
-    keywords: ["iso 8601", "duration", "parser", "builder", "time interval", "period", "P1Y2M3D", "PT1H30M", "time span"],
+    keywords: [
+      "iso 8601",
+      "duration",
+      "parser",
+      "builder",
+      "time interval",
+      "period",
+      "P1Y2M3D",
+      "PT1H30M",
+      "time span",
+    ],
     seo: {
       title: "ISO 8601 Duration Parser & Builder - AutelysT",
-      description: "Online ISO 8601 duration parser and builder with real-time conversion, human-readable output, and date calculations.",
-      keywords: ["iso 8601 duration", "duration parser", "duration builder", "time interval", "period", "P1Y2M3D", "PT1H30M", "time span calculator"],
+      description:
+        "Online ISO 8601 duration parser and builder with real-time conversion, human-readable output, and date calculations.",
+      keywords: [
+        "iso 8601 duration",
+        "duration parser",
+        "duration builder",
+        "time interval",
+        "period",
+        "P1Y2M3D",
+        "PT1H30M",
+        "time span calculator",
+      ],
     },
   },
   // Web Tools
   {
     id: "csp-builder",
     name: "CSP Builder",
-    description: "Build and edit Content-Security-Policy headers with directive-aware editing.",
+    description:
+      "Build and edit Content-Security-Policy headers with directive-aware editing.",
     category: "Web",
     route: "/tools/csp-builder",
-    keywords: ["csp", "content security policy", "security header", "script-src", "nonce", "report-uri"],
+    keywords: [
+      "csp",
+      "content security policy",
+      "security header",
+      "script-src",
+      "nonce",
+      "report-uri",
+    ],
     seo: {
       title: "CSP Builder - AutelysT",
-      description: "Online CSP builder to edit directives, generate headers, and copy policy output.",
-      keywords: ["csp builder", "content security policy", "security header", "script-src", "nonce", "report-uri"],
+      description:
+        "Online CSP builder to edit directives, generate headers, and copy policy output.",
+      keywords: [
+        "csp builder",
+        "content security policy",
+        "security header",
+        "script-src",
+        "nonce",
+        "report-uri",
+      ],
     },
   },
   {
     id: "source-map-viewer",
     name: "Source Map Viewer",
-    description: "Browse source maps with a tree view and syntax-highlighted source preview.",
+    description:
+      "Browse source maps with a tree view and syntax-highlighted source preview.",
     category: "Web",
     route: "/tools/source-map-viewer",
-    keywords: ["source map", "sourcemap", "viewer", "debug", "stack trace", "sources"],
+    keywords: [
+      "source map",
+      "sourcemap",
+      "viewer",
+      "debug",
+      "stack trace",
+      "sources",
+    ],
     seo: {
       title: "Source Map Viewer - AutelysT",
-      description: "Online source map viewer with file tree, Monaco preview, and downloads.",
-      keywords: ["source map viewer", "sourcemap", "stack trace", "debug", "monaco editor", "download sources"],
+      description:
+        "Online source map viewer with file tree, Monaco preview, and downloads.",
+      keywords: [
+        "source map viewer",
+        "sourcemap",
+        "stack trace",
+        "debug",
+        "monaco editor",
+        "download sources",
+      ],
     },
   },
   {
     id: "html-encoder",
     name: "HTML Escape",
-    description: "Escape text to HTML entities and unescape entities back to text with two-way editing.",
+    description:
+      "Escape text to HTML entities and unescape entities back to text with two-way editing.",
     category: "Encoding",
     route: "/tools/html-encoder",
     keywords: ["html", "escape", "unescape", "encode", "decode", "entities"],
     seo: {
       title: "HTML Escape - AutelysT",
-      description: "Online HTML escape/unescape tool with two-way editing and entity conversion.",
-      keywords: ["html escape", "html unescape", "html entities", "escape", "unescape", "html encoder"],
+      description:
+        "Online HTML escape/unescape tool with two-way editing and entity conversion.",
+      keywords: [
+        "html escape",
+        "html unescape",
+        "html entities",
+        "escape",
+        "unescape",
+        "html encoder",
+      ],
     },
   },
   {
     id: "html-renderer",
     name: "HTML Renderer",
-    description: "Live HTML editor with real-time iframe preview. Edit HTML code and see instant rendered output.",
+    description:
+      "Live HTML editor with real-time iframe preview. Edit HTML code and see instant rendered output.",
     category: "Web",
     route: "/tools/html-renderer",
-    keywords: ["html renderer", "html editor", "live preview", "iframe", "html viewer", "web editor"],
+    keywords: [
+      "html renderer",
+      "html editor",
+      "live preview",
+      "iframe",
+      "html viewer",
+      "web editor",
+    ],
     seo: {
       title: "HTML Renderer - AutelysT",
-      description: "Live HTML editor with real-time iframe preview, full-page mode, and download capabilities.",
-      keywords: ["html renderer", "html editor", "live preview", "iframe", "html viewer", "web editor", "html sandbox"],
+      description:
+        "Live HTML editor with real-time iframe preview, full-page mode, and download capabilities.",
+      keywords: [
+        "html renderer",
+        "html editor",
+        "live preview",
+        "iframe",
+        "html viewer",
+        "web editor",
+        "html sandbox",
+      ],
     },
   },
   {
     id: "markdown-previewer",
     name: "Markdown Previewer",
-    description: "Live Markdown editor with split preview, view modes, URL sync, and history.",
+    description:
+      "Live Markdown editor with split preview, view modes, URL sync, and history.",
     category: "Web",
     route: "/tools/markdown-previewer",
     keywords: ["markdown", "md", "preview", "editor", "render", "live preview"],
     seo: {
       title: "Markdown Previewer - AutelysT",
-      description: "Live Markdown editor with split preview, view modes, URL sync, and history.",
-      keywords: ["markdown previewer", "markdown editor", "md preview", "live markdown", "split preview"],
+      description:
+        "Live Markdown editor with split preview, view modes, URL sync, and history.",
+      keywords: [
+        "markdown previewer",
+        "markdown editor",
+        "md preview",
+        "live markdown",
+        "split preview",
+      ],
     },
   },
   {
     id: "url-builder",
     name: "URL Builder",
-    description: "Parse and rebuild URLs with editable components, hash query support, and custom encodings.",
+    description:
+      "Parse and rebuild URLs with editable components, hash query support, and custom encodings.",
     category: "Web",
     route: "/tools/url-builder",
-    keywords: ["url builder", "url parser", "query params", "hash params", "encoding", "gbk", "percent encoding"],
+    keywords: [
+      "url builder",
+      "url parser",
+      "query params",
+      "hash params",
+      "encoding",
+      "gbk",
+      "percent encoding",
+    ],
     seo: {
       title: "URL Builder - AutelysT",
-      description: "Online URL builder to edit components, query params, hash params, and custom percent-encoding.",
-      keywords: ["url builder", "url parser", "query string", "hash params", "percent encoding", "gbk url encoding"],
+      description:
+        "Online URL builder to edit components, query params, hash params, and custom percent-encoding.",
+      keywords: [
+        "url builder",
+        "url parser",
+        "query string",
+        "hash params",
+        "percent encoding",
+        "gbk url encoding",
+      ],
     },
   },
   {
     id: "protobuf",
     name: "Protobuf",
-    description: "Encode and decode Protocol Buffers with smart type detection, schema support, and full JSON/YAML conversion.",
+    description:
+      "Encode and decode Protocol Buffers with smart type detection, schema support, and full JSON/YAML conversion.",
     category: "Data",
     route: "/tools/protobuf",
-    keywords: ["protobuf", "protocol buffers", "encode", "decode", "schema", "binary", "serialization", "json", "yaml", "wire format", "grpc"],
+    keywords: [
+      "protobuf",
+      "protocol buffers",
+      "encode",
+      "decode",
+      "schema",
+      "binary",
+      "serialization",
+      "json",
+      "yaml",
+      "wire format",
+      "grpc",
+    ],
     seo: {
       title: "Protobuf Encoder/Decoder - AutelysT",
-      description: "Online Protocol Buffers encoder/decoder with smart schema-less decoding, type inference, JSON/YAML support, and wire format analysis.",
+      description:
+        "Online Protocol Buffers encoder/decoder with smart schema-less decoding, type inference, JSON/YAML support, and wire format analysis.",
       keywords: [
         "protobuf",
         "protocol buffers",
@@ -847,13 +1339,25 @@ export const tools: Tool[] = [
   {
     id: "msgpack",
     name: "MessagePack",
-    description: "Encode and decode MessagePack binary format with JSON/YAML conversion and type details.",
+    description:
+      "Encode and decode MessagePack binary format with JSON/YAML conversion and type details.",
     category: "Data",
     route: "/tools/msgpack",
-    keywords: ["messagepack", "msgpack", "encode", "decode", "binary", "serialization", "json", "yaml", "compact"],
+    keywords: [
+      "messagepack",
+      "msgpack",
+      "encode",
+      "decode",
+      "binary",
+      "serialization",
+      "json",
+      "yaml",
+      "compact",
+    ],
     seo: {
       title: "MessagePack Encoder/Decoder - AutelysT",
-      description: "Online MessagePack encoder/decoder with JSON/YAML conversion, type inspection, and binary format support.",
+      description:
+        "Online MessagePack encoder/decoder with JSON/YAML conversion, type inspection, and binary format support.",
       keywords: [
         "messagepack",
         "msgpack",
@@ -872,13 +1376,25 @@ export const tools: Tool[] = [
   {
     id: "cbor",
     name: "CBOR",
-    description: "Encode and decode CBOR (Concise Binary Object Representation) with JSON/YAML conversion and type details.",
+    description:
+      "Encode and decode CBOR (Concise Binary Object Representation) with JSON/YAML conversion and type details.",
     category: "Data",
     route: "/tools/cbor",
-    keywords: ["cbor", "concise binary object representation", "encode", "decode", "binary", "serialization", "json", "yaml", "iot"],
+    keywords: [
+      "cbor",
+      "concise binary object representation",
+      "encode",
+      "decode",
+      "binary",
+      "serialization",
+      "json",
+      "yaml",
+      "iot",
+    ],
     seo: {
       title: "CBOR Encoder/Decoder - AutelysT",
-      description: "Online CBOR encoder/decoder with JSON/YAML conversion, type inspection, and binary format support.",
+      description:
+        "Online CBOR encoder/decoder with JSON/YAML conversion, type inspection, and binary format support.",
       keywords: [
         "cbor",
         "concise binary object representation",
@@ -897,10 +1413,21 @@ export const tools: Tool[] = [
   {
     id: "csv",
     name: "CSV",
-    description: "Edit massive CSV files or Excel sheets with frozen rows/columns, multi-tabs, and CSV/XLSX export.",
+    description:
+      "Edit massive CSV files or Excel sheets with frozen rows/columns, multi-tabs, and CSV/XLSX export.",
     category: "Data",
     route: "/tools/csv",
-    keywords: ["csv", "excel", "xlsx", "sheet", "table", "grid", "editor", "converter", "freeze"],
+    keywords: [
+      "csv",
+      "excel",
+      "xlsx",
+      "sheet",
+      "table",
+      "grid",
+      "editor",
+      "converter",
+      "freeze",
+    ],
     seo: {
       title: "CSV Editor & Excel Converter - AutelysT",
       description:
@@ -922,21 +1449,41 @@ export const tools: Tool[] = [
   {
     id: "diff-viewer",
     name: "Diff Viewer",
-    description: "Compare text, JSON, YAML, or TOML with table and unified views plus character-level highlights.",
+    description:
+      "Compare text, JSON, YAML, or TOML with table and unified views plus character-level highlights.",
     category: "Data",
     route: "/tools/diff-viewer",
-    keywords: ["diff", "compare", "viewer", "text", "json", "yaml", "toml", "unified", "table"],
+    keywords: [
+      "diff",
+      "compare",
+      "viewer",
+      "text",
+      "json",
+      "yaml",
+      "toml",
+      "unified",
+      "table",
+    ],
     seo: {
       title: "Diff Viewer - AutelysT",
       description:
         "Online diff viewer for text, JSON, YAML, and TOML with table view, unified diff, and character-level highlights.",
-      keywords: ["diff viewer", "text diff", "json diff", "yaml diff", "toml diff", "unified diff", "table diff"],
+      keywords: [
+        "diff viewer",
+        "text diff",
+        "json diff",
+        "yaml diff",
+        "toml diff",
+        "unified diff",
+        "table diff",
+      ],
     },
   },
   {
     id: "json-schema",
     name: "JSON Schema Generator",
-    description: "Generate JSON Schema from sample JSON with automatic type and required-field inference.",
+    description:
+      "Generate JSON Schema from sample JSON with automatic type and required-field inference.",
     category: "Data",
     route: "/tools/json-schema",
     keywords: ["json", "schema", "generate", "validate", "draft", "inference"],
@@ -944,179 +1491,398 @@ export const tools: Tool[] = [
       title: "JSON Schema Generator - AutelysT",
       description:
         "Online JSON Schema generator with automatic type, format, and required-field inference from sample JSON.",
-      keywords: ["json schema", "schema generator", "json to schema", "json validation", "schema inference"],
+      keywords: [
+        "json schema",
+        "schema generator",
+        "json to schema",
+        "json validation",
+        "schema inference",
+      ],
     },
   },
   {
     id: "format-converter",
     name: "Format Converter",
-    description: "Convert between JSON, YAML, and TOML with auto-detection and error reporting.",
+    description:
+      "Convert between JSON, YAML, and TOML with auto-detection and error reporting.",
     category: "Data",
     route: "/tools/format-converter",
     keywords: ["json", "yaml", "toml", "convert", "format", "transform"],
     seo: {
       title: "Format Converter - AutelysT",
-      description: "Online JSON/YAML/TOML converter with auto-detection and error reporting.",
-      keywords: ["format converter", "json to yaml", "yaml to json", "json to toml", "toml to json"],
+      description:
+        "Online JSON/YAML/TOML converter with auto-detection and error reporting.",
+      keywords: [
+        "format converter",
+        "json to yaml",
+        "yaml to json",
+        "json to toml",
+        "toml to json",
+      ],
     },
   },
   // Utility Tools
   {
     id: "unit-converter",
     name: "Unit Converter",
-    description: "Convert between units of length, mass, temperature, volume, area, speed, pressure, energy, power, data, time, angle, and frequency.",
+    description:
+      "Convert between units of length, mass, temperature, volume, area, speed, pressure, energy, power, data, time, angle, and frequency.",
     category: "Utility",
     route: "/tools/unit-converter",
     keywords: [
-      "unit", "converter", "length", "mass", "weight", "temperature", "volume", "area", "speed", "velocity",
-      "pressure", "energy", "power", "data", "storage", "time", "duration", "angle", "frequency",
-      "meter", "foot", "mile", "kilometer", "inch", "yard", "kilogram", "pound", "ounce", "gram",
-      "celsius", "fahrenheit", "kelvin", "liter", "gallon", "cup", "tablespoon", "teaspoon",
-      "square meter", "acre", "hectare", "mph", "kph", "knot", "pascal", "bar", "psi", "atm",
-      "joule", "calorie", "watt", "horsepower", "byte", "kilobyte", "megabyte", "gigabyte", "terabyte",
-      "second", "minute", "hour", "day", "week", "year", "degree", "radian", "hertz", "rpm",
+      "unit",
+      "converter",
+      "length",
+      "mass",
+      "weight",
+      "temperature",
+      "volume",
+      "area",
+      "speed",
+      "velocity",
+      "pressure",
+      "energy",
+      "power",
+      "data",
+      "storage",
+      "time",
+      "duration",
+      "angle",
+      "frequency",
+      "meter",
+      "foot",
+      "mile",
+      "kilometer",
+      "inch",
+      "yard",
+      "kilogram",
+      "pound",
+      "ounce",
+      "gram",
+      "celsius",
+      "fahrenheit",
+      "kelvin",
+      "liter",
+      "gallon",
+      "cup",
+      "tablespoon",
+      "teaspoon",
+      "square meter",
+      "acre",
+      "hectare",
+      "mph",
+      "kph",
+      "knot",
+      "pascal",
+      "bar",
+      "psi",
+      "atm",
+      "joule",
+      "calorie",
+      "watt",
+      "horsepower",
+      "byte",
+      "kilobyte",
+      "megabyte",
+      "gigabyte",
+      "terabyte",
+      "second",
+      "minute",
+      "hour",
+      "day",
+      "week",
+      "year",
+      "degree",
+      "radian",
+      "hertz",
+      "rpm",
     ],
     seo: {
       title: "Unit Converter - AutelysT",
-      description: "Online unit converter supporting length, mass, temperature, volume, area, speed, pressure, energy, power, data storage, time, angle, and frequency conversions.",
+      description:
+        "Online unit converter supporting length, mass, temperature, volume, area, speed, pressure, energy, power, data storage, time, angle, and frequency conversions.",
       keywords: [
-        "unit converter", "length converter", "mass converter", "temperature converter", "volume converter",
-        "area converter", "speed converter", "pressure converter", "energy converter", "power converter",
-        "data converter", "time converter", "angle converter", "frequency converter",
-        "metric to imperial", "imperial to metric", "measurement conversion",
+        "unit converter",
+        "length converter",
+        "mass converter",
+        "temperature converter",
+        "volume converter",
+        "area converter",
+        "speed converter",
+        "pressure converter",
+        "energy converter",
+        "power converter",
+        "data converter",
+        "time converter",
+        "angle converter",
+        "frequency converter",
+        "metric to imperial",
+        "imperial to metric",
+        "measurement conversion",
       ],
     },
   },
   {
     id: "scientific-calculator",
     name: "Scientific Calculator",
-    description: "Full-featured scientific calculator with trigonometric, logarithmic, and exponential functions, memory operations, and calculation history.",
+    description:
+      "Full-featured scientific calculator with trigonometric, logarithmic, and exponential functions, memory operations, and calculation history.",
     category: "Utility",
     route: "/tools/scientific-calculator",
     keywords: [
-      "calculator", "scientific calculator", "math", "mathematics", "arithmetic",
-      "sin", "cos", "tan", "trigonometry", "logarithm", "exponential", "power", "root", "sqrt",
-      "factorial", "pi", "euler", "memory", "calculation", "compute", "evaluate",
-      "degree", "radian", "gradian", "expression", "formula",
+      "calculator",
+      "scientific calculator",
+      "math",
+      "mathematics",
+      "arithmetic",
+      "sin",
+      "cos",
+      "tan",
+      "trigonometry",
+      "logarithm",
+      "exponential",
+      "power",
+      "root",
+      "sqrt",
+      "factorial",
+      "pi",
+      "euler",
+      "memory",
+      "calculation",
+      "compute",
+      "evaluate",
+      "degree",
+      "radian",
+      "gradian",
+      "expression",
+      "formula",
     ],
     seo: {
       title: "Scientific Calculator - AutelysT",
-      description: "Free online scientific calculator with trigonometric, logarithmic, exponential functions, memory operations, and keyboard support.",
+      description:
+        "Free online scientific calculator with trigonometric, logarithmic, exponential functions, memory operations, and keyboard support.",
       keywords: [
-        "scientific calculator", "online calculator", "math calculator", "trigonometry calculator",
-        "logarithm calculator", "free calculator", "web calculator",
+        "scientific calculator",
+        "online calculator",
+        "math calculator",
+        "trigonometry calculator",
+        "logarithm calculator",
+        "free calculator",
+        "web calculator",
       ],
     },
   },
   {
     id: "svg-converter",
     name: "SVG Converter",
-    description: "Convert SVG to PNG with custom dimensions. Upload or paste SVG code, edit in real-time, and download as PNG.",
+    description:
+      "Convert SVG to PNG with custom dimensions. Upload or paste SVG code, edit in real-time, and download as PNG.",
     category: "Utility",
     route: "/tools/svg-converter",
     keywords: [
-      "svg", "png", "converter", "svg to png", "image converter", "svg editor", "resize", "download",
-      "vector", "raster", "icon", "favicon", "export", "transform", "scale",
+      "svg",
+      "png",
+      "converter",
+      "svg to png",
+      "image converter",
+      "svg editor",
+      "resize",
+      "download",
+      "vector",
+      "raster",
+      "icon",
+      "favicon",
+      "export",
+      "transform",
+      "scale",
     ],
     seo: {
       title: "SVG to PNG Converter - AutelysT",
-      description: "Free online SVG to PNG converter with custom dimensions, real-time preview, code editing, and instant download.",
+      description:
+        "Free online SVG to PNG converter with custom dimensions, real-time preview, code editing, and instant download.",
       keywords: [
-        "svg to png", "svg converter", "image converter", "svg editor", "vector to raster",
-        "png export", "svg resize", "icon converter", "favicon generator",
+        "svg to png",
+        "svg converter",
+        "image converter",
+        "svg editor",
+        "vector to raster",
+        "png export",
+        "svg resize",
+        "icon converter",
+        "favicon generator",
       ],
     },
   },
   {
     id: "archiver",
     name: "Archiver",
-    description: "Compress and decompress files in various archive formats including ZIP, TAR, GZIP, 7z, RAR, and more.",
+    description:
+      "Compress and decompress files in various archive formats including ZIP, TAR, GZIP, 7z, RAR, and more.",
     category: "Utility",
     route: "/tools/archiver",
     keywords: [
-      "archive", "compress", "decompress", "zip", "unzip", "tar", "gzip", "7z", "rar",
-      "extract", "pack", "unpack", "file compression", "archive manager",
+      "archive",
+      "compress",
+      "decompress",
+      "zip",
+      "unzip",
+      "tar",
+      "gzip",
+      "7z",
+      "rar",
+      "extract",
+      "pack",
+      "unpack",
+      "file compression",
+      "archive manager",
     ],
     seo: {
       title: "Archiver - AutelysT",
-      description: "Online file archiver to compress and decompress ZIP, TAR, GZIP, 7z, RAR, and many other archive formats.",
+      description:
+        "Online file archiver to compress and decompress ZIP, TAR, GZIP, 7z, RAR, and many other archive formats.",
       keywords: [
-        "archiver", "compress", "decompress", "zip", "unzip", "tar", "gzip", "7z", "rar",
-        "extract files", "file compression", "online archive tool",
+        "archiver",
+        "compress",
+        "decompress",
+        "zip",
+        "unzip",
+        "tar",
+        "gzip",
+        "7z",
+        "rar",
+        "extract files",
+        "file compression",
+        "online archive tool",
       ],
     },
   },
   {
     id: "color",
     name: "Color Converter",
-    description: "Parse, pick, and convert colors between HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, and CMYK formats.",
+    description:
+      "Parse, pick, and convert colors between HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, and CMYK formats.",
     category: "Utility",
     route: "/tools/color",
     keywords: [
-      "color", "converter", "hex", "rgb", "hsl", "hsla", "hwb", "lab", "lch", "oklab", "oklch", "cmyk",
-      "color picker", "color format", "css color", "color code", "eyedropper",
+      "color",
+      "converter",
+      "hex",
+      "rgb",
+      "hsl",
+      "hsla",
+      "hwb",
+      "lab",
+      "lch",
+      "oklab",
+      "oklch",
+      "cmyk",
+      "color picker",
+      "color format",
+      "css color",
+      "color code",
+      "eyedropper",
     ],
     seo: {
       title: "Color Converter - AutelysT",
-      description: "Online color converter supporting HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, CMYK and more CSS color formats with color picker and image eyedropper.",
+      description:
+        "Online color converter supporting HEX, RGB, HSL, HWB, LAB, LCH, OKLAB, OKLCH, CMYK and more CSS color formats with color picker and image eyedropper.",
       keywords: [
-        "color converter", "hex to rgb", "rgb to hsl", "color picker", "css colors",
-        "oklab", "oklch", "color format", "color code converter",
+        "color converter",
+        "hex to rgb",
+        "rgb to hsl",
+        "color picker",
+        "css colors",
+        "oklab",
+        "oklch",
+        "color format",
+        "color code converter",
       ],
     },
   },
   {
     id: "regex",
     name: "Regex Tester",
-    description: "Test regular expressions with syntax highlighting and convert between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE flavors.",
+    description:
+      "Test regular expressions with syntax highlighting and convert between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE flavors.",
     category: "Utility",
     route: "/tools/regex",
     keywords: [
-      "regex", "regexp", "regular expression", "tester", "converter", "pattern", "match",
-      "ecmascript", "javascript", "re2", "pcre", "python", "java", "dotnet", "go", "rust", "bre", "ere", "posix",
-      "lookahead", "lookbehind", "capture group", "named group", "backreference",
+      "regex",
+      "regexp",
+      "regular expression",
+      "tester",
+      "converter",
+      "pattern",
+      "match",
+      "ecmascript",
+      "javascript",
+      "re2",
+      "pcre",
+      "python",
+      "java",
+      "dotnet",
+      "go",
+      "rust",
+      "bre",
+      "ere",
+      "posix",
+      "lookahead",
+      "lookbehind",
+      "capture group",
+      "named group",
+      "backreference",
     ],
     seo: {
       title: "Regex Tester & Converter - AutelysT",
-      description: "Online regex tester with syntax highlighting, match visualization, and flavor conversion between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE.",
+      description:
+        "Online regex tester with syntax highlighting, match visualization, and flavor conversion between ECMAScript, RE2, PCRE, Python, Java, .NET, Go, Rust, BRE, and ERE.",
       keywords: [
-        "regex tester", "regular expression", "regex converter", "pattern matcher",
-        "ecmascript regex", "pcre", "python regex", "java regex", "regex syntax",
-        "regex highlighter", "regex debugger", "regex validator",
+        "regex tester",
+        "regular expression",
+        "regex converter",
+        "pattern matcher",
+        "ecmascript regex",
+        "pcre",
+        "python regex",
+        "java regex",
+        "regex syntax",
+        "regex highlighter",
+        "regex debugger",
+        "regex validator",
       ],
     },
   },
-]
+];
 
 export function getToolById(id: string): Tool | undefined {
-  return tools.find((tool) => tool.id === id)
+  return tools.find((tool) => tool.id === id);
 }
 
 export function getToolsByCategory(category: ToolCategory): Tool[] {
-  return tools.filter((tool) => tool.category === category)
+  return tools.filter((tool) => tool.category === category);
 }
 
 export function getToolCategories(): ToolCategory[] {
-  return [...new Set(tools.map((tool) => tool.category))]
+  return [...new Set(tools.map((tool) => tool.category))];
 }
 
 export function searchTools(query: string): Tool[] {
-  const lowerQuery = query.toLowerCase()
+  const lowerQuery = query.toLowerCase();
   return tools.filter(
     (tool) =>
       tool.name.toLowerCase().includes(lowerQuery) ||
       tool.description.toLowerCase().includes(lowerQuery) ||
       tool.keywords.some((kw) => kw.toLowerCase().includes(lowerQuery)),
-  )
+  );
 }
 
 export function getToolsGroupedByCategory(): Record<ToolCategory, Tool[]> {
-  const grouped: Partial<Record<ToolCategory, Tool[]>> = {}
+  const grouped: Partial<Record<ToolCategory, Tool[]>> = {};
   for (const tool of tools) {
     if (!grouped[tool.category]) {
-      grouped[tool.category] = []
+      grouped[tool.category] = [];
     }
-    grouped[tool.category]!.push(tool)
+    grouped[tool.category]!.push(tool);
   }
-  return grouped as Record<ToolCategory, Tool[]>
+  return grouped as Record<ToolCategory, Tool[]>;
 }

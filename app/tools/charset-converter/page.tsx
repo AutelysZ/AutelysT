@@ -1,16 +1,22 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense, useCallback, useEffect, useRef, useState } from "react"
-import { z } from "zod"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { SearchableSelect } from "@/components/ui/searchable-select"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import * as React from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { z } from "zod";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   convertCharset,
   getAllCharsets,
@@ -20,23 +26,23 @@ import {
   autoDetectFromFile,
   type InputEncodingType,
   type OutputEncodingType,
-} from "@/lib/encoding/charset-converter"
-import type { HistoryEntry } from "@/lib/history/db"
-import { ArrowRightLeft, Download, FileText } from "lucide-react"
+} from "@/lib/encoding/charset-converter";
+import type { HistoryEntry } from "@/lib/history/db";
+import { ArrowRightLeft, Download, FileText } from "lucide-react";
 
 const INPUT_ENCODING_OPTIONS: { value: string; label: string }[] = [
   { value: "raw", label: "Raw" },
   { value: "base64", label: "Base64" },
   { value: "url", label: "URL" },
   { value: "hex-escape", label: "Hex Escape" },
-]
+];
 
 const OUTPUT_ENCODING_OPTIONS: { value: string; label: string }[] = [
   { value: "raw", label: "Raw" },
   { value: "base64", label: "Base64" },
   { value: "url", label: "URL" },
   { value: "hex-escape", label: "Hex Escape" },
-]
+];
 
 const paramsSchema = z.object({
   inputCharset: z.string().default("UTF-8"),
@@ -51,9 +57,9 @@ const paramsSchema = z.object({
   activeSide: z.string().default("left"),
   leftText: z.string().default(""),
   rightText: z.string().default(""),
-})
+});
 
-const charsets = getAllCharsets()
+const charsets = getAllCharsets();
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
@@ -62,7 +68,7 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
 export default function CharsetConverterPage() {
@@ -70,45 +76,50 @@ export default function CharsetConverterPage() {
     <Suspense fallback={null}>
       <CharsetConverterContent />
     </Suspense>
-  )
+  );
 }
 
-type ParamsState = z.infer<typeof paramsSchema>
+type ParamsState = z.infer<typeof paramsSchema>;
 
 function CharsetConverterContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("charset-converter", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-    inputSide: {
-      sideKey: "activeSide",
-      inputKeyBySide: {
-        left: "leftText",
-        right: "rightText",
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("charset-converter", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+      inputSide: {
+        sideKey: "activeSide",
+        inputKeyBySide: {
+          left: "leftText",
+          right: "rightText",
+        },
       },
-    },
-  })
+    });
 
-  const [leftError, setLeftError] = useState<string | null>(null)
-  const [detectedInfo, setDetectedInfo] = useState<{ charset: string; encoding: string } | null>(null)
+  const [leftError, setLeftError] = useState<string | null>(null);
+  const [detectedInfo, setDetectedInfo] = useState<{
+    charset: string;
+    encoding: string;
+  } | null>(null);
 
   const convert = useCallback(
     (input: string, charsetOverride?: string, encodingOverride?: string) => {
       try {
         if (!input) {
-          setParam("rightText", "")
-          setLeftError(null)
-          setDetectedInfo(null)
-          return
+          setParam("rightText", "");
+          setLeftError(null);
+          setDetectedInfo(null);
+          return;
         }
 
-        setLeftError(null)
+        setLeftError(null);
 
-        const effectiveCharset = charsetOverride || state.inputCharset
-        const effectiveEncoding = (encodingOverride || state.inputEncoding) as InputEncodingType
+        const effectiveCharset = charsetOverride || state.inputCharset;
+        const effectiveEncoding = (encodingOverride ||
+          state.inputEncoding) as InputEncodingType;
 
         if (!validateInput(input, effectiveEncoding)) {
-          setLeftError(`Invalid ${effectiveEncoding} format`)
-          return
+          setLeftError(`Invalid ${effectiveEncoding} format`);
+          return;
         }
 
         const result = convertCharset(input, {
@@ -119,113 +130,175 @@ function CharsetConverterContent() {
           urlSafeBase64: state.urlSafeBase64,
           base64Padding: state.base64Padding,
           hexEscapeUpperCase: state.hexEscapeUpperCase,
-        })
+        });
 
-        setParam("rightText", result.displayText)
+        setParam("rightText", result.displayText);
       } catch (err) {
-        setLeftError(err instanceof Error ? err.message : "Conversion failed")
+        setLeftError(err instanceof Error ? err.message : "Conversion failed");
       }
     },
-    [state.inputCharset, state.inputEncoding, state.outputCharset, state.outputEncoding, state.urlSafeBase64, state.base64Padding, state.hexEscapeUpperCase, setParam],
-  )
+    [
+      state.inputCharset,
+      state.inputEncoding,
+      state.outputCharset,
+      state.outputEncoding,
+      state.urlSafeBase64,
+      state.base64Padding,
+      state.hexEscapeUpperCase,
+      setParam,
+    ],
+  );
 
   const handleLeftChange = useCallback(
     (value: string) => {
-      setParam("leftText", value)
-      setParam("activeSide", "left")
+      setParam("leftText", value);
+      setParam("activeSide", "left");
 
       if (state.autoDetect) {
-        const detection = autoDetectCharsetAndEncoding(value)
+        const detection = autoDetectCharsetAndEncoding(value);
         if (detection.isValid) {
-          setDetectedInfo({ charset: detection.charset, encoding: detection.encoding })
-          if (detection.charset !== state.inputCharset || detection.encoding !== state.inputEncoding) {
-            setParam("inputCharset", detection.charset)
-            setParam("inputEncoding", detection.encoding)
+          setDetectedInfo({
+            charset: detection.charset,
+            encoding: detection.encoding,
+          });
+          if (
+            detection.charset !== state.inputCharset ||
+            detection.encoding !== state.inputEncoding
+          ) {
+            setParam("inputCharset", detection.charset);
+            setParam("inputEncoding", detection.encoding);
           }
-          convert(value, detection.charset, detection.encoding)
+          convert(value, detection.charset, detection.encoding);
         } else {
-          setLeftError("Could not auto-detect input format. Please select charset and encoding manually.")
-          setDetectedInfo(null)
+          setLeftError(
+            "Could not auto-detect input format. Please select charset and encoding manually.",
+          );
+          setDetectedInfo(null);
         }
       } else {
-        setDetectedInfo(null)
-        convert(value)
+        setDetectedInfo(null);
+        convert(value);
       }
     },
-    [state.autoDetect, state.inputCharset, state.inputEncoding, convert, setParam],
-  )
+    [
+      state.autoDetect,
+      state.inputCharset,
+      state.inputEncoding,
+      convert,
+      setParam,
+    ],
+  );
 
   const handleFileUpload = useCallback(
     async (file: File) => {
       try {
-        const arrayBuffer = await file.arrayBuffer()
-        const bytes = new Uint8Array(arrayBuffer)
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
 
         if (state.autoDetect) {
-          const detection = autoDetectFromFile(bytes)
+          const detection = autoDetectFromFile(bytes);
           if (detection.isValid) {
-            let text = ""
+            let text = "";
             try {
-              text = new TextDecoder(detection.charset.toLowerCase().replace("-", "")).decode(bytes)
+              text = new TextDecoder(
+                detection.charset.toLowerCase().replace("-", ""),
+              ).decode(bytes);
             } catch {
-              text = new TextDecoder("utf-8", { fatal: false }).decode(bytes)
+              text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
             }
-            setDetectedInfo({ charset: detection.charset, encoding: detection.encoding })
-            setParam("inputCharset", detection.charset)
-            setParam("inputEncoding", detection.encoding)
-            setParam("leftText", text)
-            setParam("activeSide", "left")
-            convert(text, detection.charset, detection.encoding)
+            setDetectedInfo({
+              charset: detection.charset,
+              encoding: detection.encoding,
+            });
+            setParam("inputCharset", detection.charset);
+            setParam("inputEncoding", detection.encoding);
+            setParam("leftText", text);
+            setParam("activeSide", "left");
+            convert(text, detection.charset, detection.encoding);
           } else {
-            setLeftError("Could not auto-detect file format. Please select charset and encoding manually.")
-            setDetectedInfo(null)
+            setLeftError(
+              "Could not auto-detect file format. Please select charset and encoding manually.",
+            );
+            setDetectedInfo(null);
           }
         } else {
-          const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes)
-          setParam("leftText", text)
-          setParam("activeSide", "left")
-          convert(text)
+          const text = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+          setParam("leftText", text);
+          setParam("activeSide", "left");
+          convert(text);
         }
       } catch (err) {
-        setLeftError(err instanceof Error ? err.message : "Failed to load file")
+        setLeftError(
+          err instanceof Error ? err.message : "Failed to load file",
+        );
       }
     },
     [state.autoDetect, convert, setParam],
-  )
+  );
 
   const handleSwapCharsets = useCallback(() => {
-    const newInputCharset = state.outputCharset
-    const newOutputCharset = state.inputCharset
-    setParam("inputCharset", newInputCharset)
-    setParam("outputCharset", newOutputCharset)
+    const newInputCharset = state.outputCharset;
+    const newOutputCharset = state.inputCharset;
+    setParam("inputCharset", newInputCharset);
+    setParam("outputCharset", newOutputCharset);
     if (state.leftText) {
-      convert(state.leftText, newInputCharset, state.inputEncoding)
+      convert(state.leftText, newInputCharset, state.inputEncoding);
     }
-  }, [state.inputCharset, state.outputCharset, state.leftText, state.inputEncoding, convert, setParam])
+  }, [
+    state.inputCharset,
+    state.outputCharset,
+    state.leftText,
+    state.inputEncoding,
+    convert,
+    setParam,
+  ]);
 
   const handleSwapEncodings = useCallback(() => {
-    const newInputEncoding = state.outputEncoding
-    const newOutputEncoding = state.inputEncoding
-    setParam("inputEncoding", newInputEncoding)
-    setParam("outputEncoding", newOutputEncoding)
+    const newInputEncoding = state.outputEncoding;
+    const newOutputEncoding = state.inputEncoding;
+    setParam("inputEncoding", newInputEncoding);
+    setParam("outputEncoding", newOutputEncoding);
     if (state.leftText) {
-      convert(state.leftText, state.inputCharset, newInputEncoding as InputEncodingType)
+      convert(
+        state.leftText,
+        state.inputCharset,
+        newInputEncoding as InputEncodingType,
+      );
     }
-  }, [state.inputEncoding, state.outputEncoding, state.leftText, state.inputCharset, convert, setParam])
+  }, [
+    state.inputEncoding,
+    state.outputEncoding,
+    state.leftText,
+    state.inputCharset,
+    convert,
+    setParam,
+  ]);
 
   useEffect(() => {
     if (state.activeSide === "left" && state.leftText && !state.autoDetect) {
-      convert(state.leftText)
+      convert(state.leftText);
     }
-  }, [state.activeSide, state.inputCharset, state.inputEncoding, state.outputCharset, state.outputEncoding, state.urlSafeBase64, state.base64Padding, state.hexEscapeUpperCase, convert, state.leftText, state.autoDetect])
+  }, [
+    state.activeSide,
+    state.inputCharset,
+    state.inputEncoding,
+    state.outputCharset,
+    state.outputEncoding,
+    state.urlSafeBase64,
+    state.base64Padding,
+    state.hexEscapeUpperCase,
+    convert,
+    state.leftText,
+    state.autoDetect,
+  ]);
 
   const handleDownload = useCallback(() => {
-    const output = state.rightText
-    if (!output) return
+    const output = state.rightText;
+    if (!output) return;
 
     try {
-      const bytes = new TextEncoder().encode(output)
-      let finalBytes = bytes
+      const bytes = new TextEncoder().encode(output);
+      let finalBytes = bytes;
 
       if (state.outputBOM && state.outputCharset !== "UTF-8") {
         const bomMap: Record<string, Uint8Array> = {
@@ -233,58 +306,86 @@ function CharsetConverterContent() {
           "UTF-16BE": new Uint8Array([0xfe, 0xff]),
           "UTF-32LE": new Uint8Array([0xff, 0xfe, 0x00, 0x00]),
           "UTF-32BE": new Uint8Array([0x00, 0x00, 0xfe, 0xff]),
-        }
-        const bom = bomMap[state.outputCharset]
+        };
+        const bom = bomMap[state.outputCharset];
         if (bom) {
-          const withBom = new Uint8Array(bom.length + finalBytes.length)
-          withBom.set(bom, 0)
-          withBom.set(finalBytes, bom.length)
-          finalBytes = withBom
+          const withBom = new Uint8Array(bom.length + finalBytes.length);
+          withBom.set(bom, 0);
+          withBom.set(finalBytes, bom.length);
+          finalBytes = withBom;
         }
       }
 
-      const { content, mimeType } = getBytesForDownload(finalBytes, state.outputEncoding as OutputEncodingType, state.outputCharset, {
-        urlSafeBase64: state.urlSafeBase64,
-        base64Padding: state.base64Padding,
-        hexEscapeUpperCase: state.hexEscapeUpperCase,
-      })
+      const { content, mimeType } = getBytesForDownload(
+        finalBytes,
+        state.outputEncoding as OutputEncodingType,
+        state.outputCharset,
+        {
+          urlSafeBase64: state.urlSafeBase64,
+          base64Padding: state.base64Padding,
+          hexEscapeUpperCase: state.hexEscapeUpperCase,
+        },
+      );
 
-      const blob = content instanceof Uint8Array
-        ? new Blob([content as Uint8Array<ArrayBuffer>], { type: mimeType })
-        : new Blob([content], { type: mimeType })
-      const url = URL.createObjectURL(blob)
-      const filename = `converted-${state.outputCharset.toLowerCase()}-${state.outputEncoding}.txt`
+      const blob =
+        content instanceof Uint8Array
+          ? new Blob([content as Uint8Array<ArrayBuffer>], { type: mimeType })
+          : new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const filename = `converted-${state.outputCharset.toLowerCase()}-${state.outputEncoding}.txt`;
 
-      const a = document.createElement("a")
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err) {
-      setLeftError(err instanceof Error ? err.message : "Failed to prepare download")
+      setLeftError(
+        err instanceof Error ? err.message : "Failed to prepare download",
+      );
     }
-  }, [state.rightText, state.outputEncoding, state.outputCharset, state.outputBOM, state.urlSafeBase64, state.base64Padding, state.hexEscapeUpperCase])
+  }, [
+    state.rightText,
+    state.outputEncoding,
+    state.outputCharset,
+    state.outputBOM,
+    state.urlSafeBase64,
+    state.base64Padding,
+    state.hexEscapeUpperCase,
+  ]);
 
   const handleLoadHistory = useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.leftText !== undefined) setParam("leftText", inputs.leftText as string)
-      if (inputs.rightText !== undefined) setParam("rightText", inputs.rightText as string)
-      if (params.inputCharset) setParam("inputCharset", params.inputCharset as string)
-      if (params.inputEncoding) setParam("inputEncoding", params.inputEncoding as string)
-      if (params.outputCharset) setParam("outputCharset", params.outputCharset as string)
-      if (params.outputEncoding) setParam("outputEncoding", params.outputEncoding as string)
-      if (params.urlSafeBase64 !== undefined) setParam("urlSafeBase64", params.urlSafeBase64 as boolean)
-      if (params.base64Padding !== undefined) setParam("base64Padding", params.base64Padding as boolean)
-      if (params.hexEscapeUpperCase !== undefined) setParam("hexEscapeUpperCase", params.hexEscapeUpperCase as boolean)
-      if (params.outputBOM !== undefined) setParam("outputBOM", params.outputBOM as boolean)
-      if (params.autoDetect !== undefined) setParam("autoDetect", params.autoDetect as boolean)
-      if (params.activeSide) setParam("activeSide", params.activeSide as string)
+      const { inputs, params } = entry;
+      if (inputs.leftText !== undefined)
+        setParam("leftText", inputs.leftText as string);
+      if (inputs.rightText !== undefined)
+        setParam("rightText", inputs.rightText as string);
+      if (params.inputCharset)
+        setParam("inputCharset", params.inputCharset as string);
+      if (params.inputEncoding)
+        setParam("inputEncoding", params.inputEncoding as string);
+      if (params.outputCharset)
+        setParam("outputCharset", params.outputCharset as string);
+      if (params.outputEncoding)
+        setParam("outputEncoding", params.outputEncoding as string);
+      if (params.urlSafeBase64 !== undefined)
+        setParam("urlSafeBase64", params.urlSafeBase64 as boolean);
+      if (params.base64Padding !== undefined)
+        setParam("base64Padding", params.base64Padding as boolean);
+      if (params.hexEscapeUpperCase !== undefined)
+        setParam("hexEscapeUpperCase", params.hexEscapeUpperCase as boolean);
+      if (params.outputBOM !== undefined)
+        setParam("outputBOM", params.outputBOM as boolean);
+      if (params.autoDetect !== undefined)
+        setParam("autoDetect", params.autoDetect as boolean);
+      if (params.activeSide)
+        setParam("activeSide", params.activeSide as string);
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -308,22 +409,26 @@ function CharsetConverterContent() {
         handleDownload={handleDownload}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 interface CharsetConverterInnerProps {
-  state: ParamsState
-  setParam: <K extends keyof ParamsState>(key: K, value: ParamsState[K], updateHistory?: boolean) => void
-  oversizeKeys: (keyof ParamsState)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  leftError: string | null
-  detectedInfo: { charset: string; encoding: string } | null
-  handleLeftChange: (value: string) => void
-  handleFileUpload: (file: File) => void
-  handleSwapCharsets: () => void
-  handleSwapEncodings: () => void
-  handleDownload: () => void
+  state: ParamsState;
+  setParam: <K extends keyof ParamsState>(
+    key: K,
+    value: ParamsState[K],
+    updateHistory?: boolean,
+  ) => void;
+  oversizeKeys: (keyof ParamsState)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  leftError: string | null;
+  detectedInfo: { charset: string; encoding: string } | null;
+  handleLeftChange: (value: string) => void;
+  handleFileUpload: (file: File) => void;
+  handleSwapCharsets: () => void;
+  handleSwapEncodings: () => void;
+  handleDownload: () => void;
 }
 
 function CharsetConverterInner({
@@ -340,9 +445,9 @@ function CharsetConverterInner({
   handleSwapEncodings,
   handleDownload,
 }: CharsetConverterInnerProps) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastInputRef = useRef<string>("")
-  const hasHydratedInputRef = useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastInputRef = useRef<string>("");
+  const hasHydratedInputRef = useRef(false);
   const paramsRef = useRef({
     inputCharset: state.inputCharset,
     inputEncoding: state.inputEncoding,
@@ -354,28 +459,30 @@ function CharsetConverterInner({
     outputBOM: state.outputBOM,
     autoDetect: state.autoDetect,
     activeSide: state.activeSide,
-  })
-  const hasInitializedParamsRef = useRef(false)
-  const hasHandledUrlRef = useRef(false)
+  });
+  const hasInitializedParamsRef = useRef(false);
+  const hasHandledUrlRef = useRef(false);
 
   const leftWarning = oversizeKeys.includes("leftText" as keyof ParamsState)
     ? "Input exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
 
   useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    lastInputRef.current = activeText
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.activeSide, state.leftText, state.rightText])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    lastInputRef.current = activeText;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.activeSide, state.leftText, state.rightText]);
 
   useEffect(() => {
-    const activeText = state.activeSide === "left" ? state.leftText : state.rightText
-    if (!activeText || activeText === lastInputRef.current) return
+    const activeText =
+      state.activeSide === "left" ? state.leftText : state.rightText;
+    if (!activeText || activeText === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = activeText
+      lastInputRef.current = activeText;
       upsertInputEntry(
         { leftText: state.leftText, rightText: state.rightText },
         {
@@ -392,10 +499,10 @@ function CharsetConverterInner({
         },
         state.activeSide,
         activeText.slice(0, 100),
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
+    return () => clearTimeout(timer);
   }, [
     state.leftText,
     state.rightText,
@@ -410,12 +517,13 @@ function CharsetConverterInner({
     state.outputBOM,
     state.autoDetect,
     upsertInputEntry,
-  ])
+  ]);
 
   useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
-      const activeText = state.activeSide === "left" ? state.leftText : state.rightText
+      hasHandledUrlRef.current = true;
+      const activeText =
+        state.activeSide === "left" ? state.leftText : state.rightText;
       if (activeText) {
         upsertInputEntry(
           { leftText: state.leftText, rightText: state.rightText },
@@ -433,7 +541,7 @@ function CharsetConverterInner({
           },
           state.activeSide,
           activeText.slice(0, 100),
-        )
+        );
       } else {
         upsertParams(
           {
@@ -449,7 +557,7 @@ function CharsetConverterInner({
             activeSide: state.activeSide,
           },
           "interpretation",
-        )
+        );
       }
     }
   }, [
@@ -468,7 +576,7 @@ function CharsetConverterInner({
     state.autoDetect,
     upsertInputEntry,
     upsertParams,
-  ])
+  ]);
 
   useEffect(() => {
     const nextParams = {
@@ -482,11 +590,11 @@ function CharsetConverterInner({
       outputBOM: state.outputBOM,
       autoDetect: state.autoDetect,
       activeSide: state.activeSide,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.inputCharset === nextParams.inputCharset &&
@@ -500,10 +608,10 @@ function CharsetConverterInner({
       paramsRef.current.autoDetect === nextParams.autoDetect &&
       paramsRef.current.activeSide === nextParams.activeSide
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
   }, [
     state.inputCharset,
     state.inputEncoding,
@@ -516,7 +624,7 @@ function CharsetConverterInner({
     state.autoDetect,
     state.activeSide,
     upsertParams,
-  ])
+  ]);
 
   return (
     <div className="flex w-full flex-col gap-4">
@@ -537,8 +645,8 @@ function CharsetConverterInner({
                 <SearchableSelect
                   value={state.inputCharset}
                   onValueChange={(v) => {
-                    setParam("inputCharset", v)
-                    setParam("autoDetect", false)
+                    setParam("inputCharset", v);
+                    setParam("autoDetect", false);
                   }}
                   options={charsets}
                   placeholder="Input..."
@@ -547,7 +655,13 @@ function CharsetConverterInner({
                   className="flex-1 min-w-0"
                   disabled={state.autoDetect}
                 />
-                <Button variant="outline" size="icon" onClick={handleSwapCharsets} className="h-8 w-8 shrink-0" title="Swap charsets">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSwapCharsets}
+                  className="h-8 w-8 shrink-0"
+                  title="Swap charsets"
+                >
                   <ArrowRightLeft className="h-3.5 w-3.5" />
                 </Button>
                 <SearchableSelect
@@ -568,20 +682,30 @@ function CharsetConverterInner({
                 <Tabs
                   value={state.inputEncoding}
                   onValueChange={(v) => {
-                    setParam("inputEncoding", v)
-                    setParam("autoDetect", false)
+                    setParam("inputEncoding", v);
+                    setParam("autoDetect", false);
                   }}
                   className="min-w-0 flex-1"
                 >
                   <ScrollableTabsList>
                     {INPUT_ENCODING_OPTIONS.map((opt) => (
-                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
+                      <TabsTrigger
+                        key={opt.value}
+                        value={opt.value}
+                        className="text-xs flex-none px-2"
+                      >
                         {opt.label}
                       </TabsTrigger>
                     ))}
                   </ScrollableTabsList>
                 </Tabs>
-                <Button variant="outline" size="icon" onClick={handleSwapEncodings} className="h-8 w-8 shrink-0" title="Swap encodings">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSwapEncodings}
+                  className="h-8 w-8 shrink-0"
+                  title="Swap encodings"
+                >
                   <ArrowRightLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Tabs
@@ -591,7 +715,11 @@ function CharsetConverterInner({
                 >
                   <ScrollableTabsList>
                     {OUTPUT_ENCODING_OPTIONS.map((opt) => (
-                      <TabsTrigger key={opt.value} value={opt.value} className="text-xs flex-none px-2">
+                      <TabsTrigger
+                        key={opt.value}
+                        value={opt.value}
+                        className="text-xs flex-none px-2"
+                      >
                         {opt.label}
                       </TabsTrigger>
                     ))}
@@ -607,19 +735,55 @@ function CharsetConverterInner({
                   <Checkbox
                     id="urlSafeBase64"
                     checked={state.urlSafeBase64}
-                    onCheckedChange={(c) => setParam("urlSafeBase64", c === true)}
-                    disabled={!(state.inputEncoding === "base64" || state.outputEncoding === "base64")}
+                    onCheckedChange={(c) =>
+                      setParam("urlSafeBase64", c === true)
+                    }
+                    disabled={
+                      !(
+                        state.inputEncoding === "base64" ||
+                        state.outputEncoding === "base64"
+                      )
+                    }
                   />
-                  <span className={!(state.inputEncoding === "base64" || state.outputEncoding === "base64") ? "text-muted-foreground" : ""}>URL Safe</span>
+                  <span
+                    className={
+                      !(
+                        state.inputEncoding === "base64" ||
+                        state.outputEncoding === "base64"
+                      )
+                        ? "text-muted-foreground"
+                        : ""
+                    }
+                  >
+                    URL Safe
+                  </span>
                 </label>
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <Checkbox
                     id="base64Padding"
                     checked={state.base64Padding}
-                    onCheckedChange={(c) => setParam("base64Padding", c === true)}
-                    disabled={!(state.inputEncoding === "base64" || state.outputEncoding === "base64")}
+                    onCheckedChange={(c) =>
+                      setParam("base64Padding", c === true)
+                    }
+                    disabled={
+                      !(
+                        state.inputEncoding === "base64" ||
+                        state.outputEncoding === "base64"
+                      )
+                    }
                   />
-                  <span className={!(state.inputEncoding === "base64" || state.outputEncoding === "base64") ? "text-muted-foreground" : ""}>No Padding</span>
+                  <span
+                    className={
+                      !(
+                        state.inputEncoding === "base64" ||
+                        state.outputEncoding === "base64"
+                      )
+                        ? "text-muted-foreground"
+                        : ""
+                    }
+                  >
+                    No Padding
+                  </span>
                 </label>
                 <label className="flex items-center gap-1.5 text-xs cursor-pointer">
                   <Checkbox
@@ -628,7 +792,15 @@ function CharsetConverterInner({
                     onCheckedChange={(c) => setParam("outputBOM", c === true)}
                     disabled={state.outputCharset === "UTF-8"}
                   />
-                  <span className={state.outputCharset === "UTF-8" ? "text-muted-foreground" : ""}>BOM</span>
+                  <span
+                    className={
+                      state.outputCharset === "UTF-8"
+                        ? "text-muted-foreground"
+                        : ""
+                    }
+                  >
+                    BOM
+                  </span>
                 </label>
               </div>
             </div>
@@ -639,7 +811,9 @@ function CharsetConverterInner({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded px-3 py-1.5">
                   <FileText className="h-3.5 w-3.5" />
                   <span>
-                    <span className="font-medium">{detectedInfo.charset}</span> / <span className="font-medium">{detectedInfo.encoding}</span>
+                    <span className="font-medium">{detectedInfo.charset}</span>{" "}
+                    /{" "}
+                    <span className="font-medium">{detectedInfo.encoding}</span>
                   </span>
                 </div>
               </div>
@@ -664,5 +838,5 @@ function CharsetConverterInner({
         rightDownload={handleDownload}
       />
     </div>
-  )
+  );
 }

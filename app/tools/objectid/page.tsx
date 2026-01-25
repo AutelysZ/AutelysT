@@ -1,99 +1,112 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Copy, Check, Download } from "lucide-react"
-import { generateObjectIds, parseObjectId, type ParsedObjectId } from "@/lib/identifier/objectid"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Copy, Check, Download } from "lucide-react";
+import {
+  generateObjectIds,
+  parseObjectId,
+  type ParsedObjectId,
+} from "@/lib/identifier/objectid";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
 
 const paramsSchema = z.object({
   count: z.coerce.number().int().min(1).max(1000).default(1),
   content: z.string().default(""),
-})
+});
 
 export default function ObjectIdPage() {
   return (
     <Suspense fallback={null}>
       <ObjectIdContent />
     </Suspense>
-  )
+  );
 }
 
 function ObjectIdContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("objectid", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("objectid", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    });
 
-  const [parseError, setParseError] = React.useState<string | null>(null)
-  const [parsedInfo, setParsedInfo] = React.useState<ParsedObjectId | null>(null)
-  const [copied, setCopied] = React.useState(false)
+  const [parseError, setParseError] = React.useState<string | null>(null);
+  const [parsedInfo, setParsedInfo] = React.useState<ParsedObjectId | null>(
+    null,
+  );
+  const [copied, setCopied] = React.useState(false);
 
   React.useEffect(() => {
-    const trimmed = state.content.trim()
+    const trimmed = state.content.trim();
     if (!trimmed) {
-      setParseError(null)
-      setParsedInfo(null)
-      return
+      setParseError(null);
+      setParsedInfo(null);
+      return;
     }
 
-    const lines = trimmed.split("\n").filter((l) => l.trim())
+    const lines = trimmed.split("\n").filter((l) => l.trim());
     if (lines.length !== 1) {
-      setParseError(null)
-      setParsedInfo(null)
-      return
+      setParseError(null);
+      setParsedInfo(null);
+      return;
     }
 
-    const result = parseObjectId(lines[0])
+    const result = parseObjectId(lines[0]);
     if ("error" in result) {
-      setParseError(result.error)
-      setParsedInfo(null)
+      setParseError(result.error);
+      setParsedInfo(null);
     } else {
-      setParseError(null)
-      setParsedInfo(result)
+      setParseError(null);
+      setParsedInfo(result);
     }
-  }, [state.content])
+  }, [state.content]);
 
   const handleContentChange = React.useCallback(
     (value: string) => {
-      setParam("content", value)
+      setParam("content", value);
     },
     [setParam],
-  )
+  );
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(state.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(state.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownload = () => {
-    const blob = new Blob([state.content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `objectid-${state.count}.txt`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    const blob = new Blob([state.content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `objectid-${state.count}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.content !== undefined) setParam("content", inputs.content)
-      if (params.count) setParam("count", params.count as number)
+      const { inputs, params } = entry;
+      if (inputs.content !== undefined) setParam("content", inputs.content);
+      if (params.count) setParam("count", params.count as number);
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -116,7 +129,7 @@ function ObjectIdContent() {
         handleDownload={handleDownload}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function ObjectIdInner({
@@ -132,92 +145,108 @@ function ObjectIdInner({
   handleCopy,
   handleDownload,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  parseError: string | null
-  parsedInfo: ParsedObjectId | null
-  copied: boolean
-  handleContentChange: (value: string) => void
-  handleCopy: () => void
-  handleDownload: () => void
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  parseError: string | null;
+  parsedInfo: ParsedObjectId | null;
+  copied: boolean;
+  handleContentChange: (value: string) => void;
+  handleCopy: () => void;
+  handleDownload: () => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const lastSavedRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
-  const paramsRef = React.useRef({ count: state.count })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const lastSavedRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
+  const paramsRef = React.useRef({ count: state.count });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastSavedRef.current = state.content
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.content])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastSavedRef.current = state.content;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.content]);
 
   React.useEffect(() => {
-    if (state.content === lastSavedRef.current) return
+    if (state.content === lastSavedRef.current) return;
 
     const timer = setTimeout(() => {
-      lastSavedRef.current = state.content
+      lastSavedRef.current = state.content;
       upsertInputEntry(
         { content: state.content },
         { count: state.count },
         "left",
         state.content ? state.content.slice(0, 100) : `x${state.count}`,
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.content, state.count, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [state.content, state.count, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.content) {
-        upsertInputEntry({ content: state.content }, { count: state.count }, "left", state.content.slice(0, 100))
+        upsertInputEntry(
+          { content: state.content },
+          { count: state.count },
+          "left",
+          state.content.slice(0, 100),
+        );
       } else {
-        upsertParams({ count: state.count }, "deferred")
+        upsertParams({ count: state.count }, "deferred");
       }
     }
-  }, [hasUrlParams, state.content, state.count, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.content,
+    state.count,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const nextParams = { count: state.count }
+    const nextParams = { count: state.count };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
-    if (paramsRef.current.count === nextParams.count) return
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "deferred")
-  }, [state.count, upsertParams])
+    if (paramsRef.current.count === nextParams.count) return;
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "deferred");
+  }, [state.count, upsertParams]);
 
   const handleGenerate = React.useCallback(() => {
-    const objectIds = generateObjectIds(state.count)
-    const content = objectIds.join("\n")
-    setParam("content", content)
+    const objectIds = generateObjectIds(state.count);
+    const content = objectIds.join("\n");
+    setParam("content", content);
 
-    lastSavedRef.current = content
-    upsertInputEntry({ content }, { count: state.count }, "left", content.slice(0, 100))
-  }, [state.count, setParam, upsertInputEntry])
+    lastSavedRef.current = content;
+    upsertInputEntry(
+      { content },
+      { count: state.count },
+      "left",
+      content.slice(0, 100),
+    );
+  }, [state.count, setParam, upsertInputEntry]);
 
   const handleCountChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      let value = Number.parseInt(e.target.value) || 1
-      value = Math.max(1, Math.min(1000, value))
-      setParam("count", value, true)
+      let value = Number.parseInt(e.target.value) || 1;
+      value = Math.max(1, Math.min(1000, value));
+      setParam("count", value, true);
     },
     [setParam],
-  )
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -289,9 +318,13 @@ function ObjectIdInner({
             )}
           />
 
-          {parseError && <p className="text-xs text-destructive">{parseError}</p>}
+          {parseError && (
+            <p className="text-xs text-destructive">{parseError}</p>
+          )}
           {oversizeKeys.includes("content") && (
-            <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+            <p className="text-xs text-muted-foreground">
+              Input exceeds 2 KB and is not synced to the URL.
+            </p>
           )}
         </div>
 
@@ -303,8 +336,16 @@ function ObjectIdInner({
               <CardContent className="space-y-3 p-4">
                 <InfoRow label="ObjectID" value={parsedInfo.objectId} mono />
                 <InfoRow label="Timestamp (ISO)" value={parsedInfo.timestamp} />
-                <InfoRow label="Timestamp (Unix)" value={String(parsedInfo.timestampRaw)} mono />
-                <InfoRow label="Machine/Random ID" value={parsedInfo.machineId} mono />
+                <InfoRow
+                  label="Timestamp (Unix)"
+                  value={String(parsedInfo.timestampRaw)}
+                  mono
+                />
+                <InfoRow
+                  label="Machine/Random ID"
+                  value={parsedInfo.machineId}
+                  mono
+                />
                 <InfoRow label="Counter" value={parsedInfo.counter} mono />
               </CardContent>
             </Card>
@@ -320,10 +361,18 @@ function ObjectIdInner({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-function InfoRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+function InfoRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
@@ -334,5 +383,5 @@ function InfoRow({ label, value, mono }: { label: string; value: string; mono?: 
         {value}
       </span>
     </div>
-  )
+  );
 }

@@ -1,1 +1,1 @@
-declare module "murmurhash3js-revisited"
+declare module "murmurhash3js-revisited";

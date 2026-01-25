@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Signature Generator/Verifier - AutelysT",
@@ -26,8 +26,12 @@ export const metadata: Metadata = {
     "pem",
     "jwk",
   ],
-}
+};
 
-export default function SignatureLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function SignatureLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

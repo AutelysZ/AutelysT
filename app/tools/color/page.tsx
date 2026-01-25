@@ -1,24 +1,29 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense, useCallback, useRef, useState } from "react"
-import { Copy, Check, Upload, Pipette, ImageIcon } from "lucide-react"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { parseColor, getAllFormats, type RGB, type ColorFormats } from "@/lib/color/converter"
+import * as React from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
+import { Copy, Check, Upload, Pipette, ImageIcon } from "lucide-react";
+import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  parseColor,
+  getAllFormats,
+  type RGB,
+  type ColorFormats,
+} from "@/lib/color/converter";
 
 interface FormatCardProps {
-  label: string
-  value: string
-  onCopy: (value: string) => void
-  copiedValue: string | null
+  label: string;
+  value: string;
+  onCopy: (value: string) => void;
+  copiedValue: string | null;
 }
 
 function FormatCard({ label, value, onCopy, copiedValue }: FormatCardProps) {
-  const isCopied = copiedValue === value
+  const isCopied = copiedValue === value;
 
   return (
     <div className="flex items-center justify-between gap-2 p-3 bg-muted/50 rounded-lg">
@@ -41,142 +46,148 @@ function FormatCard({ label, value, onCopy, copiedValue }: FormatCardProps) {
         )}
       </Button>
     </div>
-  )
+  );
 }
 
 function ColorContent() {
-  const [inputValue, setInputValue] = useState("#3b82f6")
-  const [rgb, setRgb] = useState<RGB | null>({ r: 59, g: 130, b: 246, a: 1 })
-  const [error, setError] = useState<string | null>(null)
-  const [copiedValue, setCopiedValue] = useState<string | null>(null)
-  const [imageUrl, setImageUrl] = useState<string | null>(null)
-  const [isPickingFromImage, setIsPickingFromImage] = useState(false)
+  const [inputValue, setInputValue] = useState("#3b82f6");
+  const [rgb, setRgb] = useState<RGB | null>({ r: 59, g: 130, b: 246, a: 1 });
+  const [error, setError] = useState<string | null>(null);
+  const [copiedValue, setCopiedValue] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isPickingFromImage, setIsPickingFromImage] = useState(false);
 
-  const colorInputRef = useRef<HTMLInputElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const imageRef = useRef<HTMLImageElement>(null)
+  const colorInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const handleInputChange = useCallback((value: string) => {
-    setInputValue(value)
-    const parsed = parseColor(value)
+    setInputValue(value);
+    const parsed = parseColor(value);
     if (parsed) {
-      setRgb(parsed)
-      setError(null)
+      setRgb(parsed);
+      setError(null);
     } else if (value.trim()) {
-      setError("Invalid color format")
+      setError("Invalid color format");
     } else {
-      setError(null)
-      setRgb(null)
+      setError(null);
+      setRgb(null);
     }
-  }, [])
+  }, []);
 
-  const handleColorPickerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const hex = e.target.value
-    setInputValue(hex)
-    const parsed = parseColor(hex)
-    if (parsed) {
-      setRgb(parsed)
-      setError(null)
-    }
-  }, [])
+  const handleColorPickerChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const hex = e.target.value;
+      setInputValue(hex);
+      const parsed = parseColor(hex);
+      if (parsed) {
+        setRgb(parsed);
+        setError(null);
+      }
+    },
+    [],
+  );
 
   const handleCopy = useCallback(async (value: string) => {
     try {
-      await navigator.clipboard.writeText(value)
-      setCopiedValue(value)
-      setTimeout(() => setCopiedValue(null), 2000)
+      await navigator.clipboard.writeText(value);
+      setCopiedValue(value);
+      setTimeout(() => setCopiedValue(null), 2000);
     } catch {
       // Fallback for older browsers
-      const textarea = document.createElement("textarea")
-      textarea.value = value
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopiedValue(value)
-      setTimeout(() => setCopiedValue(null), 2000)
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopiedValue(value);
+      setTimeout(() => setCopiedValue(null), 2000);
     }
-  }, [])
+  }, []);
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const handleFileUpload = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    const url = URL.createObjectURL(file)
-    setImageUrl(url)
-    setIsPickingFromImage(true)
-  }, [])
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+      setIsPickingFromImage(true);
+    },
+    [],
+  );
 
   const handleImageClick = useCallback(
     (e: React.MouseEvent<HTMLCanvasElement>) => {
-      const canvas = canvasRef.current
-      if (!canvas) return
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-      const rect = canvas.getBoundingClientRect()
-      const scaleX = canvas.width / rect.width
-      const scaleY = canvas.height / rect.height
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
 
-      const x = Math.floor((e.clientX - rect.left) * scaleX)
-      const y = Math.floor((e.clientY - rect.top) * scaleY)
+      const x = Math.floor((e.clientX - rect.left) * scaleX);
+      const y = Math.floor((e.clientY - rect.top) * scaleY);
 
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-      const pixel = ctx.getImageData(x, y, 1, 1).data
+      const pixel = ctx.getImageData(x, y, 1, 1).data;
       const newRgb: RGB = {
         r: pixel[0],
         g: pixel[1],
         b: pixel[2],
         a: pixel[3] / 255,
-      }
+      };
 
-      setRgb(newRgb)
-      const hex = `#${newRgb.r.toString(16).padStart(2, "0")}${newRgb.g.toString(16).padStart(2, "0")}${newRgb.b.toString(16).padStart(2, "0")}`
-      setInputValue(hex)
-      setError(null)
+      setRgb(newRgb);
+      const hex = `#${newRgb.r.toString(16).padStart(2, "0")}${newRgb.g.toString(16).padStart(2, "0")}${newRgb.b.toString(16).padStart(2, "0")}`;
+      setInputValue(hex);
+      setError(null);
     },
     [],
-  )
+  );
 
   const handleImageLoad = useCallback(() => {
-    const canvas = canvasRef.current
-    const image = imageRef.current
-    if (!canvas || !image) return
+    const canvas = canvasRef.current;
+    const image = imageRef.current;
+    if (!canvas || !image) return;
 
     // Set canvas size to match image (with max dimensions)
-    const maxWidth = 600
-    const maxHeight = 400
-    let width = image.naturalWidth
-    let height = image.naturalHeight
+    const maxWidth = 600;
+    const maxHeight = 400;
+    let width = image.naturalWidth;
+    let height = image.naturalHeight;
 
     if (width > maxWidth) {
-      height = (height * maxWidth) / width
-      width = maxWidth
+      height = (height * maxWidth) / width;
+      width = maxWidth;
     }
     if (height > maxHeight) {
-      width = (width * maxHeight) / height
-      height = maxHeight
+      width = (width * maxHeight) / height;
+      height = maxHeight;
     }
 
-    canvas.width = width
-    canvas.height = height
+    canvas.width = width;
+    canvas.height = height;
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    ctx.drawImage(image, 0, 0, width, height)
-  }, [])
+    ctx.drawImage(image, 0, 0, width, height);
+  }, []);
 
   const handleCloseImagePicker = useCallback(() => {
-    setIsPickingFromImage(false)
+    setIsPickingFromImage(false);
     if (imageUrl) {
-      URL.revokeObjectURL(imageUrl)
-      setImageUrl(null)
+      URL.revokeObjectURL(imageUrl);
+      setImageUrl(null);
     }
-  }, [imageUrl])
+  }, [imageUrl]);
 
-  const formats: ColorFormats | null = rgb ? getAllFormats(rgb) : null
+  const formats: ColorFormats | null = rgb ? getAllFormats(rgb) : null;
 
   const formatEntries: { key: keyof ColorFormats; label: string }[] = [
     { key: "hex", label: "Hex" },
@@ -192,7 +203,7 @@ function ColorContent() {
     { key: "color", label: "color()" },
     { key: "colorMix", label: "color-mix()" },
     { key: "deviceCmyk", label: "device-cmyk()" },
-  ]
+  ];
 
   return (
     <ToolPageWrapper
@@ -210,14 +221,18 @@ function ColorContent() {
             <div className="flex flex-wrap gap-4">
               {/* Text input */}
               <div className="flex-1 min-w-[200px]">
-                <Label className="text-sm mb-2 block">Enter color (any format)</Label>
+                <Label className="text-sm mb-2 block">
+                  Enter color (any format)
+                </Label>
                 <Input
                   value={inputValue}
                   onChange={(e) => handleInputChange(e.target.value)}
                   placeholder="#ff0000, rgb(255,0,0), hsl(0,100%,50%), red..."
                   className={error ? "border-destructive" : ""}
                 />
-                {error && <p className="text-sm text-destructive mt-1">{error}</p>}
+                {error && (
+                  <p className="text-sm text-destructive mt-1">{error}</p>
+                )}
               </div>
 
               {/* Color picker */}
@@ -228,7 +243,11 @@ function ColorContent() {
                     <input
                       ref={colorInputRef}
                       type="color"
-                      value={rgb ? `#${rgb.r.toString(16).padStart(2, "0")}${rgb.g.toString(16).padStart(2, "0")}${rgb.b.toString(16).padStart(2, "0")}` : "#000000"}
+                      value={
+                        rgb
+                          ? `#${rgb.r.toString(16).padStart(2, "0")}${rgb.g.toString(16).padStart(2, "0")}${rgb.b.toString(16).padStart(2, "0")}`
+                          : "#000000"
+                      }
                       onChange={handleColorPickerChange}
                       className="w-12 h-10 cursor-pointer rounded border"
                     />
@@ -270,8 +289,14 @@ function ColorContent() {
             {isPickingFromImage && imageUrl && (
               <div className="mt-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm">Click on image to pick color</Label>
-                  <Button variant="ghost" size="sm" onClick={handleCloseImagePicker}>
+                  <Label className="text-sm">
+                    Click on image to pick color
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCloseImagePicker}
+                  >
                     Close
                   </Button>
                 </div>
@@ -304,9 +329,12 @@ function ColorContent() {
                 <div className="space-y-1">
                   <div className="text-sm">
                     <span className="text-muted-foreground">R:</span> {rgb.r}
-                    <span className="text-muted-foreground ml-4">G:</span> {rgb.g}
-                    <span className="text-muted-foreground ml-4">B:</span> {rgb.b}
-                    <span className="text-muted-foreground ml-4">A:</span> {rgb.a.toFixed(2)}
+                    <span className="text-muted-foreground ml-4">G:</span>{" "}
+                    {rgb.g}
+                    <span className="text-muted-foreground ml-4">B:</span>{" "}
+                    {rgb.b}
+                    <span className="text-muted-foreground ml-4">A:</span>{" "}
+                    {rgb.a.toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -347,7 +375,7 @@ function ColorContent() {
         )}
       </div>
     </ToolPageWrapper>
-  )
+  );
 }
 
 export default function ColorPage() {
@@ -355,5 +383,5 @@ export default function ColorPage() {
     <Suspense fallback={null}>
       <ColorContent />
     </Suspense>
-  )
+  );
 }

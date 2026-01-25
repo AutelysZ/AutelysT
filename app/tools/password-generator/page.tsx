@@ -1,17 +1,20 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { useSearchParams } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Check, Copy, RefreshCw } from "lucide-react"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state";
+import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Check, Copy, RefreshCw } from "lucide-react";
 import {
   DEFAULT_SYMBOLS,
   generatePassword,
@@ -19,10 +22,12 @@ import {
   type PasswordSerialization,
   type CaseMode,
   type LengthType,
-} from "@/lib/crypto/password-generator"
+} from "@/lib/crypto/password-generator";
 
 const paramsSchema = z.object({
-  serialization: z.enum(["graphic-ascii", "base64", "hex", "base58", "base45", "base32"]).default("graphic-ascii"),
+  serialization: z
+    .enum(["graphic-ascii", "base64", "hex", "base58", "base45", "base32"])
+    .default("graphic-ascii"),
   base64NoPadding: z.boolean().default(false),
   base64UrlSafe: z.boolean().default(false),
   base32NoPadding: z.boolean().default(false),
@@ -35,7 +40,7 @@ const paramsSchema = z.object({
   lengthType: z.enum(["bytes", "chars"]).default("bytes"),
   lengthPreset: z.enum(["32", "24", "16", "12", "8", "custom"]).default("32"),
   lengthValue: z.coerce.number().int().min(1).max(1024).default(32),
-})
+});
 
 const lengthPresets = [
   { value: "32", label: "32 (256 bit)" },
@@ -44,7 +49,7 @@ const lengthPresets = [
   { value: "12", label: "12 (96 bit)" },
   { value: "8", label: "8 (64 bit)" },
   { value: "custom", label: "Custom" },
-]
+];
 
 const serializationOptions = [
   { value: "graphic-ascii", label: "Graphic ASCII" },
@@ -53,7 +58,7 @@ const serializationOptions = [
   { value: "base58", label: "Base58" },
   { value: "base45", label: "Base45" },
   { value: "base32", label: "Base32" },
-]
+];
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
@@ -62,7 +67,7 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
 export default function PasswordGeneratorPage() {
@@ -70,22 +75,23 @@ export default function PasswordGeneratorPage() {
     <Suspense fallback={null}>
       <PasswordGeneratorContent />
     </Suspense>
-  )
+  );
 }
 
 function PasswordGeneratorContent() {
-  const searchParams = useSearchParams()
-  const searchParamString = searchParams.toString()
-  const { state, setParam, setStateSilently, hasUrlParams, oversizeKeys } = useUrlSyncedState("password-generator", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-    restoreFromHistory: false,
-    initialSearch: searchParamString,
-  })
+  const searchParams = useSearchParams();
+  const searchParamString = searchParams.toString();
+  const { state, setParam, setStateSilently, hasUrlParams, oversizeKeys } =
+    useUrlSyncedState("password-generator", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+      restoreFromHistory: false,
+      initialSearch: searchParamString,
+    });
 
-  const [label, setLabel] = React.useState("")
-  const [result, setResult] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
+  const [label, setLabel] = React.useState("");
+  const [result, setResult] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
   const paramsForHistory = React.useMemo(
     () => ({
       serialization: state.serialization,
@@ -117,7 +123,7 @@ function PasswordGeneratorContent() {
       state.lengthPreset,
       state.lengthValue,
     ],
-  )
+  );
 
   const generationOptions = React.useMemo<PasswordGeneratorOptions>(
     () => ({
@@ -148,26 +154,27 @@ function PasswordGeneratorContent() {
       state.lengthType,
       state.lengthValue,
     ],
-  )
+  );
 
   const generate = React.useCallback(() => {
-    const { value, error: generationError } = generatePassword(generationOptions)
-    setResult(value)
-    setError(generationError ?? null)
-  }, [generationOptions])
+    const { value, error: generationError } =
+      generatePassword(generationOptions);
+    setResult(value);
+    setError(generationError ?? null);
+  }, [generationOptions]);
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return
-    generate()
-  }, [generate])
+    if (typeof window === "undefined") return;
+    generate();
+  }, [generate]);
 
   React.useEffect(() => {
-    if (state.lengthPreset === "custom") return
-    const presetValue = Number(state.lengthPreset)
+    if (state.lengthPreset === "custom") return;
+    const presetValue = Number(state.lengthPreset);
     if (!Number.isNaN(presetValue) && state.lengthValue !== presetValue) {
-      setParam("lengthValue", presetValue, true)
+      setParam("lengthValue", presetValue, true);
     }
-  }, [state.lengthPreset, state.lengthValue, setParam])
+  }, [state.lengthPreset, state.lengthValue, setParam]);
 
   return (
     <ToolPageWrapper
@@ -191,7 +198,7 @@ function PasswordGeneratorContent() {
         paramsForHistory={paramsForHistory}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function PasswordGeneratorInner({
@@ -207,75 +214,90 @@ function PasswordGeneratorInner({
   hasUrlParams,
   paramsForHistory,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
+  ) => void;
   setStateSilently: (
-    updater: z.infer<typeof paramsSchema> | ((prev: z.infer<typeof paramsSchema>) => z.infer<typeof paramsSchema>),
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  label: string
-  setLabel: (value: string) => void
-  result: string
-  error: string | null
-  onRegenerate: () => void
-  hasUrlParams: boolean
-  paramsForHistory: Record<string, unknown>
+    updater:
+      | z.infer<typeof paramsSchema>
+      | ((prev: z.infer<typeof paramsSchema>) => z.infer<typeof paramsSchema>),
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  label: string;
+  setLabel: (value: string) => void;
+  result: string;
+  error: string | null;
+  onRegenerate: () => void;
+  hasUrlParams: boolean;
+  paramsForHistory: Record<string, unknown>;
 }) {
-  const { entries, loading, upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [copied, setCopied] = React.useState(false)
-  const historyInitializedRef = React.useRef(false)
+  const { entries, loading, upsertInputEntry, upsertParams } =
+    useToolHistoryContext();
+  const [copied, setCopied] = React.useState(false);
+  const historyInitializedRef = React.useRef(false);
   const symbolsWarning = oversizeKeys.includes("symbols")
     ? "Input exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
 
   const handleCopy = async () => {
-    if (!result || error) return
-    await navigator.clipboard.writeText(result)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (!result || error) return;
+    await navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
 
-    const preview = label ? `${label}: ${result}` : result
-    await upsertInputEntry({ label, password: result }, paramsForHistory, "left", preview.slice(0, 100))
-    await upsertParams(paramsForHistory, "deferred")
-  }
+    const preview = label ? `${label}: ${result}` : result;
+    await upsertInputEntry(
+      { label, password: result },
+      paramsForHistory,
+      "left",
+      preview.slice(0, 100),
+    );
+    await upsertParams(paramsForHistory, "deferred");
+  };
 
   React.useEffect(() => {
-    if (loading || historyInitializedRef.current) return
+    if (loading || historyInitializedRef.current) return;
 
     if (entries.length === 0) {
-      upsertParams(paramsForHistory, "deferred")
-      historyInitializedRef.current = true
-      return
+      upsertParams(paramsForHistory, "deferred");
+      historyInitializedRef.current = true;
+      return;
     }
 
     if (hasUrlParams) {
-      upsertParams(paramsForHistory, "deferred")
-      historyInitializedRef.current = true
-      return
+      upsertParams(paramsForHistory, "deferred");
+      historyInitializedRef.current = true;
+      return;
     }
 
-    const defaults = paramsSchema.parse({})
-    const latest = entries[0]
-    const merged = { ...defaults, ...latest.params }
-    const parsed = paramsSchema.safeParse(merged)
+    const defaults = paramsSchema.parse({});
+    const latest = entries[0];
+    const merged = { ...defaults, ...latest.params };
+    const parsed = paramsSchema.safeParse(merged);
     if (parsed.success) {
-      setStateSilently(parsed.data)
+      setStateSilently(parsed.data);
       if (latest.hasInput !== false) {
-        upsertParams(parsed.data, "deferred")
+        upsertParams(parsed.data, "deferred");
       }
     }
 
-    historyInitializedRef.current = true
-  }, [entries, hasUrlParams, loading, paramsForHistory, setStateSilently, upsertParams])
+    historyInitializedRef.current = true;
+  }, [
+    entries,
+    hasUrlParams,
+    loading,
+    paramsForHistory,
+    setStateSilently,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    if (!historyInitializedRef.current) return
-    upsertParams(paramsForHistory, "deferred")
-  }, [paramsForHistory, upsertParams])
+    if (!historyInitializedRef.current) return;
+    upsertParams(paramsForHistory, "deferred");
+  }, [paramsForHistory, upsertParams]);
 
   return (
     <div className="flex w-full flex-col gap-4 py-4 sm:gap-6 sm:py-6">
@@ -290,13 +312,21 @@ function PasswordGeneratorInner({
               <Tabs
                 value={state.serialization}
                 onValueChange={(value) =>
-                  setParam("serialization", value as z.infer<typeof paramsSchema>["serialization"], true)
+                  setParam(
+                    "serialization",
+                    value as z.infer<typeof paramsSchema>["serialization"],
+                    true,
+                  )
                 }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
                   {serializationOptions.map((item) => (
-                    <TabsTrigger key={item.value} value={item.value} className="text-xs flex-none">
+                    <TabsTrigger
+                      key={item.value}
+                      value={item.value}
+                      className="text-xs flex-none"
+                    >
                       {item.label}
                     </TabsTrigger>
                   ))}
@@ -312,7 +342,9 @@ function PasswordGeneratorInner({
                     <Checkbox
                       id="base64NoPadding"
                       checked={state.base64NoPadding}
-                      onCheckedChange={(checked) => setParam("base64NoPadding", checked === true, true)}
+                      onCheckedChange={(checked) =>
+                        setParam("base64NoPadding", checked === true, true)
+                      }
                     />
                     <span>No Padding</span>
                   </label>
@@ -320,7 +352,9 @@ function PasswordGeneratorInner({
                     <Checkbox
                       id="base64UrlSafe"
                       checked={state.base64UrlSafe}
-                      onCheckedChange={(checked) => setParam("base64UrlSafe", checked === true, true)}
+                      onCheckedChange={(checked) =>
+                        setParam("base64UrlSafe", checked === true, true)
+                      }
                     />
                     <span>URL Safe</span>
                   </label>
@@ -334,7 +368,13 @@ function PasswordGeneratorInner({
                 <div className="flex flex-wrap items-center gap-4">
                   <Tabs
                     value={state.caseMode}
-                    onValueChange={(value) => setParam("caseMode", value as z.infer<typeof paramsSchema>["caseMode"], true)}
+                    onValueChange={(value) =>
+                      setParam(
+                        "caseMode",
+                        value as z.infer<typeof paramsSchema>["caseMode"],
+                        true,
+                      )
+                    }
                   >
                     <ScrollableTabsList>
                       <TabsTrigger value="lower" className="text-xs flex-none">
@@ -350,7 +390,9 @@ function PasswordGeneratorInner({
                       <Checkbox
                         id="base32NoPadding"
                         checked={state.base32NoPadding}
-                        onCheckedChange={(checked) => setParam("base32NoPadding", checked === true, true)}
+                        onCheckedChange={(checked) =>
+                          setParam("base32NoPadding", checked === true, true)
+                        }
                       />
                       <span>No Padding</span>
                     </label>
@@ -368,7 +410,9 @@ function PasswordGeneratorInner({
                       <Checkbox
                         id="includeUpper"
                         checked={state.includeUpper}
-                        onCheckedChange={(checked) => setParam("includeUpper", checked === true, true)}
+                        onCheckedChange={(checked) =>
+                          setParam("includeUpper", checked === true, true)
+                        }
                       />
                       <span>Upper letters</span>
                     </label>
@@ -376,7 +420,9 @@ function PasswordGeneratorInner({
                       <Checkbox
                         id="includeLower"
                         checked={state.includeLower}
-                        onCheckedChange={(checked) => setParam("includeLower", checked === true, true)}
+                        onCheckedChange={(checked) =>
+                          setParam("includeLower", checked === true, true)
+                        }
                       />
                       <span>Lower letters</span>
                     </label>
@@ -384,7 +430,9 @@ function PasswordGeneratorInner({
                       <Checkbox
                         id="includeNumbers"
                         checked={state.includeNumbers}
-                        onCheckedChange={(checked) => setParam("includeNumbers", checked === true, true)}
+                        onCheckedChange={(checked) =>
+                          setParam("includeNumbers", checked === true, true)
+                        }
                       />
                       <span>Numbers</span>
                     </label>
@@ -392,7 +440,9 @@ function PasswordGeneratorInner({
                       <Checkbox
                         id="includeSymbols"
                         checked={state.includeSymbols}
-                        onCheckedChange={(checked) => setParam("includeSymbols", checked === true, true)}
+                        onCheckedChange={(checked) =>
+                          setParam("includeSymbols", checked === true, true)
+                        }
                       />
                       <span>Symbols</span>
                     </label>
@@ -420,7 +470,11 @@ function PasswordGeneratorInner({
                     </Button>
                   </div>
                 </div>
-                {symbolsWarning && <p className="text-xs text-muted-foreground">{symbolsWarning}</p>}
+                {symbolsWarning && (
+                  <p className="text-xs text-muted-foreground">
+                    {symbolsWarning}
+                  </p>
+                )}
               </div>
             )}
 
@@ -428,7 +482,13 @@ function PasswordGeneratorInner({
               <Label className="w-28 shrink-0 text-sm">Length Type</Label>
               <Tabs
                 value={state.lengthType}
-                onValueChange={(value) => setParam("lengthType", value as z.infer<typeof paramsSchema>["lengthType"], true)}
+                onValueChange={(value) =>
+                  setParam(
+                    "lengthType",
+                    value as z.infer<typeof paramsSchema>["lengthType"],
+                    true,
+                  )
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
@@ -448,16 +508,24 @@ function PasswordGeneratorInner({
                 <Tabs
                   value={state.lengthPreset}
                   onValueChange={(value) => {
-                    setParam("lengthPreset", value as z.infer<typeof paramsSchema>["lengthPreset"], true)
+                    setParam(
+                      "lengthPreset",
+                      value as z.infer<typeof paramsSchema>["lengthPreset"],
+                      true,
+                    );
                     if (value !== "custom") {
-                      setParam("lengthValue", Number(value), true)
+                      setParam("lengthValue", Number(value), true);
                     }
                   }}
                   className="min-w-0 flex-1"
                 >
                   <ScrollableTabsList>
                     {lengthPresets.map((preset) => (
-                      <TabsTrigger key={preset.value} value={preset.value} className="text-xs flex-none">
+                      <TabsTrigger
+                        key={preset.value}
+                        value={preset.value}
+                        className="text-xs flex-none"
+                      >
                         {preset.label}
                       </TabsTrigger>
                     ))}
@@ -474,12 +542,17 @@ function PasswordGeneratorInner({
                       max={1024}
                       value={state.lengthValue}
                       onChange={(e) => {
-                        const nextValue = Math.max(1, Math.min(1024, Number(e.target.value) || 1))
-                        setParam("lengthValue", nextValue, true)
+                        const nextValue = Math.max(
+                          1,
+                          Math.min(1024, Number(e.target.value) || 1),
+                        );
+                        setParam("lengthValue", nextValue, true);
                       }}
                       className="h-9 w-20"
                     />
-                    <span className="text-xs text-muted-foreground">1-1024</span>
+                    <span className="text-xs text-muted-foreground">
+                      1-1024
+                    </span>
                   </div>
                 </div>
               )}
@@ -490,7 +563,12 @@ function PasswordGeneratorInner({
         <section className="flex flex-col gap-4 sm:gap-6">
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold">Generated Password</h2>
-            <Button variant="ghost" size="icon" onClick={onRegenerate} aria-label="Regenerate password">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onRegenerate}
+              aria-label="Regenerate password"
+            >
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
@@ -530,5 +608,5 @@ function PasswordGeneratorInner({
         </section>
       </div>
     </div>
-  )
+  );
 }

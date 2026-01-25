@@ -1,13 +1,13 @@
 // Text encoding utilities - supports various encoding formats
 // Order: UTF-8, Base64, Base58, Base45, Base36, Base32, Hex, Binary, Hex escape, UTF-16LE/BE, UTF-32LE/BE, then iconv-lite
 
-import { encodeBase64, decodeBase64 } from "./base64"
-import { encodeBase58, decodeBase58 } from "./base58"
-import { encodeBase45, decodeBase45 } from "./base45"
-import { encodeBase36, decodeBase36 } from "./base36"
-import { encodeBase32, decodeBase32 } from "./base32"
-import { encodeHex, decodeHex } from "./hex"
-import { encodeHexEscape, decodeHexEscape } from "./hex-escape"
+import { encodeBase64, decodeBase64 } from "./base64";
+import { encodeBase58, decodeBase58 } from "./base58";
+import { encodeBase45, decodeBase45 } from "./base45";
+import { encodeBase36, decodeBase36 } from "./base36";
+import { encodeBase32, decodeBase32 } from "./base32";
+import { encodeHex, decodeHex } from "./hex";
+import { encodeHexEscape, decodeHexEscape } from "./hex-escape";
 
 export const PRIMARY_ENCODINGS = [
   "UTF-8",
@@ -23,7 +23,7 @@ export const PRIMARY_ENCODINGS = [
   "UTF-16BE",
   "UTF-32LE",
   "UTF-32BE",
-]
+];
 
 // All iconv-lite supported encodings (sorted lexicographically)
 export const ICONV_ENCODINGS = [
@@ -126,7 +126,7 @@ export const ICONV_ENCODINGS = [
   "win1256",
   "win1257",
   "win1258",
-]
+];
 
 function isBinaryEncoding(encoding: string): boolean {
   const binaryEncodings = [
@@ -139,14 +139,14 @@ function isBinaryEncoding(encoding: string): boolean {
     "hex",
     "binary",
     "hex escape",
-  ]
-  return binaryEncodings.includes(encoding.toLowerCase())
+  ];
+  return binaryEncodings.includes(encoding.toLowerCase());
 }
 
 function needsIconvLite(encoding: string): boolean {
-  const native = ["utf-8", "utf-16le", "utf-16be", "utf-32le", "utf-32be"]
-  const lower = encoding.toLowerCase()
-  return !native.includes(lower) && !isBinaryEncoding(lower)
+  const native = ["utf-8", "utf-16le", "utf-16be", "utf-32le", "utf-32be"];
+  const lower = encoding.toLowerCase();
+  return !native.includes(lower) && !isBinaryEncoding(lower);
 }
 
 // All encodings for the dropdown
@@ -155,189 +155,192 @@ export function getAllEncodings(): { value: string; label: string }[] {
   const primary = PRIMARY_ENCODINGS.map((enc) => ({
     value: enc,
     label: enc,
-  }))
+  }));
 
   // Then: all iconv-lite encodings sorted lexicographically
   const others = ICONV_ENCODINGS.map((enc) => ({
     value: enc,
     label: enc.toUpperCase(),
-  }))
+  }));
 
-  return [...primary, ...others]
+  return [...primary, ...others];
 }
 
 function encodeBinary(binaryStr: string): Uint8Array<ArrayBuffer> {
   // Treat each character as a raw byte (Latin-1/ISO-8859-1)
-  const bytes = new Uint8Array(binaryStr.length)
+  const bytes = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i) & 0xff
+    bytes[i] = binaryStr.charCodeAt(i) & 0xff;
   }
-  return bytes
+  return bytes;
 }
 
 function decodeBinary(bytes: Uint8Array): string {
   // Convert each byte to its character representation (Latin-1/ISO-8859-1)
-  return String.fromCharCode(...bytes)
+  return String.fromCharCode(...bytes);
 }
 
-export function encodeText(text: string, encoding: string): Uint8Array<ArrayBuffer> {
-  const lower = encoding.toLowerCase()
+export function encodeText(
+  text: string,
+  encoding: string,
+): Uint8Array<ArrayBuffer> {
+  const lower = encoding.toLowerCase();
 
   // UTF-8: use native TextEncoder
   if (lower === "utf-8") {
-    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>
+    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>;
   }
 
   if (lower === "base64") {
-    return decodeBase64(text)
+    return decodeBase64(text);
   }
   if (lower === "base58") {
-    return decodeBase58(text)
+    return decodeBase58(text);
   }
   if (lower === "base45") {
-    return decodeBase45(text)
+    return decodeBase45(text);
   }
   if (lower === "base36") {
-    return decodeBase36(text)
+    return decodeBase36(text);
   }
   if (lower === "base32") {
-    return decodeBase32(text)
+    return decodeBase32(text);
   }
   if (lower === "hex (base16)" || lower === "hex") {
-    return decodeHex(text)
+    return decodeHex(text);
   }
   if (lower === "binary") {
-    return encodeBinary(text)
+    return encodeBinary(text);
   }
   if (lower === "hex escape") {
-    return decodeHexEscape(text)
+    return decodeHexEscape(text);
   }
 
   // UTF-16LE
   if (lower === "utf-16le") {
-    const buf = new ArrayBuffer(text.length * 2)
-    const view = new Uint16Array(buf)
+    const buf = new ArrayBuffer(text.length * 2);
+    const view = new Uint16Array(buf);
     for (let i = 0; i < text.length; i++) {
-      view[i] = text.charCodeAt(i)
+      view[i] = text.charCodeAt(i);
     }
-    return new Uint8Array(buf)
+    return new Uint8Array(buf);
   }
 
   // UTF-16BE
   if (lower === "utf-16be") {
-    const buf = new ArrayBuffer(text.length * 2)
-    const view = new DataView(buf)
+    const buf = new ArrayBuffer(text.length * 2);
+    const view = new DataView(buf);
     for (let i = 0; i < text.length; i++) {
-      view.setUint16(i * 2, text.charCodeAt(i), false)
+      view.setUint16(i * 2, text.charCodeAt(i), false);
     }
-    return new Uint8Array(buf)
+    return new Uint8Array(buf);
   }
 
   // UTF-32LE
   if (lower === "utf-32le") {
-    const codePoints = [...text].map((c) => c.codePointAt(0) || 0)
-    const buf = new ArrayBuffer(codePoints.length * 4)
-    const view = new DataView(buf)
-    codePoints.forEach((cp, i) => view.setUint32(i * 4, cp, true))
-    return new Uint8Array(buf)
+    const codePoints = [...text].map((c) => c.codePointAt(0) || 0);
+    const buf = new ArrayBuffer(codePoints.length * 4);
+    const view = new DataView(buf);
+    codePoints.forEach((cp, i) => view.setUint32(i * 4, cp, true));
+    return new Uint8Array(buf);
   }
 
   // UTF-32BE
   if (lower === "utf-32be") {
-    const codePoints = [...text].map((c) => c.codePointAt(0) || 0)
-    const buf = new ArrayBuffer(codePoints.length * 4)
-    const view = new DataView(buf)
-    codePoints.forEach((cp, i) => view.setUint32(i * 4, cp, false))
-    return new Uint8Array(buf)
+    const codePoints = [...text].map((c) => c.codePointAt(0) || 0);
+    const buf = new ArrayBuffer(codePoints.length * 4);
+    const view = new DataView(buf);
+    codePoints.forEach((cp, i) => view.setUint32(i * 4, cp, false));
+    return new Uint8Array(buf);
   }
 
   // For other encodings (GBK, Big5, Shift_JIS, etc.), use iconv-lite
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const iconv = require("iconv-lite")
-    const buffer = iconv.encode(text, lower)
-    return buffer as Uint8Array<ArrayBuffer>
+    const iconv = require("iconv-lite");
+    const buffer = iconv.encode(text, lower);
+    return buffer as Uint8Array<ArrayBuffer>;
   } catch (err) {
-    console.warn(`Encoding ${encoding} failed, falling back to UTF-8:`, err)
-    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>
+    console.warn(`Encoding ${encoding} failed, falling back to UTF-8:`, err);
+    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>;
   }
 }
 
 export function decodeText(bytes: Uint8Array, encoding: string): string {
-  const lower = encoding.toLowerCase()
+  const lower = encoding.toLowerCase();
 
   // UTF-8: use native TextDecoder
   if (lower === "utf-8") {
-    return new TextDecoder("utf-8").decode(bytes)
+    return new TextDecoder("utf-8").decode(bytes);
   }
 
   if (lower === "base64") {
-    return encodeBase64(bytes)
+    return encodeBase64(bytes);
   }
   if (lower === "base58") {
-    return encodeBase58(bytes)
+    return encodeBase58(bytes);
   }
   if (lower === "base45") {
-    return encodeBase45(bytes)
+    return encodeBase45(bytes);
   }
   if (lower === "base36") {
-    return encodeBase36(bytes)
+    return encodeBase36(bytes);
   }
   if (lower === "base32") {
-    return encodeBase32(bytes)
+    return encodeBase32(bytes);
   }
   if (lower === "hex (base16)" || lower === "hex") {
-    return encodeHex(bytes)
+    return encodeHex(bytes);
   }
   if (lower === "binary") {
-    return decodeBinary(bytes)
+    return decodeBinary(bytes);
   }
   if (lower === "hex escape") {
-    return encodeHexEscape(bytes)
+    return encodeHexEscape(bytes);
   }
 
   // UTF-16LE: use native TextDecoder
   if (lower === "utf-16le") {
-    return new TextDecoder("utf-16le").decode(bytes)
+    return new TextDecoder("utf-16le").decode(bytes);
   }
 
   // UTF-16BE: use native TextDecoder
   if (lower === "utf-16be") {
-    return new TextDecoder("utf-16be").decode(bytes)
+    return new TextDecoder("utf-16be").decode(bytes);
   }
 
   // UTF-32LE: manual decode
   if (lower === "utf-32le") {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-    let result = ""
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    let result = "";
     for (let i = 0; i < bytes.length; i += 4) {
       if (i + 4 <= bytes.length) {
-        result += String.fromCodePoint(view.getUint32(i, true))
+        result += String.fromCodePoint(view.getUint32(i, true));
       }
     }
-    return result
+    return result;
   }
 
   // UTF-32BE: manual decode
   if (lower === "utf-32be") {
-    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
-    let result = ""
+    const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+    let result = "";
     for (let i = 0; i < bytes.length; i += 4) {
       if (i + 4 <= bytes.length) {
-        result += String.fromCodePoint(view.getUint32(i, false))
+        result += String.fromCodePoint(view.getUint32(i, false));
       }
     }
-    return result
+    return result;
   }
 
   // For other encodings, use iconv-lite
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const iconv = require("iconv-lite")
-    const buffer = Buffer.from(bytes)
-    return iconv.decode(buffer, lower)
+    const iconv = require("iconv-lite");
+    const buffer = Buffer.from(bytes);
+    return iconv.decode(buffer, lower);
   } catch (err) {
-    console.warn(`Decoding ${encoding} failed, falling back to UTF-8:`, err)
-    return new TextDecoder("utf-8").decode(bytes)
+    console.warn(`Decoding ${encoding} failed, falling back to UTF-8:`, err);
+    return new TextDecoder("utf-8").decode(bytes);
   }
 }

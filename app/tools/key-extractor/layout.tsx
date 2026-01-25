@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Key Extractor - AutelysT",
@@ -16,8 +16,12 @@ export const metadata: Metadata = {
     "ec",
     "okp",
   ],
-}
+};
 
-export default function KeyExtractorLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function KeyExtractorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

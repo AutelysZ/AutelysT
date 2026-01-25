@@ -1,29 +1,29 @@
 export interface TextDiffLine {
-  type: "added" | "removed" | "unchanged" | "context-separator"
-  lineNumber?: { left?: number; right?: number }
-  content: string
-  charDiff?: { type: "added" | "removed" | "unchanged"; text: string }[]
+  type: "added" | "removed" | "unchanged" | "context-separator";
+  lineNumber?: { left?: number; right?: number };
+  content: string;
+  charDiff?: { type: "added" | "removed" | "unchanged"; text: string }[];
 }
 
 export interface DiffHunk {
-  startLeft: number
-  startRight: number
-  lines: TextDiffLine[]
+  startLeft: number;
+  startRight: number;
+  lines: TextDiffLine[];
 }
 
 export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
-  const lines1 = text1.split("\n")
-  const lines2 = text2.split("\n")
+  const lines1 = text1.split("\n");
+  const lines2 = text2.split("\n");
 
-  const result: TextDiffLine[] = []
+  const result: TextDiffLine[] = [];
 
   // Simple LCS-based diff
-  const lcs = computeLCS(lines1, lines2)
+  const lcs = computeLCS(lines1, lines2);
 
-  let i = 0
-  let j = 0
-  let leftLine = 1
-  let rightLine = 1
+  let i = 0;
+  let j = 0;
+  let leftLine = 1;
+  let rightLine = 1;
 
   for (const match of lcs) {
     // Add removed lines before this match
@@ -32,7 +32,7 @@ export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
         type: "removed",
         lineNumber: { left: leftLine++ },
         content: lines1[i++],
-      })
+      });
     }
 
     // Add added lines before this match
@@ -41,7 +41,7 @@ export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
         type: "added",
         lineNumber: { right: rightLine++ },
         content: lines2[j++],
-      })
+      });
     }
 
     // Add the matching line
@@ -49,9 +49,9 @@ export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
       type: "unchanged",
       lineNumber: { left: leftLine++, right: rightLine++ },
       content: lines1[i],
-    })
-    i++
-    j++
+    });
+    i++;
+    j++;
   }
 
   // Add remaining removed lines
@@ -60,7 +60,7 @@ export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
       type: "removed",
       lineNumber: { left: leftLine++ },
       content: lines1[i++],
-    })
+    });
   }
 
   // Add remaining added lines
@@ -69,61 +69,69 @@ export function computeTextDiff(text1: string, text2: string): TextDiffLine[] {
       type: "added",
       lineNumber: { right: rightLine++ },
       content: lines2[j++],
-    })
+    });
   }
 
-  return addCharacterDiff(result)
+  return addCharacterDiff(result);
 }
 
 function addCharacterDiff(lines: TextDiffLine[]): TextDiffLine[] {
-  const result: TextDiffLine[] = []
-  let i = 0
+  const result: TextDiffLine[] = [];
+  let i = 0;
 
   while (i < lines.length) {
-    const line = lines[i]
+    const line = lines[i];
 
     // Look for removed blocks followed by added blocks to compute char-level changes.
     if (line.type === "removed") {
-      const removedBlock: TextDiffLine[] = []
+      const removedBlock: TextDiffLine[] = [];
       while (i < lines.length && lines[i].type === "removed") {
-        removedBlock.push(lines[i])
-        i++
+        removedBlock.push(lines[i]);
+        i++;
       }
 
-      const addedBlock: TextDiffLine[] = []
-      let j = i
+      const addedBlock: TextDiffLine[] = [];
+      let j = i;
       while (j < lines.length && lines[j].type === "added") {
-        addedBlock.push(lines[j])
-        j++
+        addedBlock.push(lines[j]);
+        j++;
       }
 
       if (addedBlock.length > 0) {
-        const pairCount = Math.min(removedBlock.length, addedBlock.length)
+        const pairCount = Math.min(removedBlock.length, addedBlock.length);
         for (let k = 0; k < pairCount; k++) {
-          removedBlock[k].charDiff = computeCharDiff(removedBlock[k].content, addedBlock[k].content, "removed")
-          addedBlock[k].charDiff = computeCharDiff(removedBlock[k].content, addedBlock[k].content, "added")
+          removedBlock[k].charDiff = computeCharDiff(
+            removedBlock[k].content,
+            addedBlock[k].content,
+            "removed",
+          );
+          addedBlock[k].charDiff = computeCharDiff(
+            removedBlock[k].content,
+            addedBlock[k].content,
+            "added",
+          );
         }
         for (const removedLine of removedBlock) {
-          result.push(removedLine)
+          result.push(removedLine);
         }
         for (const addedLine of addedBlock) {
-          result.push(addedLine)
+          result.push(addedLine);
         }
-        i = j
-        continue
+        i = j;
+        continue;
       }
 
       for (const removedLine of removedBlock) {
-        result.push(removedLine)
+        result.push(removedLine);
       }
-      continue
+      continue;
     }
 
-    result.push(line)
-    i++
+    result.push(line);
+    i++;
   }
 
-  return result
+  return result;
 }
 
 function computeCharDiff(
@@ -131,183 +139,194 @@ function computeCharDiff(
   str2: string,
   forSide: "removed" | "added",
 ): { type: "added" | "removed" | "unchanged"; text: string }[] {
-  const chars1 = str1.split("")
-  const chars2 = str2.split("")
-  const lcs = computeLCS(chars1, chars2)
+  const chars1 = str1.split("");
+  const chars2 = str2.split("");
+  const lcs = computeLCS(chars1, chars2);
 
-  const result: { type: "added" | "removed" | "unchanged"; text: string }[] = []
+  const result: { type: "added" | "removed" | "unchanged"; text: string }[] =
+    [];
 
-  let i1 = 0
-  let i2 = 0
+  let i1 = 0;
+  let i2 = 0;
 
   for (const match of lcs) {
     if (forSide === "removed") {
       // For removed line: show what was removed (from str1) and unchanged
       while (i1 < match.i) {
-        const last = result[result.length - 1]
+        const last = result[result.length - 1];
         if (last && last.type === "removed") {
-          last.text += chars1[i1]
+          last.text += chars1[i1];
         } else {
-          result.push({ type: "removed", text: chars1[i1] })
+          result.push({ type: "removed", text: chars1[i1] });
         }
-        i1++
+        i1++;
       }
-      i2 = match.j
+      i2 = match.j;
     } else {
       // For added line: show what was added (from str2) and unchanged
       while (i2 < match.j) {
-        const last = result[result.length - 1]
+        const last = result[result.length - 1];
         if (last && last.type === "added") {
-          last.text += chars2[i2]
+          last.text += chars2[i2];
         } else {
-          result.push({ type: "added", text: chars2[i2] })
+          result.push({ type: "added", text: chars2[i2] });
         }
-        i2++
+        i2++;
       }
-      i1 = match.i
+      i1 = match.i;
     }
 
     // Add unchanged character
-    const last = result[result.length - 1]
+    const last = result[result.length - 1];
     if (last && last.type === "unchanged") {
-      last.text += chars1[match.i]
+      last.text += chars1[match.i];
     } else {
-      result.push({ type: "unchanged", text: chars1[match.i] })
+      result.push({ type: "unchanged", text: chars1[match.i] });
     }
-    i1++
-    i2++
+    i1++;
+    i2++;
   }
 
   // Add remaining characters
   if (forSide === "removed") {
     while (i1 < chars1.length) {
-      const last = result[result.length - 1]
+      const last = result[result.length - 1];
       if (last && last.type === "removed") {
-        last.text += chars1[i1]
+        last.text += chars1[i1];
       } else {
-        result.push({ type: "removed", text: chars1[i1] })
+        result.push({ type: "removed", text: chars1[i1] });
       }
-      i1++
+      i1++;
     }
   } else {
     while (i2 < chars2.length) {
-      const last = result[result.length - 1]
+      const last = result[result.length - 1];
       if (last && last.type === "added") {
-        last.text += chars2[i2]
+        last.text += chars2[i2];
       } else {
-        result.push({ type: "added", text: chars2[i2] })
+        result.push({ type: "added", text: chars2[i2] });
       }
-      i2++
+      i2++;
     }
   }
 
-  return result
+  return result;
 }
 
-export function groupIntoHunks(diff: TextDiffLine[], contextLines = 3): DiffHunk[] {
-  const hunks: DiffHunk[] = []
+export function groupIntoHunks(
+  diff: TextDiffLine[],
+  contextLines = 3,
+): DiffHunk[] {
+  const hunks: DiffHunk[] = [];
 
   // Find changed regions
-  const changedIndices: number[] = []
+  const changedIndices: number[] = [];
   diff.forEach((line, idx) => {
     if (line.type !== "unchanged") {
-      changedIndices.push(idx)
+      changedIndices.push(idx);
     }
-  })
+  });
 
-  if (changedIndices.length === 0) return hunks
+  if (changedIndices.length === 0) return hunks;
 
   // Group changes that are close together
-  let currentHunk: { start: number; end: number } | null = null
-  const groups: { start: number; end: number }[] = []
+  let currentHunk: { start: number; end: number } | null = null;
+  const groups: { start: number; end: number }[] = [];
 
   for (const idx of changedIndices) {
     if (!currentHunk) {
-      currentHunk = { start: idx, end: idx }
+      currentHunk = { start: idx, end: idx };
     } else if (idx - currentHunk.end <= contextLines * 2 + 1) {
-      currentHunk.end = idx
+      currentHunk.end = idx;
     } else {
-      groups.push(currentHunk)
-      currentHunk = { start: idx, end: idx }
+      groups.push(currentHunk);
+      currentHunk = { start: idx, end: idx };
     }
   }
-  if (currentHunk) groups.push(currentHunk)
+  if (currentHunk) groups.push(currentHunk);
 
   // Build hunks with context
   for (const group of groups) {
-    const start = Math.max(0, group.start - contextLines)
-    const end = Math.min(diff.length - 1, group.end + contextLines)
+    const start = Math.max(0, group.start - contextLines);
+    const end = Math.min(diff.length - 1, group.end + contextLines);
 
-    const hunkLines = diff.slice(start, end + 1)
+    const hunkLines = diff.slice(start, end + 1);
 
     // Find starting line numbers
-    let startLeft = 1
-    let startRight = 1
+    let startLeft = 1;
+    let startRight = 1;
     for (let i = 0; i < start; i++) {
-      if (diff[i].lineNumber?.left) startLeft = diff[i].lineNumber!.left! + 1
-      if (diff[i].lineNumber?.right) startRight = diff[i].lineNumber!.right! + 1
+      if (diff[i].lineNumber?.left) startLeft = diff[i].lineNumber!.left! + 1;
+      if (diff[i].lineNumber?.right)
+        startRight = diff[i].lineNumber!.right! + 1;
     }
 
     hunks.push({
       startLeft,
       startRight,
       lines: hunkLines,
-    })
+    });
   }
 
-  return hunks
+  return hunks;
 }
 
 interface Match {
-  i: number
-  j: number
+  i: number;
+  j: number;
 }
 
 function computeLCS<T>(arr1: T[], arr2: T[]): Match[] {
-  const m = arr1.length
-  const n = arr2.length
+  const m = arr1.length;
+  const n = arr2.length;
 
   // DP table
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0))
+  const dp: number[][] = Array.from({ length: m + 1 }, () =>
+    Array(n + 1).fill(0),
+  );
 
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
       if (arr1[i - 1] === arr2[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1
+        dp[i][j] = dp[i - 1][j - 1] + 1;
       } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
     }
   }
 
   // Backtrack to find matches
-  const matches: Match[] = []
-  let i = m
-  let j = n
+  const matches: Match[] = [];
+  let i = m;
+  let j = n;
 
   while (i > 0 && j > 0) {
     if (arr1[i - 1] === arr2[j - 1]) {
-      matches.unshift({ i: i - 1, j: j - 1 })
-      i--
-      j--
+      matches.unshift({ i: i - 1, j: j - 1 });
+      i--;
+      j--;
     } else if (dp[i - 1][j] > dp[i][j - 1]) {
-      i--
+      i--;
     } else {
-      j--
+      j--;
     }
   }
 
-  return matches
+  return matches;
 }
 
-export function getDiffStats(diff: TextDiffLine[]): { added: number; removed: number; unchanged: number } {
+export function getDiffStats(diff: TextDiffLine[]): {
+  added: number;
+  removed: number;
+  unchanged: number;
+} {
   return diff.reduce(
     (stats, line) => {
-      if (line.type === "added") stats.added++
-      else if (line.type === "removed") stats.removed++
-      else if (line.type === "unchanged") stats.unchanged++
-      return stats
+      if (line.type === "added") stats.added++;
+      else if (line.type === "removed") stats.removed++;
+      else if (line.type === "unchanged") stats.unchanged++;
+      return stats;
     },
     { added: 0, removed: 0, unchanged: 0 },
-  )
+  );
 }

@@ -1,9 +1,9 @@
-export type AngleUnit = "deg" | "rad" | "grad"
+export type AngleUnit = "deg" | "rad" | "grad";
 
 export const constants = {
   pi: Math.PI,
   e: Math.E,
-} as const
+} as const;
 
 export const scientificFunctions = {
   sin: Math.sin,
@@ -26,320 +26,344 @@ export const scientificFunctions = {
   ceil: Math.ceil,
   round: Math.round,
   factorial: (n: number): number => {
-    if (n < 0) throw new Error("Factorial is not defined for negative numbers")
-    if (n !== Math.floor(n)) throw new Error("Factorial is only defined for integers")
-    if (n > 170) throw new Error("Factorial result too large")
-    let result = 1
+    if (n < 0) throw new Error("Factorial is not defined for negative numbers");
+    if (n !== Math.floor(n))
+      throw new Error("Factorial is only defined for integers");
+    if (n > 170) throw new Error("Factorial result too large");
+    let result = 1;
     for (let i = 2; i <= n; i++) {
-      result *= i
+      result *= i;
     }
-    return result
+    return result;
   },
   inv: (x: number): number => 1 / x,
   pow10: (x: number): number => Math.pow(10, x),
   log: Math.log10, // Add alias for log10
-} as const
+} as const;
 
 function toRadians(degrees: number): number {
-  return degrees * (Math.PI / 180)
+  return degrees * (Math.PI / 180);
 }
 
 function toDegrees(radians: number): number {
-  return radians * (180 / Math.PI)
+  return radians * (180 / Math.PI);
 }
 
 function toGradians(degrees: number): number {
-  return degrees * (200 / 180)
+  return degrees * (200 / 180);
 }
 
 function fromGradians(gradians: number): number {
-  return gradians * (180 / 200)
+  return gradians * (180 / 200);
 }
 
 function convertAngleToRadians(value: number, fromUnit: AngleUnit): number {
   switch (fromUnit) {
     case "deg":
-      return toRadians(value)
+      return toRadians(value);
     case "rad":
-      return value
+      return value;
     case "grad":
-      return toRadians(fromGradians(value))
+      return toRadians(fromGradians(value));
     default:
-      return value
+      return value;
   }
 }
 
 function convertAngleFromRadians(radians: number, toUnit: AngleUnit): number {
   switch (toUnit) {
     case "deg":
-      return toDegrees(radians)
+      return toDegrees(radians);
     case "rad":
-      return radians
+      return radians;
     case "grad":
-      return toGradians(toDegrees(radians))
+      return toGradians(toDegrees(radians));
     default:
-      return radians
+      return radians;
   }
 }
 
 function tokenize(expression: string): string[] {
-  const tokens: string[] = []
-  let i = 0
-  
+  const tokens: string[] = [];
+  let i = 0;
+
   while (i < expression.length) {
-    const char = expression[i]
-    
+    const char = expression[i];
+
     if (/\s/.test(char)) {
-      i++
-      continue
+      i++;
+      continue;
     }
-    
-    if (/\d/.test(char) || char === '.') {
-      let num = ''
-      while (i < expression.length && (/[\d.]/.test(expression[i]) || (expression[i] === 'e' && i + 1 < expression.length && /[+-]/.test(expression[i + 1])))) {
-        num += expression[i]
-        i++
+
+    if (/\d/.test(char) || char === ".") {
+      let num = "";
+      while (
+        i < expression.length &&
+        (/[\d.]/.test(expression[i]) ||
+          (expression[i] === "e" &&
+            i + 1 < expression.length &&
+            /[+-]/.test(expression[i + 1])))
+      ) {
+        num += expression[i];
+        i++;
       }
-      tokens.push(num)
-      continue
+      tokens.push(num);
+      continue;
     }
-    
+
     if (/[a-zA-Z]/.test(char)) {
-      let ident = ''
+      let ident = "";
       while (i < expression.length && /[a-zA-Z]/.test(expression[i])) {
-        ident += expression[i]
-        i++
+        ident += expression[i];
+        i++;
       }
-      tokens.push(ident)
-      continue
+      tokens.push(ident);
+      continue;
     }
-    
+
     if (/[+\-*/^%(),]/.test(char)) {
-      tokens.push(char)
-      i++
-      continue
+      tokens.push(char);
+      i++;
+      continue;
     }
-    
-    throw new Error(`Invalid character: ${char}`)
+
+    throw new Error(`Invalid character: ${char}`);
   }
-  
-  return tokens
+
+  return tokens;
 }
 
 function parse(tokens: string[]): any {
-  let pos = 0
-  
+  let pos = 0;
+
   function peek(): string | undefined {
-    return tokens[pos]
+    return tokens[pos];
   }
-  
+
   function consume(): string | undefined {
-    return tokens[pos++]
+    return tokens[pos++];
   }
-  
+
   function parseNumber(): number {
-    const token = consume()
-    if (!token) throw new Error("Unexpected end of expression")
-    
+    const token = consume();
+    if (!token) throw new Error("Unexpected end of expression");
+
     if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
-      return parseFloat(token)
+      return parseFloat(token);
     }
-    
-    throw new Error(`Expected number, got ${token}`)
+
+    throw new Error(`Expected number, got ${token}`);
   }
-  
+
   function parseFactor(): any {
-    const token = peek()
-    
-    if (!token) throw new Error("Unexpected end of expression")
-    
-    // Numbers and constants  
-    if (token === 'pi') return constants.pi
-    if (token === 'e') return constants.e
+    const token = peek();
+
+    if (!token) throw new Error("Unexpected end of expression");
+
+    // Numbers and constants
+    if (token === "pi") return constants.pi;
+    if (token === "e") return constants.e;
     if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
-      return parseNumber()
+      return parseNumber();
     }
-    
+
     // Parentheses
-    if (token === '(') {
-      consume()
-      const expr = parseExpression()
-      if (peek() !== ')') throw new Error("Expected ')'")
-      consume()
-      return expr
+    if (token === "(") {
+      consume();
+      const expr = parseExpression();
+      if (peek() !== ")") throw new Error("Expected ')'");
+      consume();
+      return expr;
     }
-    
+
     // Unary minus
-    if (token === '-') {
-      consume()
-      return -parseFactor()
+    if (token === "-") {
+      consume();
+      return -parseFactor();
     }
-    
+
     // Functions and identifiers (like ans)
     if (/[a-zA-Z]+/.test(token)) {
-      const funcName = consume()
-      if (!funcName) throw new Error("Expected function name")
-      
+      const funcName = consume();
+      if (!funcName) throw new Error("Expected function name");
+
       // Special case for ans (last answer) - doesn't need parentheses
-      if (funcName.toLowerCase() === 'ans') {
-        return { type: 'function', name: 'ans', args: [] }
+      if (funcName.toLowerCase() === "ans") {
+        return { type: "function", name: "ans", args: [] };
       }
-      
-      if (peek() !== '(') throw new Error(`Expected '(' after function ${funcName}`)
-      consume()
-      
-      const args: any[] = []
-      if (peek() !== ')') {
-        args.push(parseExpression())
-        while (peek() === ',') {
-          consume()
-          args.push(parseExpression())
+
+      if (peek() !== "(")
+        throw new Error(`Expected '(' after function ${funcName}`);
+      consume();
+
+      const args: any[] = [];
+      if (peek() !== ")") {
+        args.push(parseExpression());
+        while (peek() === ",") {
+          consume();
+          args.push(parseExpression());
         }
       }
-      
-      if (peek() !== ')') throw new Error("Expected ')'")
-      consume()
-      
-      return { type: 'function', name: funcName.toLowerCase(), args }
+
+      if (peek() !== ")") throw new Error("Expected ')'");
+      consume();
+
+      return { type: "function", name: funcName.toLowerCase(), args };
     }
-    
-    throw new Error(`Unexpected token: ${token}`)
+
+    throw new Error(`Unexpected token: ${token}`);
   }
-  
+
   function parsePower(): any {
-    let left = parseFactor()
-    
-    while (peek() === '^') {
-      consume()
-      const right = parsePower() // Right-associative
-      left = { type: 'binary', op: '^', left, right }
+    let left = parseFactor();
+
+    while (peek() === "^") {
+      consume();
+      const right = parsePower(); // Right-associative
+      left = { type: "binary", op: "^", left, right };
     }
-    
-    return left
+
+    return left;
   }
-  
+
   function parseTerm(): any {
-    let left = parsePower()
-    
-    while (peek() === '*' || peek() === '/' || peek() === '%') {
-      const op = consume()!
-      const right = parsePower()
-      left = { type: 'binary', op, left, right }
+    let left = parsePower();
+
+    while (peek() === "*" || peek() === "/" || peek() === "%") {
+      const op = consume()!;
+      const right = parsePower();
+      left = { type: "binary", op, left, right };
     }
-    
-    return left
+
+    return left;
   }
-  
+
   function parseExpression(): any {
-    let left = parseTerm()
-    
-    while (peek() === '+' || peek() === '-') {
-      const op = consume()!
-      const right = parseTerm()
-      left = { type: 'binary', op, left, right }
+    let left = parseTerm();
+
+    while (peek() === "+" || peek() === "-") {
+      const op = consume()!;
+      const right = parseTerm();
+      left = { type: "binary", op, left, right };
     }
-    
-    return left
+
+    return left;
   }
-  
-  const result = parseExpression()
+
+  const result = parseExpression();
   if (pos !== tokens.length) {
-    throw new Error(`Unexpected token at position ${pos}: ${tokens[pos]}`)
+    throw new Error(`Unexpected token at position ${pos}: ${tokens[pos]}`);
   }
-  
-  return result
+
+  return result;
 }
 
-function evaluateNode(node: any, angleUnit: AngleUnit, lastAnswer: number = 0): number {
-  if (typeof node === 'number') {
-    return node
+function evaluateNode(
+  node: any,
+  angleUnit: AngleUnit,
+  lastAnswer: number = 0,
+): number {
+  if (typeof node === "number") {
+    return node;
   }
-  
-  if (node.type === 'binary') {
-    const left = evaluateNode(node.left, angleUnit, lastAnswer)
-    const right = evaluateNode(node.right, angleUnit, lastAnswer)
-    
+
+  if (node.type === "binary") {
+    const left = evaluateNode(node.left, angleUnit, lastAnswer);
+    const right = evaluateNode(node.right, angleUnit, lastAnswer);
+
     switch (node.op) {
-      case '+': return left + right
-      case '-': return left - right
-      case '*': return left * right
-      case '/': 
-        if (right === 0) throw new Error("Division by zero")
-        return left / right
-      case '%': return left % right
-      case '^': return Math.pow(left, right)
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      case "*":
+        return left * right;
+      case "/":
+        if (right === 0) throw new Error("Division by zero");
+        return left / right;
+      case "%":
+        return left % right;
+      case "^":
+        return Math.pow(left, right);
       default:
-        throw new Error(`Unknown operator: ${node.op}`)
+        throw new Error(`Unknown operator: ${node.op}`);
     }
   }
-  
-  if (node.type === 'function') {
-    const args = node.args.map((arg: any) => evaluateNode(arg, angleUnit, lastAnswer))
-    
-    if (node.name === 'ans') {
-      return lastAnswer
+
+  if (node.type === "function") {
+    const args = node.args.map((arg: any) =>
+      evaluateNode(arg, angleUnit, lastAnswer),
+    );
+
+    if (node.name === "ans") {
+      return lastAnswer;
     }
-    
-    const func = scientificFunctions[node.name as keyof typeof scientificFunctions]
-    if (!func) throw new Error(`Unknown function: ${node.name}`)
-    
+
+    const func =
+      scientificFunctions[node.name as keyof typeof scientificFunctions];
+    if (!func) throw new Error(`Unknown function: ${node.name}`);
+
     // Handle trigonometric functions with angle conversion
-    if (['sin', 'cos', 'tan'].includes(node.name)) {
-      const radians = convertAngleToRadians(args[0], angleUnit)
-      return (func as any)(radians)
+    if (["sin", "cos", "tan"].includes(node.name)) {
+      const radians = convertAngleToRadians(args[0], angleUnit);
+      return (func as any)(radians);
     }
-    
+
     // Handle inverse trigonometric functions with angle conversion
-    if (['asin', 'acos', 'atan'].includes(node.name)) {
-      const result = (func as any)(...args)
-      return convertAngleFromRadians(result, angleUnit)
+    if (["asin", "acos", "atan"].includes(node.name)) {
+      const result = (func as any)(...args);
+      return convertAngleFromRadians(result, angleUnit);
     }
-    
-    return (func as any)(...args)
+
+    return (func as any)(...args);
   }
-  
-  throw new Error(`Unknown node type: ${node.type}`)
+
+  throw new Error(`Unknown node type: ${node.type}`);
 }
 
-export function evaluate(expression: string, angleUnit: AngleUnit = "deg", lastAnswer: number = 0): number {
+export function evaluate(
+  expression: string,
+  angleUnit: AngleUnit = "deg",
+  lastAnswer: number = 0,
+): number {
   if (!expression.trim()) {
-    throw new Error("Empty expression")
+    throw new Error("Empty expression");
   }
-  
+
   try {
-    const tokens = tokenize(expression)
-    const ast = parse(tokens)
-    return evaluateNode(ast, angleUnit, lastAnswer)
+    const tokens = tokenize(expression);
+    const ast = parse(tokens);
+    return evaluateNode(ast, angleUnit, lastAnswer);
   } catch (error) {
     if (error instanceof Error) {
-      throw error
+      throw error;
     }
-    throw new Error("Invalid expression")
+    throw new Error("Invalid expression");
   }
 }
 
 export function formatResult(result: number): string {
-  if (isNaN(result)) return "NaN"
-  if (!isFinite(result)) return result > 0 ? "Infinity" : "-Infinity"
-  
+  if (isNaN(result)) return "NaN";
+  if (!isFinite(result)) return result > 0 ? "Infinity" : "-Infinity";
+
   // Use scientific notation for very large or small numbers
   if (Math.abs(result) >= 1e10 || (Math.abs(result) < 1e-6 && result !== 0)) {
-    return result.toExponential(1).replace(/\.?0+e/, 'e')
+    return result.toExponential(1).replace(/\.?0+e/, "e");
   }
-  
+
   // Round to avoid floating point artifacts
-  const rounded = Math.round(result * 1e10) / 1e10
-  
+  const rounded = Math.round(result * 1e10) / 1e10;
+
   // Additional rounding for numbers very close to integers
   if (Math.abs(result - Math.round(result)) < 1e-9) {
-    return Math.round(result).toString()
+    return Math.round(result).toString();
   }
-  
+
   // If it's essentially an integer, show as integer
   if (Math.abs(rounded - Math.round(rounded)) < 1e-10) {
-    return Math.round(rounded).toString()
+    return Math.round(rounded).toString();
   }
-  
+
   // Otherwise, show with appropriate precision
-  return rounded.toString()
+  return rounded.toString();
 }

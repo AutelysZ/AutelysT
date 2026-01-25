@@ -1,38 +1,40 @@
 export interface ParsedURL {
-  protocol: string
-  username: string
-  password: string
-  hostname: string
-  port: string
-  host: string
-  origin: string
-  pathname: string
-  search: string
-  hash: string
-  searchParams: Array<{ key: string; value: string }>
-  hashParams: Array<{ key: string; value: string }>
+  protocol: string;
+  username: string;
+  password: string;
+  hostname: string;
+  port: string;
+  host: string;
+  origin: string;
+  pathname: string;
+  search: string;
+  hash: string;
+  searchParams: Array<{ key: string; value: string }>;
+  hashParams: Array<{ key: string; value: string }>;
 }
 
 export function parseURL(urlString: string): ParsedURL | null {
   try {
-    const url = new URL(urlString)
+    const url = new URL(urlString);
 
     // Parse search params
-    const searchParams: Array<{ key: string; value: string }> = []
+    const searchParams: Array<{ key: string; value: string }> = [];
     url.searchParams.forEach((value, key) => {
-      searchParams.push({ key, value })
-    })
+      searchParams.push({ key, value });
+    });
 
     // Parse hash params (if hash contains query string format)
-    const hashParams: Array<{ key: string; value: string }> = []
+    const hashParams: Array<{ key: string; value: string }> = [];
     if (url.hash) {
-      const hashQuery = url.hash.includes("?") ? url.hash.split("?")[1] : url.hash.slice(1)
+      const hashQuery = url.hash.includes("?")
+        ? url.hash.split("?")[1]
+        : url.hash.slice(1);
       if (hashQuery) {
         try {
-          const params = new URLSearchParams(hashQuery)
+          const params = new URLSearchParams(hashQuery);
           params.forEach((value, key) => {
-            hashParams.push({ key, value })
-          })
+            hashParams.push({ key, value });
+          });
         } catch {
           // Hash is not query format, skip parsing
         }
@@ -52,24 +54,24 @@ export function parseURL(urlString: string): ParsedURL | null {
       hash: url.hash,
       searchParams,
       hashParams,
-    }
+    };
   } catch {
-    return null
+    return null;
   }
 }
 
 export function encodeURL(text: string): string {
   try {
-    return encodeURIComponent(text)
+    return encodeURIComponent(text);
   } catch {
-    return text
+    return text;
   }
 }
 
 export function decodeURL(text: string): string {
   try {
-    return decodeURIComponent(text)
+    return decodeURIComponent(text);
   } catch {
-    return text
+    return text;
   }
 }

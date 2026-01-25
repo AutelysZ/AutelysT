@@ -1,9 +1,9 @@
-import { parse, isValid } from "date-fns"
-import { formatInTimeZone, fromZonedTime } from "date-fns-tz"
+import { parse, isValid } from "date-fns";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 
 export interface TimezoneOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 export const SPECIAL_TIMEZONES: TimezoneOption[] = [
@@ -13,7 +13,7 @@ export const SPECIAL_TIMEZONES: TimezoneOption[] = [
   { value: "unix-ms", label: "Unix (ms)" },
   { value: "unix-us", label: "Unix (us)" },
   { value: "unix-ns", label: "Unix (ns)" },
-]
+];
 
 // All IANA timezones
 export const IANA_TIMEZONES: string[] = [
@@ -442,126 +442,134 @@ export const IANA_TIMEZONES: string[] = [
   "Pacific/Tongatapu",
   "Pacific/Wake",
   "Pacific/Wallis",
-]
+];
 
 export function getAllTimezones(): TimezoneOption[] {
   const ianaOptions = IANA_TIMEZONES.filter((tz) => tz !== "UTC").map((tz) => ({
     value: tz,
     label: tz.replace(/_/g, " "),
-  }))
-  return [...SPECIAL_TIMEZONES, ...ianaOptions]
+  }));
+  return [...SPECIAL_TIMEZONES, ...ianaOptions];
 }
 
 export function isUnixEpochTimezone(tz: string): boolean {
-  return tz.startsWith("unix-")
+  return tz.startsWith("unix-");
 }
 
 export function getLocalTimezone(): string {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
 export function parseTimestamp(input: string, timezone: string): Date | null {
   try {
-    const trimmed = input.trim()
-    if (!trimmed) return null
+    const trimmed = input.trim();
+    if (!trimmed) return null;
 
     // Unix epoch parsing
     if (isUnixEpochTimezone(timezone)) {
-      const num = Number.parseFloat(trimmed)
-      if (isNaN(num)) return null
+      const num = Number.parseFloat(trimmed);
+      if (isNaN(num)) return null;
 
       switch (timezone) {
         case "unix-s":
-          return new Date(num * 1000)
+          return new Date(num * 1000);
         case "unix-ms":
-          return new Date(num)
+          return new Date(num);
         case "unix-us":
-          return new Date(num / 1000)
+          return new Date(num / 1000);
         case "unix-ns":
-          return new Date(num / 1000000)
+          return new Date(num / 1000000);
         default:
-          return null
+          return null;
       }
     }
 
-    const tz = timezone === "local" ? getLocalTimezone() : timezone
-    const hasExplicitZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed)
+    const tz = timezone === "local" ? getLocalTimezone() : timezone;
+    const hasExplicitZone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
 
     if (hasExplicitZone) {
-      const isoDate = new Date(trimmed)
+      const isoDate = new Date(trimmed);
       if (!isNaN(isoDate.getTime())) {
-        return isoDate
+        return isoDate;
       }
     } else {
-      const formats = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"]
+      const formats = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd HH:mm", "yyyy-MM-dd"];
       for (const format of formats) {
-        const parsed = parse(trimmed, format, new Date())
+        const parsed = parse(trimmed, format, new Date());
         if (isValid(parsed)) {
-          return fromZonedTime(parsed, tz)
+          return fromZonedTime(parsed, tz);
         }
       }
     }
 
     // Try parsing as locale string
-    const parsed = Date.parse(trimmed)
+    const parsed = Date.parse(trimmed);
     if (!isNaN(parsed)) {
-      return new Date(parsed)
+      return new Date(parsed);
     }
 
-    return null
+    return null;
   } catch {
-    return null
+    return null;
   }
 }
 
 export function formatTimestamp(date: Date, timezone: string): string {
   if (isUnixEpochTimezone(timezone)) {
-    const time = date.getTime()
+    const time = date.getTime();
     switch (timezone) {
       case "unix-s":
-        return Math.floor(time / 1000).toString()
+        return Math.floor(time / 1000).toString();
       case "unix-ms":
-        return time.toString()
+        return time.toString();
       case "unix-us":
-        return (time * 1000).toString()
+        return (time * 1000).toString();
       case "unix-ns":
-        return (time * 1000000).toString()
+        return (time * 1000000).toString();
       default:
-        return ""
+        return "";
     }
   }
 
-  const tz = timezone === "local" ? getLocalTimezone() : timezone
-  return formatInTimeZone(date, tz, "yyyy-MM-dd HH:mm:ss")
+  const tz = timezone === "local" ? getLocalTimezone() : timezone;
+  return formatInTimeZone(date, tz, "yyyy-MM-dd HH:mm:ss");
 }
 
-export function getFormattedOutputs(date: Date, timezone: string): Record<string, string> {
-  const tz = timezone === "local" ? getLocalTimezone() : isUnixEpochTimezone(timezone) ? "UTC" : timezone
+export function getFormattedOutputs(
+  date: Date,
+  timezone: string,
+): Record<string, string> {
+  const tz =
+    timezone === "local"
+      ? getLocalTimezone()
+      : isUnixEpochTimezone(timezone)
+        ? "UTC"
+        : timezone;
 
   // Use Intl.DateTimeFormat for locale formats with proper dateStyle/timeStyle
   const localeFull = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
     dateStyle: "full",
     timeStyle: "long",
-  }).format(date)
+  }).format(date);
 
   const localeLong = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
     dateStyle: "long",
     timeStyle: "long",
-  }).format(date)
+  }).format(date);
 
   const localeMedium = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
     dateStyle: "medium",
     timeStyle: "medium",
-  }).format(date)
+  }).format(date);
 
   const localeShort = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
     dateStyle: "short",
     timeStyle: "short",
-  }).format(date)
+  }).format(date);
 
   const localeTwoDigit = new Intl.DateTimeFormat(undefined, {
     timeZone: tz,
@@ -571,7 +579,7 @@ export function getFormattedOutputs(date: Date, timezone: string): Record<string
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
-  }).format(date)
+  }).format(date);
 
   return {
     ISO: date.toISOString(),
@@ -583,5 +591,5 @@ export function getFormattedOutputs(date: Date, timezone: string): Record<string
     Medium: localeMedium,
     Short: localeShort,
     "2-digit": localeTwoDigit,
-  }
+  };
 }

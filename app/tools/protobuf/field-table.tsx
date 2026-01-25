@@ -1,13 +1,19 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // Protobuf field types
 export const FIELD_TYPES = [
@@ -26,31 +32,33 @@ export const FIELD_TYPES = [
   { value: "sfixed64", label: "sfixed64", wireType: 1 },
   { value: "float", label: "float", wireType: 5 },
   { value: "double", label: "double", wireType: 1 },
-] as const
+] as const;
 
-export type FieldType = (typeof FIELD_TYPES)[number]["value"]
+export type FieldType = (typeof FIELD_TYPES)[number]["value"];
 
 export type FieldDefinition = {
-  id: string
-  number: number
-  name: string
-  type: FieldType
-  repeated: boolean
-}
+  id: string;
+  number: number;
+  name: string;
+  type: FieldType;
+  repeated: boolean;
+};
 
 export type FieldTableProps = {
-  fields: FieldDefinition[]
-  onFieldsChange: (fields: FieldDefinition[]) => void
-  readOnly?: boolean
-  compact?: boolean
-}
+  fields: FieldDefinition[];
+  onFieldsChange: (fields: FieldDefinition[]) => void;
+  readOnly?: boolean;
+  compact?: boolean;
+};
 
-export function createEmptyField(existingFields: FieldDefinition[]): FieldDefinition {
+export function createEmptyField(
+  existingFields: FieldDefinition[],
+): FieldDefinition {
   // Find the next available field number
-  const usedNumbers = new Set(existingFields.map((f) => f.number))
-  let nextNumber = 1
+  const usedNumbers = new Set(existingFields.map((f) => f.number));
+  let nextNumber = 1;
   while (usedNumbers.has(nextNumber)) {
-    nextNumber++
+    nextNumber++;
   }
 
   return {
@@ -59,50 +67,57 @@ export function createEmptyField(existingFields: FieldDefinition[]): FieldDefini
     name: `field_${nextNumber}`,
     type: "string",
     repeated: false,
-  }
+  };
 }
 
-export function FieldTable({ fields, onFieldsChange, readOnly = false, compact = false }: FieldTableProps) {
+export function FieldTable({
+  fields,
+  onFieldsChange,
+  readOnly = false,
+  compact = false,
+}: FieldTableProps) {
   const handleAddField = () => {
-    const newField = createEmptyField(fields)
-    onFieldsChange([...fields, newField])
-  }
+    const newField = createEmptyField(fields);
+    onFieldsChange([...fields, newField]);
+  };
 
   const handleRemoveField = (id: string) => {
-    onFieldsChange(fields.filter((f) => f.id !== id))
-  }
+    onFieldsChange(fields.filter((f) => f.id !== id));
+  };
 
   const handleUpdateField = (id: string, updates: Partial<FieldDefinition>) => {
-    onFieldsChange(
-      fields.map((f) => (f.id === id ? { ...f, ...updates } : f))
-    )
-  }
+    onFieldsChange(fields.map((f) => (f.id === id ? { ...f, ...updates } : f)));
+  };
 
   const handleMoveField = (index: number, direction: "up" | "down") => {
-    const newIndex = direction === "up" ? index - 1 : index + 1
-    if (newIndex < 0 || newIndex >= fields.length) return
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= fields.length) return;
 
-    const newFields = [...fields]
-    const [movedField] = newFields.splice(index, 1)
-    newFields.splice(newIndex, 0, movedField)
-    onFieldsChange(newFields)
-  }
+    const newFields = [...fields];
+    const [movedField] = newFields.splice(index, 1);
+    newFields.splice(newIndex, 0, movedField);
+    onFieldsChange(newFields);
+  };
 
   if (fields.length === 0 && readOnly) {
     return (
       <div className="flex items-center justify-center rounded-lg border border-dashed py-6 text-sm text-muted-foreground">
         No fields defined
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex flex-col gap-2">
       {/* Header */}
-      <div className={cn(
-        "grid items-center gap-2 text-xs font-medium text-muted-foreground",
-        compact ? "grid-cols-[40px_60px_1fr_100px_60px_40px]" : "grid-cols-[40px_70px_1fr_120px_80px_60px]"
-      )}>
+      <div
+        className={cn(
+          "grid items-center gap-2 text-xs font-medium text-muted-foreground",
+          compact
+            ? "grid-cols-[40px_60px_1fr_100px_60px_40px]"
+            : "grid-cols-[40px_70px_1fr_120px_80px_60px]",
+        )}
+      >
         <div></div>
         <div>Number</div>
         <div>Name</div>
@@ -117,7 +132,9 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
           key={field.id}
           className={cn(
             "grid items-center gap-2 rounded-md border bg-card p-1.5",
-            compact ? "grid-cols-[40px_60px_1fr_100px_60px_40px]" : "grid-cols-[40px_70px_1fr_120px_80px_60px]"
+            compact
+              ? "grid-cols-[40px_60px_1fr_100px_60px_40px]"
+              : "grid-cols-[40px_70px_1fr_120px_80px_60px]",
           )}
         >
           {/* Move buttons */}
@@ -152,7 +169,11 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
             min={1}
             max={536870911}
             value={field.number}
-            onChange={(e) => handleUpdateField(field.id, { number: parseInt(e.target.value) || 1 })}
+            onChange={(e) =>
+              handleUpdateField(field.id, {
+                number: parseInt(e.target.value) || 1,
+              })
+            }
             className={cn("h-7 text-xs font-mono", compact && "h-6")}
             readOnly={readOnly}
           />
@@ -160,7 +181,9 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
           {/* Field name */}
           <Input
             value={field.name}
-            onChange={(e) => handleUpdateField(field.id, { name: e.target.value })}
+            onChange={(e) =>
+              handleUpdateField(field.id, { name: e.target.value })
+            }
             className={cn("h-7 text-xs", compact && "h-6")}
             placeholder="field_name"
             readOnly={readOnly}
@@ -172,14 +195,20 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
           ) : (
             <Select
               value={field.type}
-              onValueChange={(value) => handleUpdateField(field.id, { type: value as FieldType })}
+              onValueChange={(value) =>
+                handleUpdateField(field.id, { type: value as FieldType })
+              }
             >
               <SelectTrigger className={cn("h-7 text-xs", compact && "h-6")}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {FIELD_TYPES.map((type) => (
-                  <SelectItem key={type.value} value={type.value} className="text-xs">
+                  <SelectItem
+                    key={type.value}
+                    value={type.value}
+                    className="text-xs"
+                  >
                     {type.label}
                   </SelectItem>
                 ))}
@@ -191,7 +220,9 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
           <div className="flex items-center justify-center">
             <Checkbox
               checked={field.repeated}
-              onCheckedChange={(checked) => handleUpdateField(field.id, { repeated: !!checked })}
+              onCheckedChange={(checked) =>
+                handleUpdateField(field.id, { repeated: !!checked })
+              }
               disabled={readOnly}
             />
           </div>
@@ -225,68 +256,70 @@ export function FieldTable({ fields, onFieldsChange, readOnly = false, compact =
         </Button>
       )}
     </div>
-  )
+  );
 }
 
 // Helper to convert decoded fields to field definitions
 export function decodedFieldsToDefinitions(
   decodedFields: Array<{
-    fieldNumber: number
-    wireType: number
-    interpretations: Array<{ type: string; confidence: string }>
-  }>
+    fieldNumber: number;
+    wireType: number;
+    interpretations: Array<{ type: string; confidence: string }>;
+  }>,
 ): FieldDefinition[] {
-  const fieldMap = new Map<number, FieldDefinition>()
+  const fieldMap = new Map<number, FieldDefinition>();
 
   for (const field of decodedFields) {
     if (fieldMap.has(field.fieldNumber)) {
       // Mark as repeated if we see the same field number multiple times
-      const existing = fieldMap.get(field.fieldNumber)!
-      existing.repeated = true
-      continue
+      const existing = fieldMap.get(field.fieldNumber)!;
+      existing.repeated = true;
+      continue;
     }
 
     // Infer type from wire type and interpretations
-    let inferredType: FieldType = "bytes"
-    const highConfidence = field.interpretations.find((i) => i.confidence === "high")
+    let inferredType: FieldType = "bytes";
+    const highConfidence = field.interpretations.find(
+      (i) => i.confidence === "high",
+    );
 
     if (highConfidence) {
       switch (highConfidence.type) {
         case "string":
-          inferredType = "string"
-          break
+          inferredType = "string";
+          break;
         case "uint64":
         case "uint32":
-          inferredType = "uint64"
-          break
+          inferredType = "uint64";
+          break;
         case "fixed64":
-          inferredType = "fixed64"
-          break
+          inferredType = "fixed64";
+          break;
         case "fixed32":
-          inferredType = "fixed32"
-          break
+          inferredType = "fixed32";
+          break;
         case "double":
-          inferredType = "double"
-          break
+          inferredType = "double";
+          break;
         case "float":
-          inferredType = "float"
-          break
+          inferredType = "float";
+          break;
       }
     } else {
       // Fall back to wire type
       switch (field.wireType) {
         case 0:
-          inferredType = "int64"
-          break
+          inferredType = "int64";
+          break;
         case 1:
-          inferredType = "fixed64"
-          break
+          inferredType = "fixed64";
+          break;
         case 2:
-          inferredType = "bytes"
-          break
+          inferredType = "bytes";
+          break;
         case 5:
-          inferredType = "fixed32"
-          break
+          inferredType = "fixed32";
+          break;
       }
     }
 
@@ -296,8 +329,8 @@ export function decodedFieldsToDefinitions(
       name: `field_${field.fieldNumber}`,
       type: inferredType,
       repeated: false,
-    })
+    });
   }
 
-  return Array.from(fieldMap.values()).sort((a, b) => a.number - b.number)
+  return Array.from(fieldMap.values()).sort((a, b) => a.number - b.number);
 }

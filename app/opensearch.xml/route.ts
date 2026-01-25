@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-export const dynamic = "force-static"
-export const revalidate = false
+export const dynamic = "force-static";
+export const revalidate = false;
 
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://autelyst.vercel.app"
+const baseUrl =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://autelyst.vercel.app";
 
 export async function GET() {
   const opensearchXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -14,11 +15,11 @@ export async function GET() {
   <Image width="16" height="16" type="image/x-icon">${baseUrl}/favicon.ico</Image>
   <Url type="text/html" template="${baseUrl}/?q={searchTerms}"/>
   <Url type="application/opensearchdescription+xml" rel="self" template="${baseUrl}/opensearch.xml"/>
-</OpenSearchDescription>`
+</OpenSearchDescription>`;
 
   return new NextResponse(opensearchXml, {
     headers: {
       "Content-Type": "application/opensearchdescription+xml",
     },
-  })
+  });
 }

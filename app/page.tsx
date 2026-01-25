@@ -1,78 +1,98 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Search, Binary, Hash, Key, Clock, Globe, Database, Shield } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { searchTools, getToolsGroupedByCategory, tools, type Tool } from "@/lib/tools/registry"
+import * as React from "react";
+import { Suspense } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Search,
+  Binary,
+  Hash,
+  Key,
+  Clock,
+  Globe,
+  Database,
+  Shield,
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  searchTools,
+  getToolsGroupedByCategory,
+  tools,
+  type Tool,
+} from "@/lib/tools/registry";
 
 function HomePage() {
-  const router = useRouter()
-  const [query, setQuery] = React.useState("")
-  const [results, setResults] = React.useState<Tool[]>([])
-  const [initialized, setInitialized] = React.useState(false)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const router = useRouter();
+  const [query, setQuery] = React.useState("");
+  const [results, setResults] = React.useState<Tool[]>([]);
+  const [initialized, setInitialized] = React.useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const groupedTools = React.useMemo(() => getToolsGroupedByCategory(), [])
+  const groupedTools = React.useMemo(() => getToolsGroupedByCategory(), []);
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return
-    const params = new URLSearchParams(window.location.search)
-    const initialQuery = params.get("q") || ""
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get("q") || "";
     if (initialQuery) {
-      setQuery(initialQuery)
-      const matchingTools = searchTools(initialQuery)
+      setQuery(initialQuery);
+      const matchingTools = searchTools(initialQuery);
       if (matchingTools.length === 1) {
-        router.push(matchingTools[0].route)
-        return
+        router.push(matchingTools[0].route);
+        return;
       } else if (matchingTools.length > 0) {
-        setResults(matchingTools)
+        setResults(matchingTools);
       }
     }
-    setInitialized(true)
-  }, [router])
+    setInitialized(true);
+  }, [router]);
 
   React.useEffect(() => {
-    if (!initialized) return
+    if (!initialized) return;
     if (query.trim()) {
-      setResults(searchTools(query))
-      const url = new URL(window.location.href)
-      url.searchParams.set("q", query)
-      window.history.replaceState({}, "", url.toString())
+      setResults(searchTools(query));
+      const url = new URL(window.location.href);
+      url.searchParams.set("q", query);
+      window.history.replaceState({}, "", url.toString());
     } else {
-      setResults([])
-      const url = new URL(window.location.href)
-      url.searchParams.delete("q")
-      window.history.replaceState({}, "", url.pathname)
+      setResults([]);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("q");
+      window.history.replaceState({}, "", url.pathname);
     }
-  }, [query, initialized])
+  }, [query, initialized]);
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case "Encoding":
-        return <Binary className="h-4 w-4" />
+        return <Binary className="h-4 w-4" />;
       case "Numbers":
-        return <Hash className="h-4 w-4" />
+        return <Hash className="h-4 w-4" />;
       case "Identifier":
-        return <Key className="h-4 w-4" />
+        return <Key className="h-4 w-4" />;
       case "Date & Time":
-        return <Clock className="h-4 w-4" />
+        return <Clock className="h-4 w-4" />;
       case "Web":
-        return <Globe className="h-4 w-4" />
+        return <Globe className="h-4 w-4" />;
       case "Data":
-        return <Database className="h-4 w-4" />
+        return <Database className="h-4 w-4" />;
       case "Crypto":
-        return <Shield className="h-4 w-4" />
+        return <Shield className="h-4 w-4" />;
       default:
-        return <Binary className="h-4 w-4" />
+        return <Binary className="h-4 w-4" />;
     }
-  }
+  };
 
-  const isSearching = query.trim().length > 0
+  const isSearching = query.trim().length > 0;
 
   return (
     <div className="flex flex-1 flex-col overflow-auto">
@@ -80,7 +100,9 @@ function HomePage() {
       <section className="shrink-0 border-b border-border bg-gradient-to-b from-background to-muted/30 px-4 py-8 sm:px-6 sm:py-10">
         <div className="mx-auto max-w-4xl text-center">
           <div className="mb-3 flex flex-wrap items-center justify-center gap-3">
-            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">AutelysT Web Toolkit</h1>
+            <h1 className="text-balance text-3xl font-bold tracking-tight md:text-4xl">
+              AutelysT Web Toolkit
+            </h1>
             <iframe
               title="GitHub Star Button"
               src="https://ghbtns.com/github-btn.html?user=AutelysZ&repo=AutelysT&type=star&count=true"
@@ -91,8 +113,10 @@ function HomePage() {
             />
           </div>
           <p className="mx-auto mb-4 max-w-2xl text-balance text-muted-foreground">
-            Entirely AI-generated and running completely in your browser, AutelysT keeps your data local and secure
-            while providing a built-in history to revisit recent work, including the new Markdown Previewer, URL Builder, CSP Builder, and Source Map Viewer.
+            Entirely AI-generated and running completely in your browser,
+            AutelysT keeps your data local and secure while providing a built-in
+            history to revisit recent work, including the new Markdown
+            Previewer, URL Builder, CSP Builder, and Source Map Viewer.
           </p>
           {/* Search Input */}
           <div className="relative mx-auto max-w-xl">
@@ -115,7 +139,8 @@ function HomePage() {
           /* Search Results */
           <div className="mx-auto max-w-5xl">
             <div className="mb-4 text-sm text-muted-foreground">
-              {results.length} {results.length === 1 ? "result" : "results"} for "{query}"
+              {results.length} {results.length === 1 ? "result" : "results"} for
+              "{query}"
             </div>
 
             {results.length > 0 ? (
@@ -135,10 +160,15 @@ function HomePage() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <CardDescription className="text-sm">{tool.description}</CardDescription>
+                        <CardDescription className="text-sm">
+                          {tool.description}
+                        </CardDescription>
                         <div className="mt-3 flex flex-wrap gap-1">
                           {tool.keywords.slice(0, 4).map((kw) => (
-                            <span key={kw} className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                            <span
+                              key={kw}
+                              className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+                            >
                               {kw}
                             </span>
                           ))}
@@ -153,7 +183,9 @@ function HomePage() {
                 <CardContent className="flex flex-col items-center justify-center py-12">
                   <Search className="mb-4 h-12 w-12 text-muted-foreground/50" />
                   <p className="text-lg font-medium">No tools found</p>
-                  <p className="text-sm text-muted-foreground">Try a different search term</p>
+                  <p className="text-sm text-muted-foreground">
+                    Try a different search term
+                  </p>
                 </CardContent>
               </Card>
             )}
@@ -164,19 +196,27 @@ function HomePage() {
             {Object.entries(groupedTools).map(([category, categoryTools]) => (
               <section key={category}>
                 <div className="mb-3 flex items-center gap-2">
-                  <div className="rounded bg-primary/10 p-1.5 text-primary">{getCategoryIcon(category)}</div>
+                  <div className="rounded bg-primary/10 p-1.5 text-primary">
+                    {getCategoryIcon(category)}
+                  </div>
                   <h2 className="text-lg font-semibold">{category}</h2>
-                  <span className="text-sm text-muted-foreground">({categoryTools.length})</span>
+                  <span className="text-sm text-muted-foreground">
+                    ({categoryTools.length})
+                  </span>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {categoryTools.map((tool) => (
                     <Link key={tool.id} href={tool.route}>
                       <Card className="h-full transition-colors hover:border-primary/50 hover:bg-accent/50">
                         <CardHeader className="pb-2">
-                          <CardTitle className="text-base">{tool.name}</CardTitle>
+                          <CardTitle className="text-base">
+                            {tool.name}
+                          </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <CardDescription className="line-clamp-2 text-sm">{tool.description}</CardDescription>
+                          <CardDescription className="line-clamp-2 text-sm">
+                            {tool.description}
+                          </CardDescription>
                         </CardContent>
                       </Card>
                     </Link>
@@ -186,12 +226,14 @@ function HomePage() {
             ))}
 
             {/* Total tools count */}
-            <div className="pt-4 text-center text-sm text-muted-foreground">{tools.length} tools available</div>
+            <div className="pt-4 text-center text-sm text-muted-foreground">
+              {tools.length} tools available
+            </div>
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
 
 export default function Home() {
@@ -199,5 +241,5 @@ export default function Home() {
     <Suspense fallback={null}>
       <HomePage />
     </Suspense>
-  )
+  );
 }

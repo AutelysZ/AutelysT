@@ -1,25 +1,31 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { Upload, Copy, Check, AlertCircle, X } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
-import { decodeHex, encodeHex } from "@/lib/encoding/hex"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import { Upload, Copy, Check, AlertCircle, X } from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64";
+import { decodeHex, encodeHex } from "@/lib/encoding/hex";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
 
-const inputEncodings = ["utf8", "base64", "hex"] as const
-type InputEncoding = (typeof inputEncodings)[number]
-const outputEncodings = ["hex", "base64", "base64url"] as const
-type OutputEncoding = (typeof outputEncodings)[number]
+const inputEncodings = ["utf8", "base64", "hex"] as const;
+type InputEncoding = (typeof inputEncodings)[number];
+const outputEncodings = ["hex", "base64", "base64url"] as const;
+type OutputEncoding = (typeof outputEncodings)[number];
 
 const algorithmValues = [
   "sha1",
@@ -37,24 +43,24 @@ const algorithmValues = [
   "md2",
   "md4",
   "md5",
-] as const
+] as const;
 
 const algorithmFamilies = {
   sha: ["sha1", "sha256", "sha384", "sha512"],
   sha3: ["sha3-224", "sha3-256", "sha3-384", "sha3-512"],
   blake: ["blake2b-256", "blake2b-512", "blake2s-256", "blake3-256"],
   md: ["md2", "md4", "md5"],
-} as const
+} as const;
 
-type HashAlgorithm = (typeof algorithmValues)[number]
-type AlgorithmFamily = keyof typeof algorithmFamilies
+type HashAlgorithm = (typeof algorithmValues)[number];
+type AlgorithmFamily = keyof typeof algorithmFamilies;
 
 const paramsSchema = z.object({
   input: z.string().default(""),
   inputEncoding: z.enum(inputEncodings).default("utf8"),
   outputEncoding: z.enum(outputEncodings).default("hex"),
   algorithm: z.enum(algorithmValues).default("sha256"),
-})
+});
 
 const algorithmLabels: Record<HashAlgorithm, string> = {
   sha1: "SHA-1",
@@ -72,14 +78,14 @@ const algorithmLabels: Record<HashAlgorithm, string> = {
   md2: "MD2",
   md4: "MD4",
   md5: "MD5",
-}
+};
 
 const algorithmFamilyLabels: Record<AlgorithmFamily, string> = {
   sha: "SHA",
   sha3: "SHA-3",
   blake: "BLAKE",
   md: "MD",
-}
+};
 
 const algorithmFamilyMap: Record<HashAlgorithm, AlgorithmFamily> = {
   sha1: "sha",
@@ -97,7 +103,7 @@ const algorithmFamilyMap: Record<HashAlgorithm, AlgorithmFamily> = {
   md2: "md",
   md4: "md",
   md5: "md",
-}
+};
 
 const expectedHexLength: Record<HashAlgorithm, number> = {
   sha256: 64,
@@ -115,80 +121,116 @@ const expectedHexLength: Record<HashAlgorithm, number> = {
   md2: 32,
   md4: 32,
   md5: 32,
-}
+};
 
 type HashWasmModule = {
-  createMD2: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createMD4: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createMD5: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createSHA1: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createSHA256: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createSHA384: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createSHA512: () => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createSHA3: (
-    bits: 224 | 256 | 384 | 512,
-  ) => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createBLAKE2b: (
-    outputLength: number,
-  ) => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createBLAKE2s: (
-    outputLength: number,
-  ) => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-  createBLAKE3: (
-    outputLength: number,
-  ) => Promise<{ init: () => void; update: (data: Uint8Array) => void; digest: (encoding?: "hex" | "binary") => string | Uint8Array }>
-}
+  createMD2: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createMD4: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createMD5: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createSHA1: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createSHA256: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createSHA384: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createSHA512: () => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createSHA3: (bits: 224 | 256 | 384 | 512) => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createBLAKE2b: (outputLength: number) => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createBLAKE2s: (outputLength: number) => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+  createBLAKE3: (outputLength: number) => Promise<{
+    init: () => void;
+    update: (data: Uint8Array) => void;
+    digest: (encoding?: "hex" | "binary") => string | Uint8Array;
+  }>;
+};
 
 function parseInputBytes(value: string, encoding: InputEncoding) {
-  if (!value) return new Uint8Array()
+  if (!value) return new Uint8Array();
   if (encoding === "utf8") {
-    return new TextEncoder().encode(value)
+    return new TextEncoder().encode(value);
   }
   if (encoding === "base64") {
-    return decodeBase64(value)
+    return decodeBase64(value);
   }
   if (encoding === "hex") {
-    return decodeHex(value)
+    return decodeHex(value);
   }
-  return new Uint8Array()
+  return new Uint8Array();
 }
 
 async function createHasher(algorithm: HashAlgorithm) {
-  const hashWasm = (await import("hash-wasm")) as unknown as HashWasmModule
+  const hashWasm = (await import("hash-wasm")) as unknown as HashWasmModule;
 
   switch (algorithm) {
     case "md2":
-      return hashWasm.createMD2()
+      return hashWasm.createMD2();
     case "md4":
-      return hashWasm.createMD4()
+      return hashWasm.createMD4();
     case "md5":
-      return hashWasm.createMD5()
+      return hashWasm.createMD5();
     case "sha1":
-      return hashWasm.createSHA1()
+      return hashWasm.createSHA1();
     case "sha256":
-      return hashWasm.createSHA256()
+      return hashWasm.createSHA256();
     case "sha384":
-      return hashWasm.createSHA384()
+      return hashWasm.createSHA384();
     case "sha512":
-      return hashWasm.createSHA512()
+      return hashWasm.createSHA512();
     case "sha3-224":
-      return hashWasm.createSHA3(224)
+      return hashWasm.createSHA3(224);
     case "sha3-256":
-      return hashWasm.createSHA3(256)
+      return hashWasm.createSHA3(256);
     case "sha3-384":
-      return hashWasm.createSHA3(384)
+      return hashWasm.createSHA3(384);
     case "sha3-512":
-      return hashWasm.createSHA3(512)
+      return hashWasm.createSHA3(512);
     case "blake2b-256":
-      return hashWasm.createBLAKE2b(256)
+      return hashWasm.createBLAKE2b(256);
     case "blake2b-512":
-      return hashWasm.createBLAKE2b(512)
+      return hashWasm.createBLAKE2b(512);
     case "blake2s-256":
-      return hashWasm.createBLAKE2s(256)
+      return hashWasm.createBLAKE2s(256);
     case "blake3-256":
-      return hashWasm.createBLAKE3(256)
+      return hashWasm.createBLAKE3(256);
     default:
-      return hashWasm.createSHA256()
+      return hashWasm.createSHA256();
   }
 }
 
@@ -199,7 +241,7 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
 function InlineTabsList({ children }: { children: React.ReactNode }) {
@@ -207,7 +249,7 @@ function InlineTabsList({ children }: { children: React.ReactNode }) {
     <TabsList className="inline-flex h-7 flex-nowrap items-center gap-1 [&_[data-slot=tabs-trigger]]:flex-none [&_[data-slot=tabs-trigger]]:!text-xs [&_[data-slot=tabs-trigger][data-state=active]]:border-border">
       {children}
     </TabsList>
-  )
+  );
 }
 
 export default function HashPage() {
@@ -215,33 +257,39 @@ export default function HashPage() {
     <Suspense fallback={null}>
       <HashContent />
     </Suspense>
-  )
+  );
 }
 
 function HashContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } = useUrlSyncedState("hash-generator", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
-  const [fileName, setFileName] = React.useState<string | null>(null)
+  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
+    useUrlSyncedState("hash-generator", {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    });
+  const [fileName, setFileName] = React.useState<string | null>(null);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
+      const { inputs, params } = entry;
 
       if (params.fileName) {
-        alert("This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.")
-        return
+        alert(
+          "This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.",
+        );
+        return;
       }
 
-      setFileName(null)
-      if (inputs.input !== undefined) setParam("input", inputs.input)
-      if (params.inputEncoding) setParam("inputEncoding", params.inputEncoding as InputEncoding)
-      if (params.outputEncoding) setParam("outputEncoding", params.outputEncoding as OutputEncoding)
-      if (params.algorithm) setParam("algorithm", params.algorithm as HashAlgorithm)
+      setFileName(null);
+      if (inputs.input !== undefined) setParam("input", inputs.input);
+      if (params.inputEncoding)
+        setParam("inputEncoding", params.inputEncoding as InputEncoding);
+      if (params.outputEncoding)
+        setParam("outputEncoding", params.outputEncoding as OutputEncoding);
+      if (params.algorithm)
+        setParam("algorithm", params.algorithm as HashAlgorithm);
     },
     [setParam, setFileName],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -260,7 +308,7 @@ function HashContent() {
         setFileName={setFileName}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function HashInner({
@@ -272,92 +320,129 @@ function HashInner({
   fileName,
   setFileName,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  fileName: string | null
-  setFileName: (value: string | null) => void
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  fileName: string | null;
+  setFileName: (value: string | null) => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [output, setOutput] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
-  const [isHashing, setIsHashing] = React.useState(false)
-  const [copied, setCopied] = React.useState(false)
-  const algorithmFamily = algorithmFamilyMap[state.algorithm]
-  const activeAlgorithms = algorithmFamilies[algorithmFamily]
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [output, setOutput] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [isHashing, setIsHashing] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const algorithmFamily = algorithmFamilyMap[state.algorithm];
+  const activeAlgorithms = algorithmFamilies[algorithmFamily];
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
   const paramsRef = React.useRef({
     inputEncoding: state.inputEncoding,
     outputEncoding: state.outputEncoding,
     algorithm: state.algorithm,
     fileName,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
-  const hashRunRef = React.useRef(0)
-  const fileBytesRef = React.useRef<Uint8Array | null>(null)
-  const [fileVersion, setFileVersion] = React.useState(0)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
+  const hashRunRef = React.useRef(0);
+  const fileBytesRef = React.useRef<Uint8Array | null>(null);
+  const [fileVersion, setFileVersion] = React.useState(0);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = fileName ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.input, fileName, fileVersion])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = fileName
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.input, fileName, fileVersion]);
 
   React.useEffect(() => {
     if (!fileName && fileBytesRef.current) {
-      fileBytesRef.current = null
-      if (fileVersion) setFileVersion(0)
+      fileBytesRef.current = null;
+      if (fileVersion) setFileVersion(0);
     }
-  }, [fileName, fileVersion])
+  }, [fileName, fileVersion]);
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileVersion)
-    const activeSignature = hasFile ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    if ((!hasFile && !state.input) || activeSignature === lastInputRef.current) return
+    const hasFile = Boolean(fileName && fileVersion);
+    const activeSignature = hasFile
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    if ((!hasFile && !state.input) || activeSignature === lastInputRef.current)
+      return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = activeSignature
-      const preview = fileName ?? state.input.slice(0, 100)
+      lastInputRef.current = activeSignature;
+      const preview = fileName ?? state.input.slice(0, 100);
       upsertInputEntry(
         { input: fileName ? "" : state.input },
-        { inputEncoding: state.inputEncoding, outputEncoding: state.outputEncoding, algorithm: state.algorithm, fileName },
+        {
+          inputEncoding: state.inputEncoding,
+          outputEncoding: state.outputEncoding,
+          algorithm: state.algorithm,
+          fileName,
+        },
         "left",
         preview,
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.input, state.inputEncoding, state.outputEncoding, state.algorithm, fileName, fileVersion, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [
+    state.input,
+    state.inputEncoding,
+    state.outputEncoding,
+    state.algorithm,
+    fileName,
+    fileVersion,
+    upsertInputEntry,
+  ]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
-      const activeText = state.input
+      hasHandledUrlRef.current = true;
+      const activeText = state.input;
       if (activeText) {
         upsertInputEntry(
           { input: state.input },
-          { inputEncoding: state.inputEncoding, outputEncoding: state.outputEncoding, algorithm: state.algorithm, fileName },
+          {
+            inputEncoding: state.inputEncoding,
+            outputEncoding: state.outputEncoding,
+            algorithm: state.algorithm,
+            fileName,
+          },
           "left",
           activeText.slice(0, 100),
-        )
+        );
       } else {
         upsertParams(
-          { inputEncoding: state.inputEncoding, outputEncoding: state.outputEncoding, algorithm: state.algorithm, fileName },
+          {
+            inputEncoding: state.inputEncoding,
+            outputEncoding: state.outputEncoding,
+            algorithm: state.algorithm,
+            fileName,
+          },
           "interpretation",
-        )
+        );
       }
     }
-  }, [hasUrlParams, state.input, state.inputEncoding, state.outputEncoding, state.algorithm, fileName, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.input,
+    state.inputEncoding,
+    state.outputEncoding,
+    state.algorithm,
+    fileName,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
     const nextParams = {
@@ -365,11 +450,11 @@ function HashInner({
       outputEncoding: state.outputEncoding,
       algorithm: state.algorithm,
       fileName,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.inputEncoding === nextParams.inputEncoding &&
@@ -377,100 +462,124 @@ function HashInner({
       paramsRef.current.algorithm === nextParams.algorithm &&
       paramsRef.current.fileName === nextParams.fileName
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [state.inputEncoding, state.outputEncoding, state.algorithm, fileName, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [
+    state.inputEncoding,
+    state.outputEncoding,
+    state.algorithm,
+    fileName,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const inputValue = state.input
-    const hasFile = Boolean(fileBytesRef.current && fileName)
+    const inputValue = state.input;
+    const hasFile = Boolean(fileBytesRef.current && fileName);
     if (!inputValue.trim() && !hasFile) {
-      setOutput("")
-      setError(null)
-      setIsHashing(false)
-      return
+      setOutput("");
+      setError(null);
+      setIsHashing(false);
+      return;
     }
 
-    const runId = ++hashRunRef.current
-    setIsHashing(true)
+    const runId = ++hashRunRef.current;
+    setIsHashing(true);
 
     void (async () => {
       try {
-        const bytes = hasFile ? fileBytesRef.current! : parseInputBytes(inputValue, state.inputEncoding)
-        const hasher = await createHasher(state.algorithm)
-        hasher.init()
-        hasher.update(bytes)
-        const digestBytes = hasher.digest("binary")
-        const digestArray = digestBytes instanceof Uint8Array ? digestBytes : new TextEncoder().encode(digestBytes)
-        let normalized = ""
+        const bytes = hasFile
+          ? fileBytesRef.current!
+          : parseInputBytes(inputValue, state.inputEncoding);
+        const hasher = await createHasher(state.algorithm);
+        hasher.init();
+        hasher.update(bytes);
+        const digestBytes = hasher.digest("binary");
+        const digestArray =
+          digestBytes instanceof Uint8Array
+            ? digestBytes
+            : new TextEncoder().encode(digestBytes);
+        let normalized = "";
         if (state.outputEncoding === "hex") {
-          normalized = encodeHex(digestArray, { upperCase: false })
-          const expected = expectedHexLength[state.algorithm]
+          normalized = encodeHex(digestArray, { upperCase: false });
+          const expected = expectedHexLength[state.algorithm];
           if (normalized.length < expected) {
-            normalized = normalized.padStart(expected, "0")
+            normalized = normalized.padStart(expected, "0");
           }
         } else if (state.outputEncoding === "base64") {
-          normalized = encodeBase64(digestArray, { padding: true, urlSafe: false })
+          normalized = encodeBase64(digestArray, {
+            padding: true,
+            urlSafe: false,
+          });
         } else {
-          normalized = encodeBase64(digestArray, { padding: false, urlSafe: true })
+          normalized = encodeBase64(digestArray, {
+            padding: false,
+            urlSafe: true,
+          });
         }
-        if (hashRunRef.current !== runId) return
-        setOutput(normalized)
-        setError(null)
+        if (hashRunRef.current !== runId) return;
+        setOutput(normalized);
+        setError(null);
       } catch (err) {
-        if (hashRunRef.current !== runId) return
-        setOutput("")
-        setError(err instanceof Error ? err.message : "Failed to hash input.")
+        if (hashRunRef.current !== runId) return;
+        setOutput("");
+        setError(err instanceof Error ? err.message : "Failed to hash input.");
       } finally {
         if (hashRunRef.current === runId) {
-          setIsHashing(false)
+          setIsHashing(false);
         }
       }
-    })()
-  }, [state.input, state.inputEncoding, state.outputEncoding, state.algorithm, fileName, fileVersion])
+    })();
+  }, [
+    state.input,
+    state.inputEncoding,
+    state.outputEncoding,
+    state.algorithm,
+    fileName,
+    fileVersion,
+  ]);
 
   const handleFileUpload = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ""
-      if (!file) return
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
 
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const buffer = e.target?.result as ArrayBuffer
-        if (!buffer) return
-        fileBytesRef.current = new Uint8Array(buffer)
-        setParam("input", "")
-        setFileName(file.name)
-        setFileVersion((prev) => prev + 1)
-        setError(null)
-      }
-      reader.readAsArrayBuffer(file)
+        const buffer = e.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        fileBytesRef.current = new Uint8Array(buffer);
+        setParam("input", "");
+        setFileName(file.name);
+        setFileVersion((prev) => prev + 1);
+        setError(null);
+      };
+      reader.readAsArrayBuffer(file);
     },
     [setParam, setFileName],
-  )
+  );
 
   const handleCopy = async () => {
-    if (!output) return
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleClearFile = () => {
-    setFileName(null)
-    fileBytesRef.current = null
-    setFileVersion(0)
-  }
+    setFileName(null);
+    fileBytesRef.current = null;
+    setFileVersion(0);
+  };
 
   const handleInputChange = (value: string) => {
-    setParam("input", value)
+    setParam("input", value);
     if (fileName || fileBytesRef.current) {
-      handleClearFile()
+      handleClearFile();
     }
-  }
+  };
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -481,25 +590,40 @@ function HashInner({
             <Tabs
               value={algorithmFamily}
               onValueChange={(value) => {
-                const family = value as AlgorithmFamily
-                const next = algorithmFamilies[family][0] as HashAlgorithm
+                const family = value as AlgorithmFamily;
+                const next = algorithmFamilies[family][0] as HashAlgorithm;
                 if (state.algorithm !== next) {
-                  setParam("algorithm", next, true)
+                  setParam("algorithm", next, true);
                 }
               }}
             >
               <ScrollableTabsList>
-                {(Object.keys(algorithmFamilies) as AlgorithmFamily[]).map((family) => (
-                  <TabsTrigger key={family} value={family} className="text-xs flex-none">
-                    {algorithmFamilyLabels[family]}
-                  </TabsTrigger>
-                ))}
+                {(Object.keys(algorithmFamilies) as AlgorithmFamily[]).map(
+                  (family) => (
+                    <TabsTrigger
+                      key={family}
+                      value={family}
+                      className="text-xs flex-none"
+                    >
+                      {algorithmFamilyLabels[family]}
+                    </TabsTrigger>
+                  ),
+                )}
               </ScrollableTabsList>
             </Tabs>
-            <Tabs value={state.algorithm} onValueChange={(value) => setParam("algorithm", value as HashAlgorithm, true)}>
+            <Tabs
+              value={state.algorithm}
+              onValueChange={(value) =>
+                setParam("algorithm", value as HashAlgorithm, true)
+              }
+            >
               <ScrollableTabsList>
                 {activeAlgorithms.map((alg) => (
-                  <TabsTrigger key={alg} value={alg} className="text-xs flex-none">
+                  <TabsTrigger
+                    key={alg}
+                    value={alg}
+                    className="text-xs flex-none"
+                  >
                     {algorithmLabels[alg]}
                   </TabsTrigger>
                 ))}
@@ -516,7 +640,9 @@ function HashInner({
               <Label className="text-sm font-medium">Input</Label>
               <Tabs
                 value={state.inputEncoding}
-                onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
+                onValueChange={(value) =>
+                  setParam("inputEncoding", value as InputEncoding, true)
+                }
               >
                 <InlineTabsList>
                   <TabsTrigger value="utf8" className="text-xs">
@@ -532,7 +658,12 @@ function HashInner({
               </Tabs>
             </div>
             <div className="flex items-center gap-1">
-              <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
               <Button
                 variant="ghost"
                 size="sm"
@@ -547,9 +678,9 @@ function HashInner({
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    setFileName(null)
-                    fileBytesRef.current = null
-                    setFileVersion(0)
+                    setFileName(null);
+                    fileBytesRef.current = null;
+                    setFileVersion(0);
                   }}
                   className="h-7 w-7 p-0"
                   aria-label="Clear file"
@@ -571,7 +702,9 @@ function HashInner({
             />
             {fileName && (
               <div className="absolute inset-0 flex items-center justify-center gap-3 rounded-md border bg-background/95 text-sm text-muted-foreground">
-                <span className="max-w-[70%] truncate font-medium text-foreground">{fileName}</span>
+                <span className="max-w-[70%] truncate font-medium text-foreground">
+                  {fileName}
+                </span>
                 <button
                   type="button"
                   className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-muted/60"
@@ -584,9 +717,13 @@ function HashInner({
             )}
           </div>
           {oversizeKeys.includes("input") && (
-            <p className="text-xs text-muted-foreground">Input exceeds 2 KB and is not synced to the URL.</p>
+            <p className="text-xs text-muted-foreground">
+              Input exceeds 2 KB and is not synced to the URL.
+            </p>
           )}
-          {isHashing && <p className="text-xs text-muted-foreground">Hashing...</p>}
+          {isHashing && (
+            <p className="text-xs text-muted-foreground">Hashing...</p>
+          )}
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
@@ -601,7 +738,9 @@ function HashInner({
               <Label className="text-sm font-medium">Digest</Label>
               <Tabs
                 value={state.outputEncoding}
-                onValueChange={(value) => setParam("outputEncoding", value as OutputEncoding, true)}
+                onValueChange={(value) =>
+                  setParam("outputEncoding", value as OutputEncoding, true)
+                }
               >
                 <InlineTabsList>
                   <TabsTrigger value="hex" className="text-xs">
@@ -624,7 +763,11 @@ function HashInner({
                 disabled={!output}
                 className="h-7 gap-1 px-2 text-xs"
               >
-                {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                {copied ? (
+                  <Check className="h-3 w-3" />
+                ) : (
+                  <Copy className="h-3 w-3" />
+                )}
                 {copied ? "Copied" : "Copy"}
               </Button>
             </div>
@@ -638,5 +781,5 @@ function HashInner({
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,66 +1,73 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense, useCallback, useRef, useState } from "react"
-import { Upload, FileText, ChevronRight, ChevronDown, Copy, Check } from "lucide-react"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { Suspense, useCallback, useRef, useState } from "react";
+import {
+  Upload,
+  FileText,
+  ChevronRight,
+  ChevronDown,
+  Copy,
+  Check,
+} from "lucide-react";
+import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 import {
   decodeASN1,
   parseInput,
   formatASN1Tree,
   type ASN1Node,
-} from "@/lib/asn1/decoder"
+} from "@/lib/asn1/decoder";
 
 interface TreeNodeProps {
-  node: ASN1Node
-  depth: number
-  defaultExpanded?: boolean
+  node: ASN1Node;
+  depth: number;
+  defaultExpanded?: boolean;
 }
 
 function TreeNode({ node, depth, defaultExpanded = true }: TreeNodeProps) {
-  const [expanded, setExpanded] = useState(defaultExpanded || depth < 3)
-  const [copied, setCopied] = useState(false)
+  const [expanded, setExpanded] = useState(defaultExpanded || depth < 3);
+  const [copied, setCopied] = useState(false);
 
-  const hasChildren = node.children && node.children.length > 0
+  const hasChildren = node.children && node.children.length > 0;
 
   const handleCopy = useCallback(async () => {
-    const text = node.decodedValue || ""
+    const text = node.decodedValue || "";
     try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback
-      const textarea = document.createElement("textarea")
-      textarea.value = text
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
-  }, [node.decodedValue])
+  }, [node.decodedValue]);
 
   const tagClassColor = {
     universal: "text-blue-600 dark:text-blue-400",
     context: "text-green-600 dark:text-green-400",
     application: "text-purple-600 dark:text-purple-400",
     private: "text-orange-600 dark:text-orange-400",
-  }
+  };
 
   return (
     <div className="font-mono text-sm">
       <div
         className={cn(
           "flex items-start gap-1 py-0.5 hover:bg-muted/50 rounded group",
-          hasChildren && "cursor-pointer"
+          hasChildren && "cursor-pointer",
         )}
         style={{ paddingLeft: `${depth * 16}px` }}
         onClick={() => hasChildren && setExpanded(!expanded)}
@@ -85,7 +92,12 @@ function TreeNode({ node, depth, defaultExpanded = true }: TreeNodeProps) {
           ({node.headerLength}+{node.length})
         </span>
 
-        <span className={cn("font-medium flex-shrink-0", tagClassColor[node.tagClass])}>
+        <span
+          className={cn(
+            "font-medium flex-shrink-0",
+            tagClassColor[node.tagClass],
+          )}
+        >
           {node.tagName}
         </span>
 
@@ -100,8 +112,8 @@ function TreeNode({ node, depth, defaultExpanded = true }: TreeNodeProps) {
             {node.decodedValue && (
               <button
                 onClick={(e) => {
-                  e.stopPropagation()
-                  handleCopy()
+                  e.stopPropagation();
+                  handleCopy();
                 }}
                 className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded"
                 title="Copy value"
@@ -118,7 +130,8 @@ function TreeNode({ node, depth, defaultExpanded = true }: TreeNodeProps) {
 
         {node.constructed && node.children && (
           <span className="text-muted-foreground">
-            ({node.children.length} element{node.children.length !== 1 ? "s" : ""})
+            ({node.children.length} element
+            {node.children.length !== 1 ? "s" : ""})
           </span>
         )}
       </div>
@@ -131,116 +144,121 @@ function TreeNode({ node, depth, defaultExpanded = true }: TreeNodeProps) {
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function ASN1DecoderContent() {
-  const [input, setInput] = useState("")
-  const [result, setResult] = useState<ASN1Node | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [textOutput, setTextOutput] = useState("")
-  const [viewMode, setViewMode] = useState<"tree" | "text">("tree")
-  const [copiedAll, setCopiedAll] = useState(false)
+  const [input, setInput] = useState("");
+  const [result, setResult] = useState<ASN1Node | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [textOutput, setTextOutput] = useState("");
+  const [viewMode, setViewMode] = useState<"tree" | "text">("tree");
+  const [copiedAll, setCopiedAll] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const doDecode = useCallback((value: string) => {
-    setError(null)
-    setResult(null)
-    setTextOutput("")
+    setError(null);
+    setResult(null);
+    setTextOutput("");
 
     if (!value.trim()) {
-      return
+      return;
     }
 
     try {
-      const bytes = parseInput(value)
+      const bytes = parseInput(value);
       if (!bytes) {
-        setError("Invalid input. Supported formats: PEM, hex, or base64 encoded DER.")
-        return
+        setError(
+          "Invalid input. Supported formats: PEM, hex, or base64 encoded DER.",
+        );
+        return;
       }
 
-      const decoded = decodeASN1(bytes)
-      setResult(decoded)
-      setTextOutput(formatASN1Tree(decoded))
+      const decoded = decodeASN1(bytes);
+      setResult(decoded);
+      setTextOutput(formatASN1Tree(decoded));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to decode ASN.1")
+      setError(err instanceof Error ? err.message : "Failed to decode ASN.1");
     }
-  }, [])
+  }, []);
 
-  const handleInputChange = useCallback((value: string) => {
-    setInput(value)
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
 
-    // Clear previous timeout
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
-    }
+      // Clear previous timeout
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
 
-    // Debounce decoding by 500ms
-    debounceRef.current = setTimeout(() => {
-      doDecode(value)
-    }, 500)
-  }, [doDecode])
+      // Debounce decoding by 500ms
+      debounceRef.current = setTimeout(() => {
+        doDecode(value);
+      }, 500);
+    },
+    [doDecode],
+  );
 
   const handleDecode = useCallback(() => {
     if (debounceRef.current) {
-      clearTimeout(debounceRef.current)
+      clearTimeout(debounceRef.current);
     }
-    doDecode(input)
-  }, [input, doDecode])
+    doDecode(input);
+  }, [input, doDecode]);
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const file = e.target.files?.[0];
+      if (!file) return;
 
       try {
         // Try reading as text first (for PEM files)
-        const text = await file.text()
+        const text = await file.text();
         if (text.startsWith("-----BEGIN")) {
-          setInput(text)
-          doDecode(text)
+          setInput(text);
+          doDecode(text);
         } else {
           // Read as binary
-          const buffer = await file.arrayBuffer()
-          const bytes = new Uint8Array(buffer)
+          const buffer = await file.arrayBuffer();
+          const bytes = new Uint8Array(buffer);
           // Convert to hex string
           const hex = Array.from(bytes)
             .map((b) => b.toString(16).padStart(2, "0"))
-            .join("")
-          setInput(hex)
-          doDecode(hex)
+            .join("");
+          setInput(hex);
+          doDecode(hex);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to read file")
+        setError(err instanceof Error ? err.message : "Failed to read file");
       }
 
       // Reset file input
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""
+        fileInputRef.current.value = "";
       }
     },
-    [doDecode]
-  )
+    [doDecode],
+  );
 
   const handleCopyAll = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(textOutput)
-      setCopiedAll(true)
-      setTimeout(() => setCopiedAll(false), 2000)
+      await navigator.clipboard.writeText(textOutput);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 2000);
     } catch {
       // Fallback
-      const textarea = document.createElement("textarea")
-      textarea.value = textOutput
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopiedAll(true)
-      setTimeout(() => setCopiedAll(false), 2000)
+      const textarea = document.createElement("textarea");
+      textarea.value = textOutput;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopiedAll(true);
+      setTimeout(() => setCopiedAll(false), 2000);
     }
-  }, [textOutput])
+  }, [textOutput]);
 
   return (
     <ToolPageWrapper
@@ -286,17 +304,20 @@ Or base64: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...`}
                 onChange={handleFileUpload}
                 className="hidden"
               />
-              <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <Button
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 <Upload className="h-4 w-4 mr-2" />
                 Upload File
               </Button>
               <Button
                 variant="outline"
                 onClick={() => {
-                  setInput("")
-                  setResult(null)
-                  setError(null)
-                  setTextOutput("")
+                  setInput("");
+                  setResult(null);
+                  setError(null);
+                  setTextOutput("");
                 }}
               >
                 Clear
@@ -361,17 +382,23 @@ Or base64: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...`}
               {/* Legend */}
               <div className="mt-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
                 <span>
-                  <span className="text-blue-600 dark:text-blue-400 font-medium">Universal</span> tags
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                    Universal
+                  </span>{" "}
+                  tags
                 </span>
                 <span>
-                  <span className="text-green-600 dark:text-green-400 font-medium">[n]</span> Context-specific
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    [n]
+                  </span>{" "}
+                  Context-specific
                 </span>
                 <span>
-                  <span className="text-purple-600 dark:text-purple-400 font-medium">[APPLICATION n]</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-medium">
+                    [APPLICATION n]
+                  </span>
                 </span>
-                <span>
-                  [offset] (header+content length)
-                </span>
+                <span>[offset] (header+content length)</span>
               </div>
             </CardContent>
           </Card>
@@ -386,14 +413,15 @@ Or base64: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A...`}
                 Paste ASN.1 data in PEM, hex, or base64 format to decode
               </p>
               <p className="text-center text-sm mt-2">
-                Supports X.509 certificates, keys, PKCS#7, PKCS#8, and other ASN.1 structures
+                Supports X.509 certificates, keys, PKCS#7, PKCS#8, and other
+                ASN.1 structures
               </p>
             </CardContent>
           </Card>
         )}
       </div>
     </ToolPageWrapper>
-  )
+  );
 }
 
 export default function ASN1DecoderPage() {
@@ -401,5 +429,5 @@ export default function ASN1DecoderPage() {
     <Suspense fallback={null}>
       <ASN1DecoderContent />
     </Suspense>
-  )
+  );
 }

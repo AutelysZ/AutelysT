@@ -1,64 +1,69 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense, useCallback, useState, useEffect } from "react"
-import { Clock, Calendar, AlertCircle, Check, Copy } from "lucide-react"
-import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import * as React from "react";
+import { Suspense, useCallback, useState, useEffect } from "react";
+import { Clock, Calendar, AlertCircle, Check, Copy } from "lucide-react";
+import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
-import { parseCron, getNextRuns, CRON_PRESETS, type ParsedCron } from "@/lib/cron/parser"
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import {
+  parseCron,
+  getNextRuns,
+  CRON_PRESETS,
+  type ParsedCron,
+} from "@/lib/cron/parser";
 
 function CronContent() {
-  const [expression, setExpression] = useState("0 9 * * 1-5")
-  const [parsed, setParsed] = useState<ParsedCron | null>(null)
-  const [nextRuns, setNextRuns] = useState<Date[]>([])
-  const [copied, setCopied] = useState(false)
-  const [runCount, setRunCount] = useState(10)
+  const [expression, setExpression] = useState("0 9 * * 1-5");
+  const [parsed, setParsed] = useState<ParsedCron | null>(null);
+  const [nextRuns, setNextRuns] = useState<Date[]>([]);
+  const [copied, setCopied] = useState(false);
+  const [runCount, setRunCount] = useState(10);
 
   useEffect(() => {
     if (!expression.trim()) {
-      setParsed(null)
-      setNextRuns([])
-      return
+      setParsed(null);
+      setNextRuns([]);
+      return;
     }
 
-    const result = parseCron(expression)
-    setParsed(result)
+    const result = parseCron(expression);
+    setParsed(result);
 
     if (result.isValid) {
-      const runs = getNextRuns(expression, runCount)
-      setNextRuns(runs)
+      const runs = getNextRuns(expression, runCount);
+      setNextRuns(runs);
     } else {
-      setNextRuns([])
+      setNextRuns([]);
     }
-  }, [expression, runCount])
+  }, [expression, runCount]);
 
   const handlePresetChange = useCallback((value: string) => {
     if (value) {
-      setExpression(value)
+      setExpression(value);
     }
-  }, [])
+  }, []);
 
   const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(expression)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      await navigator.clipboard.writeText(expression);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback
     }
-  }, [expression])
+  }, [expression]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleString(undefined, {
@@ -69,22 +74,22 @@ function CronContent() {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",
-    })
-  }
+    });
+  };
 
   const formatRelative = (date: Date) => {
-    const now = new Date()
-    const diff = date.getTime() - now.getTime()
-    const seconds = Math.floor(diff / 1000)
-    const minutes = Math.floor(seconds / 60)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
+    const now = new Date();
+    const diff = date.getTime() - now.getTime();
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-    if (days > 0) return `in ${days} day${days > 1 ? "s" : ""}`
-    if (hours > 0) return `in ${hours} hour${hours > 1 ? "s" : ""}`
-    if (minutes > 0) return `in ${minutes} minute${minutes > 1 ? "s" : ""}`
-    return `in ${seconds} second${seconds > 1 ? "s" : ""}`
-  }
+    if (days > 0) return `in ${days} day${days > 1 ? "s" : ""}`;
+    if (hours > 0) return `in ${hours} hour${hours > 1 ? "s" : ""}`;
+    if (minutes > 0) return `in ${minutes} minute${minutes > 1 ? "s" : ""}`;
+    return `in ${seconds} second${seconds > 1 ? "s" : ""}`;
+  };
 
   return (
     <ToolPageWrapper
@@ -132,7 +137,10 @@ function CronContent() {
                   </SelectTrigger>
                   <SelectContent>
                     {CRON_PRESETS.map((preset) => (
-                      <SelectItem key={preset.expression} value={preset.expression}>
+                      <SelectItem
+                        key={preset.expression}
+                        value={preset.expression}
+                      >
                         {preset.label}
                       </SelectItem>
                     ))}
@@ -193,23 +201,34 @@ function CronContent() {
               <p className="text-lg font-medium">{parsed.description}</p>
 
               <div className="mt-4 space-y-2">
-                <Label className="text-sm text-muted-foreground">Field Breakdown</Label>
+                <Label className="text-sm text-muted-foreground">
+                  Field Breakdown
+                </Label>
                 <div className="grid gap-2">
                   {parsed.fields.map((field, index) => (
                     <div
                       key={index}
                       className={cn(
                         "flex items-center justify-between p-2 rounded-lg",
-                        field.error ? "bg-destructive/10" : "bg-muted/50"
+                        field.error ? "bg-destructive/10" : "bg-muted/50",
                       )}
                     >
                       <div className="flex items-center gap-3">
                         <span className="font-mono bg-background px-2 py-1 rounded text-sm min-w-[60px] text-center">
                           {field.value}
                         </span>
-                        <span className="text-sm font-medium">{field.name}</span>
+                        <span className="text-sm font-medium">
+                          {field.name}
+                        </span>
                       </div>
-                      <span className={cn("text-sm", field.error ? "text-destructive" : "text-muted-foreground")}>
+                      <span
+                        className={cn(
+                          "text-sm",
+                          field.error
+                            ? "text-destructive"
+                            : "text-muted-foreground",
+                        )}
+                      >
                         {field.error || field.description}
                       </span>
                     </div>
@@ -252,16 +271,30 @@ function CronContent() {
                     key={index}
                     className={cn(
                       "flex items-center justify-between p-3 rounded-lg",
-                      index === 0 ? "bg-primary/10 border border-primary/20" : "bg-muted/50"
+                      index === 0
+                        ? "bg-primary/10 border border-primary/20"
+                        : "bg-muted/50",
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground text-sm w-6">{index + 1}.</span>
-                      <span className={cn("font-mono", index === 0 && "font-medium")}>
+                      <span className="text-muted-foreground text-sm w-6">
+                        {index + 1}.
+                      </span>
+                      <span
+                        className={cn(
+                          "font-mono",
+                          index === 0 && "font-medium",
+                        )}
+                      >
                         {formatDate(date)}
                       </span>
                     </div>
-                    <span className={cn("text-sm", index === 0 ? "text-primary" : "text-muted-foreground")}>
+                    <span
+                      className={cn(
+                        "text-sm",
+                        index === 0 ? "text-primary" : "text-muted-foreground",
+                      )}
+                    >
                       {formatRelative(date)}
                     </span>
                   </div>
@@ -281,19 +314,38 @@ function CronContent() {
               <div>
                 <h4 className="font-medium mb-2">Special Characters</h4>
                 <div className="space-y-1 text-muted-foreground">
-                  <div><code className="bg-muted px-1 rounded">*</code> - Any value</div>
-                  <div><code className="bg-muted px-1 rounded">,</code> - List separator (1,3,5)</div>
-                  <div><code className="bg-muted px-1 rounded">-</code> - Range (1-5)</div>
-                  <div><code className="bg-muted px-1 rounded">/</code> - Step (*/5 = every 5)</div>
+                  <div>
+                    <code className="bg-muted px-1 rounded">*</code> - Any value
+                  </div>
+                  <div>
+                    <code className="bg-muted px-1 rounded">,</code> - List
+                    separator (1,3,5)
+                  </div>
+                  <div>
+                    <code className="bg-muted px-1 rounded">-</code> - Range
+                    (1-5)
+                  </div>
+                  <div>
+                    <code className="bg-muted px-1 rounded">/</code> - Step (*/5
+                    = every 5)
+                  </div>
                 </div>
               </div>
               <div>
                 <h4 className="font-medium mb-2">Examples</h4>
                 <div className="space-y-1 text-muted-foreground font-mono text-xs">
-                  <div><code>0 0 * * *</code> - Daily at midnight</div>
-                  <div><code>*/15 * * * *</code> - Every 15 minutes</div>
-                  <div><code>0 9 * * 1-5</code> - Weekdays at 9am</div>
-                  <div><code>0 0 1 * *</code> - Monthly on 1st</div>
+                  <div>
+                    <code>0 0 * * *</code> - Daily at midnight
+                  </div>
+                  <div>
+                    <code>*/15 * * * *</code> - Every 15 minutes
+                  </div>
+                  <div>
+                    <code>0 9 * * 1-5</code> - Weekdays at 9am
+                  </div>
+                  <div>
+                    <code>0 0 1 * *</code> - Monthly on 1st
+                  </div>
                 </div>
               </div>
             </div>
@@ -301,7 +353,7 @@ function CronContent() {
         </Card>
       </div>
     </ToolPageWrapper>
-  )
+  );
 }
 
 export default function CronPage() {
@@ -309,5 +361,5 @@ export default function CronPage() {
     <Suspense fallback={null}>
       <CronContent />
     </Suspense>
-  )
+  );
 }

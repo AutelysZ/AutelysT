@@ -1,93 +1,107 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { CalendarIcon } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
+import * as React from "react";
+import { CalendarIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
 interface DateTimePickerProps {
-  date: Date | undefined
-  setDate: (date: Date | undefined) => void
-  buttonLabel?: string
-  iconOnly?: boolean
+  date: Date | undefined;
+  setDate: (date: Date | undefined) => void;
+  buttonLabel?: string;
+  iconOnly?: boolean;
 }
 
 function useLocale12Hour() {
-  const [is12Hour, setIs12Hour] = React.useState(false)
+  const [is12Hour, setIs12Hour] = React.useState(false);
 
   React.useEffect(() => {
-    const testDate = new Date(2023, 0, 1, 13, 0, 0)
-    const formatted = testDate.toLocaleTimeString()
-    setIs12Hour(formatted.includes("PM") || formatted.includes("AM"))
-  }, [])
+    const testDate = new Date(2023, 0, 1, 13, 0, 0);
+    const formatted = testDate.toLocaleTimeString();
+    setIs12Hour(formatted.includes("PM") || formatted.includes("AM"));
+  }, []);
 
-  return is12Hour
+  return is12Hour;
 }
 
-export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }: DateTimePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false)
-  const is12Hour = useLocale12Hour()
+export function DateTimePicker({
+  date,
+  setDate,
+  buttonLabel = "Pick",
+  iconOnly,
+}: DateTimePickerProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const is12Hour = useLocale12Hour();
 
-  const [displayMonth, setDisplayMonth] = React.useState<Date | undefined>(date)
+  const [displayMonth, setDisplayMonth] = React.useState<Date | undefined>(
+    date,
+  );
 
   // Update display month when date prop changes
   React.useEffect(() => {
     if (date) {
-      setDisplayMonth(date)
+      setDisplayMonth(date);
     }
-  }, [date])
+  }, [date]);
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (selectedDate) {
       // Preserve time if date already exists
       if (date) {
-        const newDate = new Date(selectedDate)
-        newDate.setHours(date.getHours())
-        newDate.setMinutes(date.getMinutes())
-        newDate.setSeconds(date.getSeconds())
-        setDate(newDate)
+        const newDate = new Date(selectedDate);
+        newDate.setHours(date.getHours());
+        newDate.setMinutes(date.getMinutes());
+        newDate.setSeconds(date.getSeconds());
+        setDate(newDate);
       } else {
-        setDate(selectedDate)
+        setDate(selectedDate);
       }
     }
-  }
+  };
 
-  const handleTimeChange = (type: "hour" | "minute" | "second", value: string) => {
-    const currentDate = date || new Date()
-    const newDate = new Date(currentDate)
+  const handleTimeChange = (
+    type: "hour" | "minute" | "second",
+    value: string,
+  ) => {
+    const currentDate = date || new Date();
+    const newDate = new Date(currentDate);
 
     if (type === "hour") {
-      newDate.setHours(Number.parseInt(value))
+      newDate.setHours(Number.parseInt(value));
     } else if (type === "minute") {
-      newDate.setMinutes(Number.parseInt(value))
+      newDate.setMinutes(Number.parseInt(value));
     } else if (type === "second") {
-      newDate.setSeconds(Number.parseInt(value))
+      newDate.setSeconds(Number.parseInt(value));
     }
 
-    setDate(newDate)
-  }
+    setDate(newDate);
+  };
 
   const hours = is12Hour
     ? Array.from({ length: 12 }, (_, i) => (i === 0 ? 12 : i))
-    : Array.from({ length: 24 }, (_, i) => i)
+    : Array.from({ length: 24 }, (_, i) => i);
 
   const getCurrentHour = () => {
-    if (!date) return undefined
-    const hour = date.getHours()
-    return is12Hour ? (hour % 12 === 0 ? 12 : hour % 12) : hour
-  }
+    if (!date) return undefined;
+    const hour = date.getHours();
+    return is12Hour ? (hour % 12 === 0 ? 12 : hour % 12) : hour;
+  };
 
-  const period = date ? (date.getHours() >= 12 ? "PM" : "AM") : "AM"
+  const period = date ? (date.getHours() >= 12 ? "PM" : "AM") : "AM";
 
   const togglePeriod = () => {
-    if (!date) return
-    const newDate = new Date(date)
-    const currentHour = newDate.getHours()
-    newDate.setHours(currentHour >= 12 ? currentHour - 12 : currentHour + 12)
-    setDate(newDate)
-  }
+    if (!date) return;
+    const newDate = new Date(date);
+    const currentHour = newDate.getHours();
+    newDate.setHours(currentHour >= 12 ? currentHour - 12 : currentHour + 12);
+    setDate(newDate);
+  };
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -130,12 +144,12 @@ export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }
                     variant={getCurrentHour() === hour ? "default" : "ghost"}
                     className="sm:w-full shrink-0 aspect-square"
                     onClick={() => {
-                      let actualHour = hour
+                      let actualHour = hour;
                       if (is12Hour) {
-                        actualHour = hour === 12 ? 0 : hour
-                        if (period === "PM") actualHour += 12
+                        actualHour = hour === 12 ? 0 : hour;
+                        if (period === "PM") actualHour += 12;
                       }
-                      handleTimeChange("hour", actualHour.toString())
+                      handleTimeChange("hour", actualHour.toString());
                     }}
                   >
                     {hour.toString().padStart(2, "0")}
@@ -151,9 +165,13 @@ export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }
                   <Button
                     key={minute}
                     size="icon"
-                    variant={date && date.getMinutes() === minute ? "default" : "ghost"}
+                    variant={
+                      date && date.getMinutes() === minute ? "default" : "ghost"
+                    }
                     className="sm:w-full shrink-0 aspect-square"
-                    onClick={() => handleTimeChange("minute", minute.toString())}
+                    onClick={() =>
+                      handleTimeChange("minute", minute.toString())
+                    }
                   >
                     {minute.toString().padStart(2, "0")}
                   </Button>
@@ -168,9 +186,13 @@ export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }
                   <Button
                     key={second}
                     size="icon"
-                    variant={date && date.getSeconds() === second ? "default" : "ghost"}
+                    variant={
+                      date && date.getSeconds() === second ? "default" : "ghost"
+                    }
                     className="sm:w-full shrink-0 aspect-square"
-                    onClick={() => handleTimeChange("second", second.toString())}
+                    onClick={() =>
+                      handleTimeChange("second", second.toString())
+                    }
                   >
                     {second.toString().padStart(2, "0")}
                   </Button>
@@ -202,5 +224,5 @@ export function DateTimePicker({ date, setDate, buttonLabel = "Pick", iconOnly }
         </div>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

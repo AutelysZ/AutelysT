@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
 import {
   AlertCircle,
   ArrowLeftRight,
@@ -13,16 +13,22 @@ import {
   X,
   FileCode,
   Trash2,
-} from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { HistoryEntry } from "@/lib/history/db"
+} from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { HistoryEntry } from "@/lib/history/db";
 import {
   type InputEncoding,
   type OutputEncoding,
@@ -38,16 +44,16 @@ import {
   objectToJson,
   objectToYaml,
   type CborField,
-} from "@/lib/cbor/codec"
+} from "@/lib/cbor/codec";
 
 // ============================================================================
 // Schema & Constants
 // ============================================================================
 
-const inputEncodings = ["base64", "hex", "binary"] as const
-const outputEncodings = ["binary", "base64", "base64url", "hex"] as const
-const inputFormats = ["json", "yaml"] as const
-const outputFormats = ["json", "yaml"] as const
+const inputEncodings = ["base64", "hex", "binary"] as const;
+const outputEncodings = ["binary", "base64", "base64url", "hex"] as const;
+const inputFormats = ["json", "yaml"] as const;
+const outputFormats = ["json", "yaml"] as const;
 
 const paramsSchema = z.object({
   mode: z.enum(["decode", "encode"]).default("decode"),
@@ -56,9 +62,9 @@ const paramsSchema = z.object({
   inputFormat: z.enum(inputFormats).default("json"),
   outputEncoding: z.enum(outputEncodings).default("base64"),
   outputFormat: z.enum(outputFormats).default("json"),
-})
+});
 
-type ParamsState = z.infer<typeof paramsSchema>
+type ParamsState = z.infer<typeof paramsSchema>;
 
 // ============================================================================
 // Main Page Component
@@ -69,36 +75,42 @@ export default function CborCodecPage() {
     <Suspense fallback={null}>
       <CborCodecContent />
     </Suspense>
-  )
+  );
 }
 
 function CborCodecContent() {
-  const { state, setParam, oversizeKeys, resetToDefaults } =
-    useUrlSyncedState("cbor", {
+  const { state, setParam, oversizeKeys, resetToDefaults } = useUrlSyncedState(
+    "cbor",
+    {
       schema: paramsSchema,
       defaults: paramsSchema.parse({}),
-    })
+    },
+  );
 
-  const [fileName, setFileName] = React.useState<string | null>(null)
+  const [fileName, setFileName] = React.useState<string | null>(null);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
+      const { inputs, params } = entry;
       if (params.fileName) {
-        alert("This history entry contains an uploaded file and cannot be restored.")
-        return
+        alert(
+          "This history entry contains an uploaded file and cannot be restored.",
+        );
+        return;
       }
-      setFileName(null)
-      if (inputs.input !== undefined) setParam("input", inputs.input)
-      const typedParams = params as Partial<ParamsState>
-      ;(Object.keys(paramsSchema.shape) as (keyof ParamsState)[]).forEach((key) => {
-        if (typedParams[key] !== undefined) {
-          setParam(key, typedParams[key] as ParamsState[typeof key])
-        }
-      })
+      setFileName(null);
+      if (inputs.input !== undefined) setParam("input", inputs.input);
+      const typedParams = params as Partial<ParamsState>;
+      (Object.keys(paramsSchema.shape) as (keyof ParamsState)[]).forEach(
+        (key) => {
+          if (typedParams[key] !== undefined) {
+            setParam(key, typedParams[key] as ParamsState[typeof key]);
+          }
+        },
+      );
     },
-    [setParam]
-  )
+    [setParam],
+  );
 
   return (
     <ToolPageWrapper
@@ -116,7 +128,7 @@ function CborCodecContent() {
         setFileName={setFileName}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 // ============================================================================
@@ -131,135 +143,156 @@ function CborCodecInner({
   fileName,
   setFileName,
 }: {
-  state: ParamsState
-  setParam: <K extends keyof ParamsState>(key: K, value: ParamsState[K], immediate?: boolean) => void
-  oversizeKeys: (keyof ParamsState)[]
-  resetToDefaults: () => void
-  fileName: string | null
-  setFileName: React.Dispatch<React.SetStateAction<string | null>>
+  state: ParamsState;
+  setParam: <K extends keyof ParamsState>(
+    key: K,
+    value: ParamsState[K],
+    immediate?: boolean,
+  ) => void;
+  oversizeKeys: (keyof ParamsState)[];
+  resetToDefaults: () => void;
+  fileName: string | null;
+  setFileName: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
-  const { upsertInputEntry, clearHistory } = useToolHistoryContext()
+  const { upsertInputEntry, clearHistory } = useToolHistoryContext();
 
   // Local state
-  const [output, setOutput] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
-  const [isWorking, setIsWorking] = React.useState(false)
-  const [binaryMeta, setBinaryMeta] = React.useState<{ name: string; size: number } | null>(null)
-  const [copied, setCopied] = React.useState(false)
-  const [decodedFields, setDecodedFields] = React.useState<CborField[]>([])
+  const [output, setOutput] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [isWorking, setIsWorking] = React.useState(false);
+  const [binaryMeta, setBinaryMeta] = React.useState<{
+    name: string;
+    size: number;
+  } | null>(null);
+  const [copied, setCopied] = React.useState(false);
+  const [decodedFields, setDecodedFields] = React.useState<CborField[]>([]);
 
   // Refs
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null)
-  const [fileVersion, setFileVersion] = React.useState(0)
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
-  const fileBytesRef = React.useRef<Uint8Array | null>(null)
-  const outputBytesRef = React.useRef<Uint8Array | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [fileVersion, setFileVersion] = React.useState(0);
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
+  const fileBytesRef = React.useRef<Uint8Array | null>(null);
+  const outputBytesRef = React.useRef<Uint8Array | null>(null);
 
   // History tracking
-  const hydrationSource = "default"
+  const hydrationSource = "default";
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = fileName ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    hasHydratedInputRef.current = true
-  }, [state.input, fileName, fileVersion])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = fileName
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    hasHydratedInputRef.current = true;
+  }, [state.input, fileName, fileVersion]);
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion)
-    const signature = hasFile ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    if ((!state.input && !hasFile) || signature === lastInputRef.current) return
+    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion);
+    const signature = hasFile
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    if ((!state.input && !hasFile) || signature === lastInputRef.current)
+      return;
     const timer = setTimeout(() => {
-      lastInputRef.current = signature
-      const preview = fileName || state.input.slice(0, 100)
-      upsertInputEntry({ input: fileName ? "" : state.input }, { ...state, fileName }, "left", preview)
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [state, fileName, fileVersion, upsertInputEntry])
+      lastInputRef.current = signature;
+      const preview = fileName || state.input.slice(0, 100);
+      upsertInputEntry(
+        { input: fileName ? "" : state.input },
+        { ...state, fileName },
+        "left",
+        preview,
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [state, fileName, fileVersion, upsertInputEntry]);
 
   // Main processing effect
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion)
-    const hasInputText = Boolean(state.input.trim())
+    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion);
+    const hasInputText = Boolean(state.input.trim());
 
     if (!hasInputText && !hasFile) {
-      setOutput("")
-      setError(null)
-      setIsWorking(false)
-      setBinaryMeta(null)
-      setDecodedFields([])
-      outputBytesRef.current = null
-      return
+      setOutput("");
+      setError(null);
+      setIsWorking(false);
+      setBinaryMeta(null);
+      setDecodedFields([]);
+      outputBytesRef.current = null;
+      return;
     }
 
-    setIsWorking(true)
+    setIsWorking(true);
 
     void (async () => {
       try {
-        let result: { text?: string; binary?: Uint8Array }
+        let result: { text?: string; binary?: Uint8Array };
 
         if (state.mode === "decode") {
-          let inputData: Uint8Array
+          let inputData: Uint8Array;
 
           if (hasFile) {
-            inputData = fileBytesRef.current!
+            inputData = fileBytesRef.current!;
           } else {
-            inputData = decodeInputData(state.input, state.inputEncoding)
+            inputData = decodeInputData(state.input, state.inputEncoding);
           }
 
-          const decoded = decodeCbor(inputData)
-          const details = decodeCborWithDetails(inputData)
-          setDecodedFields(details)
+          const decoded = decodeCbor(inputData);
+          const details = decodeCborWithDetails(inputData);
+          setDecodedFields(details);
 
           const outputText =
-            state.outputFormat === "json" ? objectToJson(decoded) : objectToYaml(decoded)
+            state.outputFormat === "json"
+              ? objectToJson(decoded)
+              : objectToYaml(decoded);
 
-          result = { text: outputText }
+          result = { text: outputText };
         } else {
           // Encode mode
-          let inputData: unknown
+          let inputData: unknown;
 
           if (state.inputFormat === "json") {
-            const validation = validateJsonForCbor(state.input)
+            const validation = validateJsonForCbor(state.input);
             if (!validation.isValid) {
-              throw new Error(`Invalid JSON: ${validation.error}`)
+              throw new Error(`Invalid JSON: ${validation.error}`);
             }
-            inputData = validation.parsed
+            inputData = validation.parsed;
           } else {
-            const validation = validateYamlForCbor(state.input)
+            const validation = validateYamlForCbor(state.input);
             if (!validation.isValid) {
-              throw new Error(`Invalid YAML: ${validation.error}`)
+              throw new Error(`Invalid YAML: ${validation.error}`);
             }
-            inputData = validation.parsed
+            inputData = validation.parsed;
           }
 
-          const encoded = encodeCbor(inputData)
-          result = encodeOutputData(encoded, state.outputEncoding)
-          setDecodedFields([])
+          const encoded = encodeCbor(inputData);
+          result = encodeOutputData(encoded, state.outputEncoding);
+          setDecodedFields([]);
         }
 
         if (result.binary) {
-          outputBytesRef.current = result.binary
-          setBinaryMeta({ name: "output.cbor", size: result.binary.length })
-          setOutput("")
+          outputBytesRef.current = result.binary;
+          setBinaryMeta({ name: "output.cbor", size: result.binary.length });
+          setOutput("");
         } else {
-          setOutput(result.text || "")
-          setBinaryMeta(null)
-          outputBytesRef.current = null
+          setOutput(result.text || "");
+          setBinaryMeta(null);
+          outputBytesRef.current = null;
         }
 
-        setError(null)
+        setError(null);
       } catch (err) {
-        setOutput("")
-        setBinaryMeta(null)
-        outputBytesRef.current = null
-        setDecodedFields([])
-        setError(err instanceof Error ? err.message : "Failed to process input.")
+        setOutput("");
+        setBinaryMeta(null);
+        outputBytesRef.current = null;
+        setDecodedFields([]);
+        setError(
+          err instanceof Error ? err.message : "Failed to process input.",
+        );
       } finally {
-        setIsWorking(false)
+        setIsWorking(false);
       }
-    })()
+    })();
   }, [
     state.mode,
     state.input,
@@ -269,123 +302,140 @@ function CborCodecInner({
     state.outputFormat,
     fileName,
     fileVersion,
-  ])
+  ]);
 
   // Handlers
   const handleFileUpload = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ""
-      if (!file) return
-      const reader = new FileReader()
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const buffer = e.target?.result as ArrayBuffer
-        if (!buffer) return
-        fileBytesRef.current = new Uint8Array(buffer)
-        setParam("input", "")
-        setParam("inputEncoding", "binary", true)
-        setFileName(file.name)
-        setFileVersion((prev) => prev + 1)
-        setError(null)
-      }
-      reader.readAsArrayBuffer(file)
+        const buffer = e.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        fileBytesRef.current = new Uint8Array(buffer);
+        setParam("input", "");
+        setParam("inputEncoding", "binary", true);
+        setFileName(file.name);
+        setFileVersion((prev) => prev + 1);
+        setError(null);
+      };
+      reader.readAsArrayBuffer(file);
     },
-    [setParam, setFileName]
-  )
+    [setParam, setFileName],
+  );
 
   const handleClearFile = React.useCallback(() => {
-    setFileName(null)
-    fileBytesRef.current = null
-    setFileVersion(0)
-  }, [setFileName])
+    setFileName(null);
+    fileBytesRef.current = null;
+    setFileVersion(0);
+  }, [setFileName]);
 
   const handleClearAll = React.useCallback(async () => {
-    await clearHistory("tool")
-    resetToDefaults()
+    await clearHistory("tool");
+    resetToDefaults();
     if (typeof window !== "undefined") {
-      window.history.replaceState({}, "", window.location.pathname)
+      window.history.replaceState({}, "", window.location.pathname);
     }
-    setFileName(null)
-    fileBytesRef.current = null
-    outputBytesRef.current = null
-    if (fileInputRef.current) fileInputRef.current.value = ""
-    setFileVersion(0)
-    setOutput("")
-    setError(null)
-    setIsWorking(false)
-    setBinaryMeta(null)
-    setCopied(false)
-    setDecodedFields([])
-  }, [clearHistory, resetToDefaults, setFileName])
+    setFileName(null);
+    fileBytesRef.current = null;
+    outputBytesRef.current = null;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFileVersion(0);
+    setOutput("");
+    setError(null);
+    setIsWorking(false);
+    setBinaryMeta(null);
+    setCopied(false);
+    setDecodedFields([]);
+  }, [clearHistory, resetToDefaults, setFileName]);
 
   const handleInputChange = (value: string) => {
-    setParam("input", value)
+    setParam("input", value);
     if (fileName || fileBytesRef.current) {
-      handleClearFile()
+      handleClearFile();
     }
-  }
+  };
 
   const handleCopyResult = async () => {
-    if (!output) return
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleDownloadOutput = React.useCallback(() => {
     if (binaryMeta && outputBytesRef.current) {
-      const blob = new Blob([outputBytesRef.current as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = binaryMeta.name
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 0)
+      const blob = new Blob(
+        [outputBytesRef.current as Uint8Array<ArrayBuffer>],
+        { type: "application/octet-stream" },
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = binaryMeta.name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } else if (output) {
-      const ext = state.outputFormat === "json" ? "json" : "yaml"
-      const blob = new Blob([output], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = `result.${ext}`
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 0)
+      const ext = state.outputFormat === "json" ? "json" : "yaml";
+      const blob = new Blob([output], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `result.${ext}`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     }
-  }, [binaryMeta, output, state.outputFormat])
+  }, [binaryMeta, output, state.outputFormat]);
 
   // Swap input/output and toggle mode
   const handleSwap = React.useCallback(() => {
-    const newMode = state.mode === "decode" ? "encode" : "decode"
-    const hasFile = Boolean(fileName || fileBytesRef.current)
+    const newMode = state.mode === "decode" ? "encode" : "decode";
+    const hasFile = Boolean(fileName || fileBytesRef.current);
 
     if (hasFile) {
-      handleClearFile()
+      handleClearFile();
     }
 
-    const newInput = output
+    const newInput = output;
 
     if (newMode === "encode") {
-      setParam("inputFormat", state.outputFormat as InputFormat, true)
-      setParam("outputEncoding", hasFile ? "binary" : state.inputEncoding, true)
+      setParam("inputFormat", state.outputFormat as InputFormat, true);
+      setParam(
+        "outputEncoding",
+        hasFile ? "binary" : state.inputEncoding,
+        true,
+      );
     } else {
       if (state.outputEncoding === "binary") {
-        setParam("inputEncoding", "base64", true)
+        setParam("inputEncoding", "base64", true);
       } else {
-        setParam("inputEncoding", state.outputEncoding as InputEncoding, true)
+        setParam("inputEncoding", state.outputEncoding as InputEncoding, true);
       }
-      setParam("outputFormat", state.inputFormat as OutputFormat, true)
+      setParam("outputFormat", state.inputFormat as OutputFormat, true);
     }
 
-    setParam("input", newInput)
-    setParam("mode", newMode, true)
-    setOutput("")
-    setError(null)
-    setDecodedFields([])
-  }, [state.mode, state.outputFormat, state.outputEncoding, state.inputFormat, state.inputEncoding, output, fileName, handleClearFile, setParam])
+    setParam("input", newInput);
+    setParam("mode", newMode, true);
+    setOutput("");
+    setError(null);
+    setDecodedFields([]);
+  }, [
+    state.mode,
+    state.outputFormat,
+    state.outputEncoding,
+    state.inputFormat,
+    state.inputEncoding,
+    output,
+    fileName,
+    handleClearFile,
+    setParam,
+  ]);
 
   const inputWarning = oversizeKeys.includes("input")
     ? "Input exceeds 2 KB and is not synced to URL."
-    : null
+    : null;
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -393,7 +443,9 @@ function CborCodecInner({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Tabs
           value={state.mode}
-          onValueChange={(value) => setParam("mode", value as "decode" | "encode", true)}
+          onValueChange={(value) =>
+            setParam("mode", value as "decode" | "encode", true)
+          }
         >
           <TabsList>
             <TabsTrigger value="decode" className="px-6">
@@ -404,7 +456,12 @@ function CborCodecInner({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 gap-1.5 px-3">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearAll}
+          className="h-8 gap-1.5 px-3"
+        >
           <Trash2 className="h-3.5 w-3.5" />
           Clear All
         </Button>
@@ -422,7 +479,9 @@ function CborCodecInner({
               {state.mode === "decode" && (
                 <Tabs
                   value={state.inputEncoding}
-                  onValueChange={(v) => setParam("inputEncoding", v as InputEncoding, true)}
+                  onValueChange={(v) =>
+                    setParam("inputEncoding", v as InputEncoding, true)
+                  }
                 >
                   <TabsList className="h-7">
                     <TabsTrigger value="base64" className="px-2 text-xs">
@@ -440,7 +499,9 @@ function CborCodecInner({
               {state.mode === "encode" && (
                 <Tabs
                   value={state.inputFormat}
-                  onValueChange={(v) => setParam("inputFormat", v as InputFormat, true)}
+                  onValueChange={(v) =>
+                    setParam("inputFormat", v as InputFormat, true)
+                  }
                 >
                   <TabsList className="h-7">
                     <TabsTrigger value="json" className="px-2 text-xs">
@@ -489,7 +550,9 @@ function CborCodecInner({
             {fileName && (
               <div className="absolute inset-0 flex items-center justify-center gap-3 rounded-md border bg-background/95">
                 <FileCode className="h-5 w-5 text-muted-foreground" />
-                <span className="max-w-[60%] truncate font-medium">{fileName}</span>
+                <span className="max-w-[60%] truncate font-medium">
+                  {fileName}
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -502,7 +565,9 @@ function CborCodecInner({
             )}
           </div>
 
-          {inputWarning && <p className="text-xs text-muted-foreground">{inputWarning}</p>}
+          {inputWarning && (
+            <p className="text-xs text-muted-foreground">{inputWarning}</p>
+          )}
         </div>
 
         {/* Swap button */}
@@ -527,7 +592,9 @@ function CborCodecInner({
               {state.mode === "decode" && (
                 <Tabs
                   value={state.outputFormat}
-                  onValueChange={(v) => setParam("outputFormat", v as OutputFormat, true)}
+                  onValueChange={(v) =>
+                    setParam("outputFormat", v as OutputFormat, true)
+                  }
                 >
                   <TabsList className="h-7">
                     <TabsTrigger value="json" className="px-2 text-xs">
@@ -542,7 +609,9 @@ function CborCodecInner({
               {state.mode === "encode" && (
                 <Tabs
                   value={state.outputEncoding}
-                  onValueChange={(v) => setParam("outputEncoding", v as OutputEncoding, true)}
+                  onValueChange={(v) =>
+                    setParam("outputEncoding", v as OutputEncoding, true)
+                  }
                 >
                   <TabsList className="h-7">
                     <TabsTrigger value="base64" className="px-2 text-xs">
@@ -564,7 +633,11 @@ function CborCodecInner({
                 disabled={!output}
                 className="h-7 w-7 p-0"
               >
-                {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? (
+                  <Check className="h-3.5 w-3.5" />
+                ) : (
+                  <Copy className="h-3.5 w-3.5" />
+                )}
               </Button>
               <Button
                 variant="ghost"
@@ -582,22 +655,33 @@ function CborCodecInner({
             <Textarea
               value={output}
               readOnly
-              placeholder={isWorking ? "Processing..." : "Result will appear here..."}
+              placeholder={
+                isWorking ? "Processing..." : "Result will appear here..."
+              }
               className="min-h-[200px] font-mono text-sm"
             />
-            {binaryMeta && state.mode === "encode" && state.outputEncoding === "binary" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md border bg-background/95">
-                <FileCode className="h-8 w-8 text-muted-foreground" />
-                <div className="text-center">
-                  <p className="font-medium">{binaryMeta.name}</p>
-                  <p className="text-sm text-muted-foreground">{binaryMeta.size} bytes</p>
+            {binaryMeta &&
+              state.mode === "encode" &&
+              state.outputEncoding === "binary" && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-md border bg-background/95">
+                  <FileCode className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-center">
+                    <p className="font-medium">{binaryMeta.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {binaryMeta.size} bytes
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadOutput}
+                    className="gap-1.5"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleDownloadOutput} className="gap-1.5">
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </Button>
-              </div>
-            )}
+              )}
           </div>
 
           {error && (
@@ -625,38 +709,41 @@ function CborCodecInner({
                     <th className="px-4 py-2 text-left font-medium">Value</th>
                   </tr>
                 </thead>
-                <tbody>
-                  {renderFields(decodedFields)}
-                </tbody>
+                <tbody>{renderFields(decodedFields)}</tbody>
               </table>
             </div>
           </CardContent>
         </Card>
       )}
     </div>
-  )
+  );
 }
 
 function renderFields(fields: CborField[], depth = 0): React.ReactNode[] {
-  const rows: React.ReactNode[] = []
+  const rows: React.ReactNode[] = [];
 
   for (const field of fields) {
     rows.push(
       <tr key={field.path} className="border-t">
-        <td className="px-4 py-1.5 font-mono" style={{ paddingLeft: `${depth * 16 + 16}px` }}>
+        <td
+          className="px-4 py-1.5 font-mono"
+          style={{ paddingLeft: `${depth * 16 + 16}px` }}
+        >
           {field.path}
         </td>
         <td className="px-4 py-1.5 text-muted-foreground">{field.type}</td>
         <td className="max-w-[200px] truncate px-4 py-1.5 font-mono">
-          {typeof field.value === "string" ? field.value : JSON.stringify(field.value)}
+          {typeof field.value === "string"
+            ? field.value
+            : JSON.stringify(field.value)}
         </td>
-      </tr>
-    )
+      </tr>,
+    );
 
     if (field.children) {
-      rows.push(...renderFields(field.children, depth + 1))
+      rows.push(...renderFields(field.children, depth + 1));
     }
   }
 
-  return rows
+  return rows;
 }

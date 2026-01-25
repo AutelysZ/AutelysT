@@ -1,20 +1,20 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export interface ToolSEO {
-  title: string
-  description: string
-  keywords?: string[]
+  title: string;
+  description: string;
+  keywords?: string[];
 }
 
 export interface Tool {
-  id: string
-  name: string
-  description: string
-  category: ToolCategory
-  route: string
-  keywords: string[]
-  seo: ToolSEO
-  icon?: string
+  id: string;
+  name: string;
+  description: string;
+  category: ToolCategory;
+  route: string;
+  keywords: string[];
+  seo: ToolSEO;
+  icon?: string;
 }
 
 export type ToolCategory =
@@ -27,7 +27,7 @@ export type ToolCategory =
   | "Web"
   | "Data"
   | "Utility"
-  | "Misc"
+  | "Misc";
 
 export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
   Encoding: [
@@ -44,16 +44,75 @@ export const CATEGORY_KEYWORDS: Record<ToolCategory, string[]> = {
     "url",
     "uri",
   ],
-  Numbers: ["number", "radix", "convert", "binary", "decimal", "octal", "hexadecimal", "format", "roman", "chinese"],
-  Identifier: ["uuid", "ulid", "ksuid", "objectid", "guid", "id", "unique", "generate"],
-  Text: ["text", "string", "regex", "replace", "format", "case", "trim", "split", "join"],
-  "Date & Time": ["date", "time", "timestamp", "timezone", "epoch", "unix", "calendar"],
-  Crypto: ["hash", "md5", "sha", "encrypt", "decrypt", "aes", "rsa", "hmac", "password"],
+  Numbers: [
+    "number",
+    "radix",
+    "convert",
+    "binary",
+    "decimal",
+    "octal",
+    "hexadecimal",
+    "format",
+    "roman",
+    "chinese",
+  ],
+  Identifier: [
+    "uuid",
+    "ulid",
+    "ksuid",
+    "objectid",
+    "guid",
+    "id",
+    "unique",
+    "generate",
+  ],
+  Text: [
+    "text",
+    "string",
+    "regex",
+    "replace",
+    "format",
+    "case",
+    "trim",
+    "split",
+    "join",
+  ],
+  "Date & Time": [
+    "date",
+    "time",
+    "timestamp",
+    "timezone",
+    "epoch",
+    "unix",
+    "calendar",
+  ],
+  Crypto: [
+    "hash",
+    "md5",
+    "sha",
+    "encrypt",
+    "decrypt",
+    "aes",
+    "rsa",
+    "hmac",
+    "password",
+  ],
   Web: ["json", "xml", "html", "css", "url", "query", "jwt", "uuid"],
   Data: ["json", "diff", "compare", "schema", "text", "viewer", "generate"],
-  Utility: ["unit", "converter", "length", "mass", "temperature", "volume", "area", "speed", "pressure", "energy"],
+  Utility: [
+    "unit",
+    "converter",
+    "length",
+    "mass",
+    "temperature",
+    "volume",
+    "area",
+    "speed",
+    "pressure",
+    "energy",
+  ],
   Misc: [],
-}
+};
 
 export function categorizeByKeywords(keywords: string[]): ToolCategory {
   const scores: Record<ToolCategory, number> = {
@@ -67,23 +126,34 @@ export function categorizeByKeywords(keywords: string[]): ToolCategory {
     Data: 0,
     Utility: 0,
     Misc: 0,
-  }
+  };
 
   for (const keyword of keywords) {
-    const lowerKeyword = keyword.toLowerCase()
-    for (const [category, categoryKeywords] of Object.entries(CATEGORY_KEYWORDS)) {
-      if (categoryKeywords.some((ck) => lowerKeyword.includes(ck) || ck.includes(lowerKeyword))) {
-        scores[category as ToolCategory]++
+    const lowerKeyword = keyword.toLowerCase();
+    for (const [category, categoryKeywords] of Object.entries(
+      CATEGORY_KEYWORDS,
+    )) {
+      if (
+        categoryKeywords.some(
+          (ck) => lowerKeyword.includes(ck) || ck.includes(lowerKeyword),
+        )
+      ) {
+        scores[category as ToolCategory]++;
       }
     }
   }
 
-  const maxScore = Math.max(...Object.values(scores))
-  if (maxScore === 0) return "Misc"
+  const maxScore = Math.max(...Object.values(scores));
+  if (maxScore === 0) return "Misc";
 
-  return Object.entries(scores).find(([, score]) => score === maxScore)![0] as ToolCategory
+  return Object.entries(scores).find(
+    ([, score]) => score === maxScore,
+  )![0] as ToolCategory;
 }
 
-export const toolParamsSchema = z.record(z.string(), z.union([z.string(), z.boolean(), z.number()]).nullable())
+export const toolParamsSchema = z.record(
+  z.string(),
+  z.union([z.string(), z.boolean(), z.number()]).nullable(),
+);
 
-export type ToolParams = z.infer<typeof toolParamsSchema>
+export type ToolParams = z.infer<typeof toolParamsSchema>;

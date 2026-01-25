@@ -1,9 +1,18 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { FolderOpen, Plus, X, Download, Copy, Check, FileCode, Upload } from "lucide-react"
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  FolderOpen,
+  Plus,
+  X,
+  Download,
+  Copy,
+  Check,
+  FileCode,
+  Upload,
+} from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,27 +22,27 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import JSZip from "jszip"
-import { cn } from "@/lib/utils"
-import Editor, { type Monaco } from "@monaco-editor/react"
-import { useTheme } from "next-themes"
+} from "@/components/ui/alert-dialog";
+import JSZip from "jszip";
+import { cn } from "@/lib/utils";
+import Editor, { type Monaco } from "@monaco-editor/react";
+import { useTheme } from "next-themes";
 
 type ProtoFile = {
-  id: string
-  name: string
-  content: string
-}
+  id: string;
+  name: string;
+  content: string;
+};
 
 type ProtoEditorProps = {
-  files: ProtoFile[]
-  onFilesChange: (files: ProtoFile[]) => void
-}
+  files: ProtoFile[];
+  onFilesChange: (files: ProtoFile[]) => void;
+};
 
 type PendingUpload = {
-  newFiles: ProtoFile[]
-  duplicates: string[]
-}
+  newFiles: ProtoFile[];
+  duplicates: string[];
+};
 
 const SAMPLE_PROTO = `syntax = "proto3";
 
@@ -50,18 +59,18 @@ message Address {
   string city = 2;
   string country = 3;
   string postal_code = 4;
-}`
+}`;
 
 // Protobuf language definition for Monaco
 function registerProtobufLanguage(monaco: Monaco) {
   // Check if already registered
-  const languages = monaco.languages.getLanguages()
+  const languages = monaco.languages.getLanguages();
   if (languages.some((lang) => lang.id === "protobuf")) {
-    return
+    return;
   }
 
   // Register the language
-  monaco.languages.register({ id: "protobuf", extensions: [".proto"] })
+  monaco.languages.register({ id: "protobuf", extensions: [".proto"] });
 
   // Define tokens for syntax highlighting
   monaco.languages.setMonarchTokensProvider("protobuf", {
@@ -162,7 +171,7 @@ function registerProtobufLanguage(monaco: Monaco) {
         [/'/, "string", "@pop"],
       ],
     },
-  })
+  });
 
   // Define language configuration for auto-closing brackets, etc.
   monaco.languages.setLanguageConfiguration("protobuf", {
@@ -193,21 +202,22 @@ function registerProtobufLanguage(monaco: Monaco) {
       { open: "'", close: "'" },
     ],
     indentationRules: {
-      increaseIndentPattern: /^\s*(message|enum|service|oneof|extend|rpc)\s+\w+\s*\{[^}]*$/,
+      increaseIndentPattern:
+        /^\s*(message|enum|service|oneof|extend|rpc)\s+\w+\s*\{[^}]*$/,
       decreaseIndentPattern: /^\s*\}/,
     },
-  })
+  });
 
   // Register completion provider
   monaco.languages.registerCompletionItemProvider("protobuf", {
     provideCompletionItems: (model, position) => {
-      const word = model.getWordUntilPosition(position)
+      const word = model.getWordUntilPosition(position);
       const range = {
         startLineNumber: position.lineNumber,
         endLineNumber: position.lineNumber,
         startColumn: word.startColumn,
         endColumn: word.endColumn,
-      }
+      };
 
       const suggestions = [
         // Syntax
@@ -215,7 +225,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "syntax",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: 'syntax = "proto3";',
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Protocol buffer syntax version",
           range,
         },
@@ -224,7 +235,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "package",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "package ${1:name};",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Package declaration",
           range,
         },
@@ -233,7 +245,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "import",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: 'import "${1:path}";',
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Import another proto file",
           range,
         },
@@ -242,7 +255,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "message",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "message ${1:Name} {\n  $0\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define a message type",
           range,
         },
@@ -251,7 +265,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "enum",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "enum ${1:Name} {\n  ${2:UNKNOWN} = 0;\n  $0\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define an enumeration type",
           range,
         },
@@ -260,7 +275,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "service",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "service ${1:Name} {\n  $0\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define a service",
           range,
         },
@@ -268,8 +284,10 @@ function registerProtobufLanguage(monaco: Monaco) {
         {
           label: "rpc",
           kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "rpc ${1:MethodName}(${2:Request}) returns (${3:Response});",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertText:
+            "rpc ${1:MethodName}(${2:Request}) returns (${3:Response});",
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define an RPC method",
           range,
         },
@@ -278,7 +296,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "oneof",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "oneof ${1:name} {\n  $0\n}",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define a oneof field",
           range,
         },
@@ -286,8 +305,10 @@ function registerProtobufLanguage(monaco: Monaco) {
         {
           label: "map",
           kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: "map<${1:key_type}, ${2:value_type}> ${3:field_name} = ${4:number};",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertText:
+            "map<${1:key_type}, ${2:value_type}> ${3:field_name} = ${4:number};",
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Define a map field",
           range,
         },
@@ -296,7 +317,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "reserved",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "reserved ${1:numbers};",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Reserve field numbers or names",
           range,
         },
@@ -305,7 +327,8 @@ function registerProtobufLanguage(monaco: Monaco) {
           label: "option",
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: "option ${1:name} = ${2:value};",
-          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
           documentation: "Set an option",
           range,
         },
@@ -325,247 +348,266 @@ function registerProtobufLanguage(monaco: Monaco) {
           range,
         },
         // Scalar types
-        ...["double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64", "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "string", "bytes"].map(
-          (type) => ({
-            label: type,
-            kind: monaco.languages.CompletionItemKind.TypeParameter,
-            insertText: `${type} \${1:field_name} = \${2:number};`,
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: `${type} field type`,
-            range,
-          })
-        ),
-      ]
+        ...[
+          "double",
+          "float",
+          "int32",
+          "int64",
+          "uint32",
+          "uint64",
+          "sint32",
+          "sint64",
+          "fixed32",
+          "fixed64",
+          "sfixed32",
+          "sfixed64",
+          "bool",
+          "string",
+          "bytes",
+        ].map((type) => ({
+          label: type,
+          kind: monaco.languages.CompletionItemKind.TypeParameter,
+          insertText: `${type} \${1:field_name} = \${2:number};`,
+          insertTextRules:
+            monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          documentation: `${type} field type`,
+          range,
+        })),
+      ];
 
-      return { suggestions }
+      return { suggestions };
     },
-  })
+  });
 }
 
 export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
-  const [activeFileId, setActiveFileId] = React.useState<string>("")
-  const [copied, setCopied] = React.useState(false)
-  const [editingFileId, setEditingFileId] = React.useState<string | null>(null)
-  const [editingName, setEditingName] = React.useState("")
-  const [pendingUpload, setPendingUpload] = React.useState<PendingUpload | null>(null)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const folderInputRef = React.useRef<HTMLInputElement>(null)
-  const renameInputRef = React.useRef<HTMLInputElement>(null)
-  const { resolvedTheme } = useTheme()
+  const [activeFileId, setActiveFileId] = React.useState<string>("");
+  const [copied, setCopied] = React.useState(false);
+  const [editingFileId, setEditingFileId] = React.useState<string | null>(null);
+  const [editingName, setEditingName] = React.useState("");
+  const [pendingUpload, setPendingUpload] =
+    React.useState<PendingUpload | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const folderInputRef = React.useRef<HTMLInputElement>(null);
+  const renameInputRef = React.useRef<HTMLInputElement>(null);
+  const { resolvedTheme } = useTheme();
 
-  const activeFile = files.find((f) => f.id === activeFileId) || files[0]
+  const activeFile = files.find((f) => f.id === activeFileId) || files[0];
 
   // Auto-select first file
   React.useEffect(() => {
     if (files.length > 0 && !activeFileId) {
-      setActiveFileId(files[0].id)
+      setActiveFileId(files[0].id);
     } else if (files.length === 0) {
-      setActiveFileId("")
+      setActiveFileId("");
     } else if (activeFileId && !files.find((f) => f.id === activeFileId)) {
-      setActiveFileId(files[0].id)
+      setActiveFileId(files[0].id);
     }
-  }, [files, activeFileId])
+  }, [files, activeFileId]);
 
   // Focus input when editing
   React.useEffect(() => {
     if (editingFileId && renameInputRef.current) {
-      renameInputRef.current.focus()
-      renameInputRef.current.select()
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
     }
-  }, [editingFileId])
+  }, [editingFileId]);
 
   const handleEditorMount = React.useCallback((monaco: Monaco) => {
-    registerProtobufLanguage(monaco)
-  }, [])
+    registerProtobufLanguage(monaco);
+  }, []);
 
   const handleFileContentChange = (content: string | undefined) => {
-    if (!activeFile || content === undefined) return
+    if (!activeFile || content === undefined) return;
     const updatedFiles = files.map((file) =>
-      file.id === activeFileId ? { ...file, content } : file
-    )
-    onFilesChange(updatedFiles)
-  }
+      file.id === activeFileId ? { ...file, content } : file,
+    );
+    onFilesChange(updatedFiles);
+  };
 
   const handleAddNewFile = () => {
     const newFile: ProtoFile = {
       id: Date.now().toString(),
       name: `schema_${files.length + 1}.proto`,
       content: SAMPLE_PROTO,
-    }
-    onFilesChange([...files, newFile])
-    setActiveFileId(newFile.id)
-  }
+    };
+    onFilesChange([...files, newFile]);
+    setActiveFileId(newFile.id);
+  };
 
   const handleRemoveFile = (e: React.MouseEvent, fileId: string) => {
-    e.stopPropagation()
-    const updatedFiles = files.filter((f) => f.id !== fileId)
-    onFilesChange(updatedFiles)
-  }
+    e.stopPropagation();
+    const updatedFiles = files.filter((f) => f.id !== fileId);
+    onFilesChange(updatedFiles);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = event.target.files
-    if (!uploadedFiles || uploadedFiles.length === 0) return
+    const uploadedFiles = event.target.files;
+    if (!uploadedFiles || uploadedFiles.length === 0) return;
 
     // Filter only .proto files and get relative paths for directories
-    const protoFiles = Array.from(uploadedFiles).filter(
-      (file) => file.name.endsWith(".proto")
-    )
+    const protoFiles = Array.from(uploadedFiles).filter((file) =>
+      file.name.endsWith(".proto"),
+    );
 
     if (protoFiles.length === 0) {
-      event.target.value = ""
-      return
+      event.target.value = "";
+      return;
     }
 
     const fileReaders = protoFiles.map((file) => {
       return new Promise<ProtoFile>((resolve, reject) => {
-        const reader = new FileReader()
+        const reader = new FileReader();
         reader.onload = (e) => {
-          const content = e.target?.result as string
+          const content = e.target?.result as string;
           // Use webkitRelativePath for directory uploads, otherwise just the filename
-          const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath
-          let fileName = file.name
+          const relativePath = (file as File & { webkitRelativePath?: string })
+            .webkitRelativePath;
+          let fileName = file.name;
           if (relativePath && relativePath.includes("/")) {
             // Remove the top-level directory name from the path
-            const parts = relativePath.split("/")
+            const parts = relativePath.split("/");
             if (parts.length > 1) {
-              fileName = parts.slice(1).join("/")
+              fileName = parts.slice(1).join("/");
             }
           }
           resolve({
             id: Date.now().toString() + Math.random().toString(36).slice(2),
             name: fileName,
             content,
-          })
-        }
-        reader.onerror = reject
-        reader.readAsText(file)
-      })
-    })
+          });
+        };
+        reader.onerror = reject;
+        reader.readAsText(file);
+      });
+    });
 
     Promise.all(fileReaders)
       .then((newFiles) => {
         // Check for duplicates
-        const existingNames = new Set(files.map((f) => f.name))
-        const duplicates = newFiles.filter((f) => existingNames.has(f.name)).map((f) => f.name)
+        const existingNames = new Set(files.map((f) => f.name));
+        const duplicates = newFiles
+          .filter((f) => existingNames.has(f.name))
+          .map((f) => f.name);
 
         if (duplicates.length > 0) {
           // Show confirmation dialog
-          setPendingUpload({ newFiles, duplicates })
+          setPendingUpload({ newFiles, duplicates });
         } else {
           // No duplicates, add directly
-          onFilesChange([...files, ...newFiles])
+          onFilesChange([...files, ...newFiles]);
           if (newFiles.length > 0) {
-            setActiveFileId(newFiles[0].id)
+            setActiveFileId(newFiles[0].id);
           }
         }
       })
       .catch((error) => {
-        console.error("Failed to read uploaded files:", error)
-      })
+        console.error("Failed to read uploaded files:", error);
+      });
 
-    event.target.value = ""
-  }
+    event.target.value = "";
+  };
 
   const handleConfirmOverwrite = () => {
-    if (!pendingUpload) return
+    if (!pendingUpload) return;
 
-    const { newFiles } = pendingUpload
-    const newFileNames = new Set(newFiles.map((f) => f.name))
+    const { newFiles } = pendingUpload;
+    const newFileNames = new Set(newFiles.map((f) => f.name));
 
     // Remove duplicates from existing files, then add new files
-    const filteredFiles = files.filter((f) => !newFileNames.has(f.name))
-    onFilesChange([...filteredFiles, ...newFiles])
+    const filteredFiles = files.filter((f) => !newFileNames.has(f.name));
+    onFilesChange([...filteredFiles, ...newFiles]);
 
     if (newFiles.length > 0) {
-      setActiveFileId(newFiles[0].id)
+      setActiveFileId(newFiles[0].id);
     }
 
-    setPendingUpload(null)
-  }
+    setPendingUpload(null);
+  };
 
   const handleCancelOverwrite = () => {
-    if (!pendingUpload) return
+    if (!pendingUpload) return;
 
-    const { newFiles, duplicates } = pendingUpload
-    const duplicateSet = new Set(duplicates)
+    const { newFiles, duplicates } = pendingUpload;
+    const duplicateSet = new Set(duplicates);
 
     // Only add non-duplicate files
-    const nonDuplicates = newFiles.filter((f) => !duplicateSet.has(f.name))
+    const nonDuplicates = newFiles.filter((f) => !duplicateSet.has(f.name));
 
     if (nonDuplicates.length > 0) {
-      onFilesChange([...files, ...nonDuplicates])
-      setActiveFileId(nonDuplicates[0].id)
+      onFilesChange([...files, ...nonDuplicates]);
+      setActiveFileId(nonDuplicates[0].id);
     }
 
-    setPendingUpload(null)
-  }
+    setPendingUpload(null);
+  };
 
   const handleDownloadFiles = async () => {
-    if (files.length === 0) return
+    if (files.length === 0) return;
 
     if (files.length === 1) {
       // Single file: download directly
-      const blob = new Blob([files[0].content], { type: "text/plain" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = files[0].name
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 0)
+      const blob = new Blob([files[0].content], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = files[0].name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     } else {
       // Multiple files: download as zip
-      const zip = new JSZip()
+      const zip = new JSZip();
       for (const file of files) {
-        zip.file(file.name, file.content)
+        zip.file(file.name, file.content);
       }
-      const blob = await zip.generateAsync({ type: "blob" })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement("a")
-      link.href = url
-      link.download = "proto-schemas.zip"
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 0)
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "proto-schemas.zip";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     }
-  }
+  };
 
   const handleCopyContent = async () => {
-    if (!activeFile) return
-    await navigator.clipboard.writeText(activeFile.content)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
-  }
+    if (!activeFile) return;
+    await navigator.clipboard.writeText(activeFile.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   const handleStartRename = (fileId: string, currentName: string) => {
-    setEditingFileId(fileId)
+    setEditingFileId(fileId);
     // Remove .proto suffix for editing
     const nameWithoutExt = currentName.endsWith(".proto")
       ? currentName.slice(0, -6)
-      : currentName
-    setEditingName(nameWithoutExt)
-  }
+      : currentName;
+    setEditingName(nameWithoutExt);
+  };
 
   const handleFinishRename = () => {
     if (!editingFileId || !editingName.trim()) {
-      setEditingFileId(null)
-      return
+      setEditingFileId(null);
+      return;
     }
     const finalName = editingName.trim().endsWith(".proto")
       ? editingName.trim()
-      : `${editingName.trim()}.proto`
+      : `${editingName.trim()}.proto`;
     const updatedFiles = files.map((file) =>
-      file.id === editingFileId ? { ...file, name: finalName } : file
-    )
-    onFilesChange(updatedFiles)
-    setEditingFileId(null)
-  }
+      file.id === editingFileId ? { ...file, name: finalName } : file,
+    );
+    onFilesChange(updatedFiles);
+    setEditingFileId(null);
+  };
 
   const handleRenameKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleFinishRename()
+      handleFinishRename();
     } else if (e.key === "Escape") {
-      setEditingFileId(null)
+      setEditingFileId(null);
     }
-  }
+  };
 
   // Empty state
   if (files.length === 0) {
@@ -623,7 +665,10 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
           </div>
         </div>
 
-        <AlertDialog open={!!pendingUpload} onOpenChange={(open) => !open && setPendingUpload(null)}>
+        <AlertDialog
+          open={!!pendingUpload}
+          onOpenChange={(open) => !open && setPendingUpload(null)}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Overwrite existing files?</AlertDialogTitle>
@@ -631,19 +676,25 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
                 The following files already exist and will be overwritten:
                 <ul className="mt-2 list-inside list-disc text-sm">
                   {pendingUpload?.duplicates.map((name) => (
-                    <li key={name} className="font-mono">{name}</li>
+                    <li key={name} className="font-mono">
+                      {name}
+                    </li>
                   ))}
                 </ul>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={handleCancelOverwrite}>Skip duplicates</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmOverwrite}>Overwrite</AlertDialogAction>
+              <AlertDialogCancel onClick={handleCancelOverwrite}>
+                Skip duplicates
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmOverwrite}>
+                Overwrite
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </>
-    )
+    );
   }
 
   return (
@@ -659,7 +710,7 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
                 "group relative flex h-8 shrink-0 items-center border-b-2 px-3 text-xs transition-colors",
                 activeFileId === file.id
                   ? "border-primary bg-background text-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  : "border-transparent text-muted-foreground hover:bg-muted/50 hover:text-foreground",
               )}
             >
               {editingFileId === file.id ? (
@@ -747,7 +798,11 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
             className="h-7 w-7 p-0"
             title="Copy content"
           >
-            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {copied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -800,7 +855,10 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
         </div>
       )}
 
-      <AlertDialog open={!!pendingUpload} onOpenChange={(open) => !open && setPendingUpload(null)}>
+      <AlertDialog
+        open={!!pendingUpload}
+        onOpenChange={(open) => !open && setPendingUpload(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Overwrite existing files?</AlertDialogTitle>
@@ -808,17 +866,23 @@ export function ProtoEditor({ files, onFilesChange }: ProtoEditorProps) {
               The following files already exist and will be overwritten:
               <ul className="mt-2 list-inside list-disc text-sm">
                 {pendingUpload?.duplicates.map((name) => (
-                  <li key={name} className="font-mono">{name}</li>
+                  <li key={name} className="font-mono">
+                    {name}
+                  </li>
                 ))}
               </ul>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleCancelOverwrite}>Skip duplicates</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmOverwrite}>Overwrite</AlertDialogAction>
+            <AlertDialogCancel onClick={handleCancelOverwrite}>
+              Skip duplicates
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmOverwrite}>
+              Overwrite
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
+  );
 }

@@ -1,22 +1,36 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { AlertCircle, Check, Copy, Download, RefreshCcw, Upload, X } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Textarea } from "@/components/ui/textarea"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
-import { encodeBase64 } from "@/lib/encoding/base64"
-import { encodeHex } from "@/lib/encoding/hex"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import {
+  AlertCircle,
+  Check,
+  Copy,
+  Download,
+  RefreshCcw,
+  Upload,
+  X,
+} from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
+import { encodeBase64 } from "@/lib/encoding/base64";
+import { encodeHex } from "@/lib/encoding/hex";
 import {
   algorithmValues,
   modeValues,
@@ -80,7 +94,7 @@ import {
   type SignatureEncoding,
   type KeyEncoding,
   type PqcKeyEncoding,
-} from "./crypto"
+} from "./crypto";
 
 const paramsSchema = z.object({
   mode: z.enum(modeValues).default("sign"),
@@ -113,9 +127,9 @@ const paramsSchema = z.object({
   schnorrPublicKey: z.string().default(""),
   pqcPrivateKey: z.string().default(""),
   pqcPublicKey: z.string().default(""),
-})
+});
 
-type SignatureState = z.infer<typeof paramsSchema>
+type SignatureState = z.infer<typeof paramsSchema>;
 
 const algorithmLabels: Record<AlgorithmValue, string> = {
   hmac: "HMAC",
@@ -125,57 +139,75 @@ const algorithmLabels: Record<AlgorithmValue, string> = {
   schnorr: "Schnorr",
   "ml-dsa": "ML-DSA",
   "slh-dsa": "SLH-DSA",
-}
+};
 
 function getImportAlgorithm(state: SignatureState) {
   if (state.algorithm === "rsa") {
-    return { name: state.rsaScheme, hash: { name: state.rsaHash } }
+    return { name: state.rsaScheme, hash: { name: state.rsaHash } };
   }
-  return null
+  return null;
 }
 
 function getKeyFields(algorithm: AlgorithmValue) {
   if (algorithm === "rsa") {
-    return { privateKey: "rsaPrivateKey", publicKey: "rsaPublicKey" } as const
+    return { privateKey: "rsaPrivateKey", publicKey: "rsaPublicKey" } as const;
   }
   if (algorithm === "ecdsa") {
-    return { privateKey: "ecdsaPrivateKey", publicKey: "ecdsaPublicKey" } as const
+    return {
+      privateKey: "ecdsaPrivateKey",
+      publicKey: "ecdsaPublicKey",
+    } as const;
   }
   if (algorithm === "eddsa") {
-    return { privateKey: "eddsaPrivateKey", publicKey: "eddsaPublicKey" } as const
+    return {
+      privateKey: "eddsaPrivateKey",
+      publicKey: "eddsaPublicKey",
+    } as const;
   }
   if (algorithm === "schnorr") {
-    return { privateKey: "schnorrPrivateKey", publicKey: "schnorrPublicKey" } as const
+    return {
+      privateKey: "schnorrPrivateKey",
+      publicKey: "schnorrPublicKey",
+    } as const;
   }
   if (algorithm === "ml-dsa" || algorithm === "slh-dsa") {
-    return { privateKey: "pqcPrivateKey", publicKey: "pqcPublicKey" } as const
+    return { privateKey: "pqcPrivateKey", publicKey: "pqcPublicKey" } as const;
   }
-  return { privateKey: "rsaPrivateKey", publicKey: "rsaPublicKey" } as const
+  return { privateKey: "rsaPrivateKey", publicKey: "rsaPublicKey" } as const;
 }
 
 function getKeySelection(state: SignatureState) {
   if (state.algorithm === "rsa") {
-    return { privateKey: state.rsaPrivateKey, publicKey: state.rsaPublicKey }
+    return { privateKey: state.rsaPrivateKey, publicKey: state.rsaPublicKey };
   }
   if (state.algorithm === "ecdsa") {
-    return { privateKey: state.ecdsaPrivateKey, publicKey: state.ecdsaPublicKey }
+    return {
+      privateKey: state.ecdsaPrivateKey,
+      publicKey: state.ecdsaPublicKey,
+    };
   }
   if (state.algorithm === "eddsa") {
-    return { privateKey: state.eddsaPrivateKey, publicKey: state.eddsaPublicKey }
+    return {
+      privateKey: state.eddsaPrivateKey,
+      publicKey: state.eddsaPublicKey,
+    };
   }
   if (state.algorithm === "schnorr") {
-    return { privateKey: state.schnorrPrivateKey, publicKey: state.schnorrPublicKey }
+    return {
+      privateKey: state.schnorrPrivateKey,
+      publicKey: state.schnorrPublicKey,
+    };
   }
   if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") {
-    return { privateKey: state.pqcPrivateKey, publicKey: state.pqcPublicKey }
+    return { privateKey: state.pqcPrivateKey, publicKey: state.pqcPublicKey };
   }
-  return { privateKey: state.rsaPrivateKey, publicKey: state.rsaPublicKey }
+  return { privateKey: state.rsaPrivateKey, publicKey: state.rsaPublicKey };
 }
 
 function getPqcSelectionKey(state: SignatureState) {
-  if (state.algorithm === "ml-dsa") return `ml-dsa:${state.pqcDsaVariant}`
-  if (state.algorithm === "slh-dsa") return `slh-dsa:${state.pqcSlhVariant}`
-  return state.algorithm
+  if (state.algorithm === "ml-dsa") return `ml-dsa:${state.pqcDsaVariant}`;
+  if (state.algorithm === "slh-dsa") return `slh-dsa:${state.pqcSlhVariant}`;
+  return state.algorithm;
 }
 
 async function importAsymmetricKey({
@@ -183,22 +215,24 @@ async function importAsymmetricKey({
   mode,
   state,
 }: {
-  keyText: string
-  mode: "sign" | "verify"
-  state: SignatureState
+  keyText: string;
+  mode: "sign" | "verify";
+  state: SignatureState;
 }) {
-  const jwk = parseJwk(keyText)
-  const algorithm = getImportAlgorithm(state)
-  if (!algorithm) return null
+  const jwk = parseJwk(keyText);
+  const algorithm = getImportAlgorithm(state);
+  if (!algorithm) return null;
   if (jwk) {
-    if (mode === "sign" && !("d" in jwk)) return null
-    return crypto.subtle.importKey("jwk", jwk, algorithm, false, [mode])
+    if (mode === "sign" && !("d" in jwk)) return null;
+    return crypto.subtle.importKey("jwk", jwk, algorithm, false, [mode]);
   }
-  const parsed = pemToArrayBuffer(keyText)
-  if (!parsed) return null
-  if (mode === "sign" && !parsed.label.includes("PRIVATE KEY")) return null
-  const format = parsed.label.includes("PRIVATE KEY") ? "pkcs8" : "spki"
-  return crypto.subtle.importKey(format, parsed.buffer, algorithm, false, [mode])
+  const parsed = pemToArrayBuffer(keyText);
+  if (!parsed) return null;
+  if (mode === "sign" && !parsed.label.includes("PRIVATE KEY")) return null;
+  const format = parsed.label.includes("PRIVATE KEY") ? "pkcs8" : "spki";
+  return crypto.subtle.importKey(format, parsed.buffer, algorithm, false, [
+    mode,
+  ]);
 }
 
 async function signMessage({
@@ -206,15 +240,15 @@ async function signMessage({
   state,
   privateKeyText,
 }: {
-  messageBytes: Uint8Array<ArrayBuffer>
-  state: SignatureState
-  privateKeyText: string
+  messageBytes: Uint8Array<ArrayBuffer>;
+  state: SignatureState;
+  privateKeyText: string;
 }) {
   if (state.algorithm === "hmac") {
     if (!globalThis.crypto?.subtle) {
-      throw new Error("Web Crypto is unavailable in this environment.")
+      throw new Error("Web Crypto is unavailable in this environment.");
     }
-    const keyBytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding)
+    const keyBytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding);
     const key = await crypto.subtle.importKey(
       "raw",
       keyBytes,
@@ -224,72 +258,89 @@ async function signMessage({
       },
       false,
       ["sign"],
-    )
-    const signature = await crypto.subtle.sign("HMAC", key, messageBytes)
-    return new Uint8Array(signature)
+    );
+    const signature = await crypto.subtle.sign("HMAC", key, messageBytes);
+    return new Uint8Array(signature);
   }
   if (state.algorithm === "rsa") {
     if (!globalThis.crypto?.subtle) {
-      throw new Error("Web Crypto is unavailable in this environment.")
+      throw new Error("Web Crypto is unavailable in this environment.");
     }
-    const keyText = privateKeyText.trim()
+    const keyText = privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Private key is required to sign.")
+      throw new Error("Private key is required to sign.");
     }
-    const key = await importAsymmetricKey({ keyText, mode: "sign", state })
+    const key = await importAsymmetricKey({ keyText, mode: "sign", state });
     if (!key) {
-      throw new Error("Invalid private key format. Use PKCS8 PEM or JWK.")
+      throw new Error("Invalid private key format. Use PKCS8 PEM or JWK.");
     }
     if (state.rsaScheme === "RSA-PSS") {
       const signature = await crypto.subtle.sign(
-        { name: "RSA-PSS", saltLength: getRsaSaltLength(state.rsaHash, state.rsaSaltLength) },
+        {
+          name: "RSA-PSS",
+          saltLength: getRsaSaltLength(state.rsaHash, state.rsaSaltLength),
+        },
         key,
         messageBytes,
-      )
-      return new Uint8Array(signature)
+      );
+      return new Uint8Array(signature);
     }
-    const signature = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, messageBytes)
-    return new Uint8Array(signature)
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      messageBytes,
+    );
+    return new Uint8Array(signature);
   }
   if (state.algorithm === "ecdsa") {
-    const keyText = privateKeyText.trim()
+    const keyText = privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Private key is required to sign.")
+      throw new Error("Private key is required to sign.");
     }
-    const secretKey = await getEcdsaPrivateKeyBytes(keyText, state.ecdsaCurve)
-    const digest = await hashMessageBytes(messageBytes, state.ecdsaHash)
-    return ecdsaCurveMap[state.ecdsaCurve].sign(digest, secretKey, { prehash: false })
+    const secretKey = await getEcdsaPrivateKeyBytes(keyText, state.ecdsaCurve);
+    const digest = await hashMessageBytes(messageBytes, state.ecdsaHash);
+    return ecdsaCurveMap[state.ecdsaCurve].sign(digest, secretKey, {
+      prehash: false,
+    });
   }
   if (state.algorithm === "eddsa") {
-    const keyText = privateKeyText.trim()
+    const keyText = privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Private key is required to sign.")
+      throw new Error("Private key is required to sign.");
     }
-    const secretKey = await getEddsaPrivateKeyBytes(keyText, state.eddsaCurve)
-    return eddsaCurveMap[state.eddsaCurve].sign(messageBytes, secretKey)
+    const secretKey = await getEddsaPrivateKeyBytes(keyText, state.eddsaCurve);
+    return eddsaCurveMap[state.eddsaCurve].sign(messageBytes, secretKey);
   }
   if (state.algorithm === "ml-dsa") {
-    const keyText = privateKeyText.trim()
+    const keyText = privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Private key is required to sign.")
+      throw new Error("Private key is required to sign.");
     }
-    const secretKey = resolvePqcKeyBytes(keyText, state.pqcKeyEncoding, "private")
-    return pqcDsaMap[state.pqcDsaVariant].sign(messageBytes, secretKey)
+    const secretKey = resolvePqcKeyBytes(
+      keyText,
+      state.pqcKeyEncoding,
+      "private",
+    );
+    return pqcDsaMap[state.pqcDsaVariant].sign(messageBytes, secretKey);
   }
   if (state.algorithm === "slh-dsa") {
-    const keyText = privateKeyText.trim()
+    const keyText = privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Private key is required to sign.")
+      throw new Error("Private key is required to sign.");
     }
-    const secretKey = resolvePqcKeyBytes(keyText, state.pqcKeyEncoding, "private")
-    return pqcSlhMap[state.pqcSlhVariant].sign(messageBytes, secretKey)
+    const secretKey = resolvePqcKeyBytes(
+      keyText,
+      state.pqcKeyEncoding,
+      "private",
+    );
+    return pqcSlhMap[state.pqcSlhVariant].sign(messageBytes, secretKey);
   }
-  const keyText = privateKeyText.trim()
+  const keyText = privateKeyText.trim();
   if (!keyText) {
-    throw new Error("Private key is required to sign.")
+    throw new Error("Private key is required to sign.");
   }
-  const secretKey = await getSchnorrPrivateKeyBytes(keyText)
-  return schnorrCurve.sign(messageBytes, secretKey)
+  const secretKey = await getSchnorrPrivateKeyBytes(keyText);
+  return schnorrCurve.sign(messageBytes, secretKey);
 }
 
 async function verifyMessage({
@@ -299,17 +350,17 @@ async function verifyMessage({
   publicKeyText,
   privateKeyText,
 }: {
-  messageBytes: Uint8Array<ArrayBuffer>
-  signatureBytes: Uint8Array<ArrayBuffer>
-  state: SignatureState
-  publicKeyText: string
-  privateKeyText: string
+  messageBytes: Uint8Array<ArrayBuffer>;
+  signatureBytes: Uint8Array<ArrayBuffer>;
+  state: SignatureState;
+  publicKeyText: string;
+  privateKeyText: string;
 }) {
   if (state.algorithm === "hmac") {
     if (!globalThis.crypto?.subtle) {
-      throw new Error("Web Crypto is unavailable in this environment.")
+      throw new Error("Web Crypto is unavailable in this environment.");
     }
-    const keyBytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding)
+    const keyBytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding);
     const key = await crypto.subtle.importKey(
       "raw",
       keyBytes,
@@ -319,167 +370,228 @@ async function verifyMessage({
       },
       false,
       ["verify"],
-    )
-    return crypto.subtle.verify("HMAC", key, signatureBytes, messageBytes)
+    );
+    return crypto.subtle.verify("HMAC", key, signatureBytes, messageBytes);
   }
   if (state.algorithm === "rsa") {
     if (!globalThis.crypto?.subtle) {
-      throw new Error("Web Crypto is unavailable in this environment.")
+      throw new Error("Web Crypto is unavailable in this environment.");
     }
-    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    const keyText = publicKeyText.trim() || privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Public or private key is required to verify.")
+      throw new Error("Public or private key is required to verify.");
     }
-    const key = await importAsymmetricKey({ keyText, mode: "verify", state })
+    const key = await importAsymmetricKey({ keyText, mode: "verify", state });
     if (!key) {
-      throw new Error("Invalid key format. Use SPKI/PKCS8 PEM or JWK.")
+      throw new Error("Invalid key format. Use SPKI/PKCS8 PEM or JWK.");
     }
     if (state.rsaScheme === "RSA-PSS") {
       return crypto.subtle.verify(
-        { name: "RSA-PSS", saltLength: getRsaSaltLength(state.rsaHash, state.rsaSaltLength) },
+        {
+          name: "RSA-PSS",
+          saltLength: getRsaSaltLength(state.rsaHash, state.rsaSaltLength),
+        },
         key,
         signatureBytes,
         messageBytes,
-      )
+      );
     }
-    return crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, signatureBytes, messageBytes)
+    return crypto.subtle.verify(
+      "RSASSA-PKCS1-v1_5",
+      key,
+      signatureBytes,
+      messageBytes,
+    );
   }
   if (state.algorithm === "ecdsa") {
-    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    const keyText = publicKeyText.trim() || privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Public or private key is required to verify.")
+      throw new Error("Public or private key is required to verify.");
     }
     const publicKey = publicKeyText.trim()
       ? await getEcdsaPublicKeyBytes(publicKeyText.trim(), state.ecdsaCurve)
       : ecdsaCurveMap[state.ecdsaCurve].getPublicKey(
-          await getEcdsaPrivateKeyBytes(privateKeyText.trim(), state.ecdsaCurve),
+          await getEcdsaPrivateKeyBytes(
+            privateKeyText.trim(),
+            state.ecdsaCurve,
+          ),
           false,
-        )
-    const digest = await hashMessageBytes(messageBytes, state.ecdsaHash)
-    return ecdsaCurveMap[state.ecdsaCurve].verify(signatureBytes, digest, publicKey, { prehash: false })
+        );
+    const digest = await hashMessageBytes(messageBytes, state.ecdsaHash);
+    return ecdsaCurveMap[state.ecdsaCurve].verify(
+      signatureBytes,
+      digest,
+      publicKey,
+      { prehash: false },
+    );
   }
   if (state.algorithm === "eddsa") {
-    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    const keyText = publicKeyText.trim() || privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Public or private key is required to verify.")
+      throw new Error("Public or private key is required to verify.");
     }
     const publicKey = publicKeyText.trim()
       ? await getEddsaPublicKeyBytes(publicKeyText.trim(), state.eddsaCurve)
       : eddsaCurveMap[state.eddsaCurve].getPublicKey(
-          await getEddsaPrivateKeyBytes(privateKeyText.trim(), state.eddsaCurve),
-        )
-    return eddsaCurveMap[state.eddsaCurve].verify(signatureBytes, messageBytes, publicKey)
+          await getEddsaPrivateKeyBytes(
+            privateKeyText.trim(),
+            state.eddsaCurve,
+          ),
+        );
+    return eddsaCurveMap[state.eddsaCurve].verify(
+      signatureBytes,
+      messageBytes,
+      publicKey,
+    );
   }
   if (state.algorithm === "ml-dsa") {
-    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    const keyText = publicKeyText.trim() || privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Public or private key is required to verify.")
+      throw new Error("Public or private key is required to verify.");
     }
-    const signer = pqcDsaMap[state.pqcDsaVariant]
+    const signer = pqcDsaMap[state.pqcDsaVariant];
     const publicKey = publicKeyText.trim()
       ? resolvePqcKeyBytes(publicKeyText.trim(), state.pqcKeyEncoding, "public")
-      : signer.getPublicKey(resolvePqcKeyBytes(privateKeyText.trim(), state.pqcKeyEncoding, "private"))
-    return signer.verify(signatureBytes, messageBytes, publicKey)
+      : signer.getPublicKey(
+          resolvePqcKeyBytes(
+            privateKeyText.trim(),
+            state.pqcKeyEncoding,
+            "private",
+          ),
+        );
+    return signer.verify(signatureBytes, messageBytes, publicKey);
   }
   if (state.algorithm === "slh-dsa") {
-    const keyText = publicKeyText.trim() || privateKeyText.trim()
+    const keyText = publicKeyText.trim() || privateKeyText.trim();
     if (!keyText) {
-      throw new Error("Public or private key is required to verify.")
+      throw new Error("Public or private key is required to verify.");
     }
-    const signer = pqcSlhMap[state.pqcSlhVariant]
+    const signer = pqcSlhMap[state.pqcSlhVariant];
     const publicKey = publicKeyText.trim()
       ? resolvePqcKeyBytes(publicKeyText.trim(), state.pqcKeyEncoding, "public")
-      : signer.getPublicKey(resolvePqcKeyBytes(privateKeyText.trim(), state.pqcKeyEncoding, "private"))
-    return signer.verify(signatureBytes, messageBytes, publicKey)
+      : signer.getPublicKey(
+          resolvePqcKeyBytes(
+            privateKeyText.trim(),
+            state.pqcKeyEncoding,
+            "private",
+          ),
+        );
+    return signer.verify(signatureBytes, messageBytes, publicKey);
   }
-  const keyText = publicKeyText.trim() || privateKeyText.trim()
+  const keyText = publicKeyText.trim() || privateKeyText.trim();
   if (!keyText) {
-    throw new Error("Public or private key is required to verify.")
+    throw new Error("Public or private key is required to verify.");
   }
   const publicKey = publicKeyText.trim()
     ? await getSchnorrPublicKeyBytes(publicKeyText.trim())
-    : schnorrCurve.getPublicKey(await getSchnorrPrivateKeyBytes(privateKeyText.trim()))
-  return schnorrCurve.verify(signatureBytes, messageBytes, publicKey)
+    : schnorrCurve.getPublicKey(
+        await getSchnorrPrivateKeyBytes(privateKeyText.trim()),
+      );
+  return schnorrCurve.verify(signatureBytes, messageBytes, publicKey);
 }
 
 async function generateKeypair(state: SignatureState) {
   if (state.algorithm === "hmac") {
-    throw new Error("Keypair generation is not available for HMAC.")
+    throw new Error("Keypair generation is not available for HMAC.");
   }
   if (state.algorithm === "ml-dsa") {
-    const signer = pqcDsaMap[state.pqcDsaVariant]
-    const { publicKey, secretKey } = signer.keygen()
-    const publicPayload = createPqcPublicKey(state.pqcDsaVariant, publicKey, state.pqcKeyEncoding)
-    const privatePayload = createPqcPrivateKey(state.pqcDsaVariant, publicKey, secretKey, state.pqcKeyEncoding)
+    const signer = pqcDsaMap[state.pqcDsaVariant];
+    const { publicKey, secretKey } = signer.keygen();
+    const publicPayload = createPqcPublicKey(
+      state.pqcDsaVariant,
+      publicKey,
+      state.pqcKeyEncoding,
+    );
+    const privatePayload = createPqcPrivateKey(
+      state.pqcDsaVariant,
+      publicKey,
+      secretKey,
+      state.pqcKeyEncoding,
+    );
     return {
       publicPem: JSON.stringify(publicPayload, null, 2),
       privatePem: JSON.stringify(privatePayload, null, 2),
-    }
+    };
   }
   if (state.algorithm === "slh-dsa") {
-    const signer = pqcSlhMap[state.pqcSlhVariant]
-    const { publicKey, secretKey } = signer.keygen()
-    const publicPayload = createPqcPublicKey(state.pqcSlhVariant, publicKey, state.pqcKeyEncoding)
-    const privatePayload = createPqcPrivateKey(state.pqcSlhVariant, publicKey, secretKey, state.pqcKeyEncoding)
+    const signer = pqcSlhMap[state.pqcSlhVariant];
+    const { publicKey, secretKey } = signer.keygen();
+    const publicPayload = createPqcPublicKey(
+      state.pqcSlhVariant,
+      publicKey,
+      state.pqcKeyEncoding,
+    );
+    const privatePayload = createPqcPrivateKey(
+      state.pqcSlhVariant,
+      publicKey,
+      secretKey,
+      state.pqcKeyEncoding,
+    );
     return {
       publicPem: JSON.stringify(publicPayload, null, 2),
       privatePem: JSON.stringify(privatePayload, null, 2),
-    }
+    };
   }
   if (state.algorithm === "rsa") {
     if (!globalThis.crypto?.subtle) {
-      throw new Error("Web Crypto is unavailable in this environment.")
+      throw new Error("Web Crypto is unavailable in this environment.");
     }
-    const exponent = parseExponent(state.rsaPublicExponent)
+    const exponent = parseExponent(state.rsaPublicExponent);
     if (!exponent) {
-      throw new Error("Invalid RSA public exponent.")
+      throw new Error("Invalid RSA public exponent.");
     }
     const algorithm = {
       name: state.rsaScheme,
       modulusLength: state.rsaModulusLength,
       publicExponent: exponent,
       hash: { name: state.rsaHash },
-    }
-    const keyPair = await crypto.subtle.generateKey(algorithm, true, ["sign", "verify"])
+    };
+    const keyPair = await crypto.subtle.generateKey(algorithm, true, [
+      "sign",
+      "verify",
+    ]);
     if (!isKeyPair(keyPair)) {
-      throw new Error("Keypair generation failed.")
+      throw new Error("Keypair generation failed.");
     }
-    const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey)
-    const privateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey)
+    const publicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
+    const privateKey = await crypto.subtle.exportKey(
+      "pkcs8",
+      keyPair.privateKey,
+    );
     return {
       publicPem: toPem(publicKey, "PUBLIC KEY"),
       privatePem: toPem(privateKey, "PRIVATE KEY"),
-    }
+    };
   }
   if (state.algorithm === "ecdsa") {
-    const curve = ecdsaCurveMap[state.ecdsaCurve]
-    const { secretKey } = curve.keygen()
-    const publicKey = curve.getPublicKey(secretKey, false)
-    const publicJwk = createEcJwk(state.ecdsaCurve, publicKey)
-    const privateJwk = createEcJwk(state.ecdsaCurve, publicKey, secretKey)
+    const curve = ecdsaCurveMap[state.ecdsaCurve];
+    const { secretKey } = curve.keygen();
+    const publicKey = curve.getPublicKey(secretKey, false);
+    const publicJwk = createEcJwk(state.ecdsaCurve, publicKey);
+    const privateJwk = createEcJwk(state.ecdsaCurve, publicKey, secretKey);
     return {
       publicPem: JSON.stringify(publicJwk, null, 2),
       privatePem: JSON.stringify(privateJwk, null, 2),
-    }
+    };
   }
   if (state.algorithm === "eddsa") {
-    const curve = eddsaCurveMap[state.eddsaCurve]
-    const { secretKey, publicKey } = curve.keygen()
-    const publicJwk = createOkpJwk(state.eddsaCurve, publicKey)
-    const privateJwk = createOkpJwk(state.eddsaCurve, publicKey, secretKey)
+    const curve = eddsaCurveMap[state.eddsaCurve];
+    const { secretKey, publicKey } = curve.keygen();
+    const publicJwk = createOkpJwk(state.eddsaCurve, publicKey);
+    const privateJwk = createOkpJwk(state.eddsaCurve, publicKey, secretKey);
     return {
       publicPem: JSON.stringify(publicJwk, null, 2),
       privatePem: JSON.stringify(privateJwk, null, 2),
-    }
+    };
   }
-  const { secretKey } = schnorrCurve.keygen()
-  const publicKey = secp256k1.getPublicKey(secretKey, false)
-  const publicJwk = createEcJwk("secp256k1", publicKey)
-  const privateJwk = createEcJwk("secp256k1", publicKey, secretKey)
+  const { secretKey } = schnorrCurve.keygen();
+  const publicKey = secp256k1.getPublicKey(secretKey, false);
+  const publicJwk = createEcJwk("secp256k1", publicKey);
+  const privateJwk = createEcJwk("secp256k1", publicKey, secretKey);
   return {
     publicPem: JSON.stringify(publicJwk, null, 2),
     privatePem: JSON.stringify(privateJwk, null, 2),
-  }
+  };
 }
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
@@ -489,10 +601,16 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
-function InlineTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+function InlineTabsList({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <TabsList
       className={cn(
@@ -502,7 +620,7 @@ function InlineTabsList({ children, className }: { children: React.ReactNode; cl
     >
       {children}
     </TabsList>
-  )
+  );
 }
 
 export default function SignaturePage() {
@@ -510,38 +628,47 @@ export default function SignaturePage() {
     <Suspense fallback={null}>
       <SignatureContent />
     </Suspense>
-  )
+  );
 }
 
 function SignatureContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } = useUrlSyncedState(
-    "signature",
-    {
-      schema: paramsSchema,
-      defaults: paramsSchema.parse({}),
-    },
-  )
-  const [fileName, setFileName] = React.useState<string | null>(null)
+  const {
+    state,
+    setParam,
+    oversizeKeys,
+    hasUrlParams,
+    hydrationSource,
+    resetToDefaults,
+  } = useUrlSyncedState("signature", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  });
+  const [fileName, setFileName] = React.useState<string | null>(null);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
+      const { inputs, params } = entry;
       if (params.fileName) {
-        alert("This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.")
-        return
+        alert(
+          "This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.",
+        );
+        return;
       }
-      setFileName(null)
-      if (inputs.message !== undefined) setParam("message", inputs.message)
-      if (inputs.signature !== undefined) setParam("signature", inputs.signature)
-      const typedParams = params as Partial<SignatureState>
-      ;(Object.keys(paramsSchema.shape) as (keyof SignatureState)[]).forEach((key) => {
-        if (typedParams[key] !== undefined) {
-          setParam(key, typedParams[key] as SignatureState[typeof key])
-        }
-      })
+      setFileName(null);
+      if (inputs.message !== undefined) setParam("message", inputs.message);
+      if (inputs.signature !== undefined)
+        setParam("signature", inputs.signature);
+      const typedParams = params as Partial<SignatureState>;
+      (Object.keys(paramsSchema.shape) as (keyof SignatureState)[]).forEach(
+        (key) => {
+          if (typedParams[key] !== undefined) {
+            setParam(key, typedParams[key] as SignatureState[typeof key]);
+          }
+        },
+      );
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -561,7 +688,7 @@ function SignatureContent() {
         setFileName={setFileName}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function SignatureInner({
@@ -574,36 +701,51 @@ function SignatureInner({
   fileName,
   setFileName,
 }: {
-  state: SignatureState
-  setParam: <K extends keyof SignatureState>(key: K, value: SignatureState[K], immediate?: boolean) => void
-  oversizeKeys: (keyof SignatureState)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  resetToDefaults: () => void
-  fileName: string | null
-  setFileName: (value: string | null) => void
+  state: SignatureState;
+  setParam: <K extends keyof SignatureState>(
+    key: K,
+    value: SignatureState[K],
+    immediate?: boolean,
+  ) => void;
+  oversizeKeys: (keyof SignatureState)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  resetToDefaults: () => void;
+  fileName: string | null;
+  setFileName: (value: string | null) => void;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [output, setOutput] = React.useState("")
-  const [verificationStatus, setVerificationStatus] = React.useState<boolean | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
-  const [isWorking, setIsWorking] = React.useState(false)
-  const [copied, setCopied] = React.useState(false)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const privateKeyInputRef = React.useRef<HTMLInputElement>(null)
-  const publicKeyInputRef = React.useRef<HTMLInputElement>(null)
-  const ecdsaKeyCacheRef = React.useRef<Partial<Record<EcdsaCurve, { privateKey: string; publicKey: string }>>>({})
-  const eddsaKeyCacheRef = React.useRef<Partial<Record<EddsaCurve, { privateKey: string; publicKey: string }>>>({})
-  const pqcKeyCacheRef = React.useRef<Partial<Record<string, { privateKey: string; publicKey: string }>>>({})
-  const prevEcdsaCurveRef = React.useRef<EcdsaCurve>(state.ecdsaCurve)
-  const prevEddsaCurveRef = React.useRef<EddsaCurve>(state.eddsaCurve)
-  const prevPqcSelectionRef = React.useRef(getPqcSelectionKey(state))
-  const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false)
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
-  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null)
-  const [fileVersion, setFileVersion] = React.useState(0)
-  const [fileMeta, setFileMeta] = React.useState<{ name: string; size: number } | null>(null)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [output, setOutput] = React.useState("");
+  const [verificationStatus, setVerificationStatus] = React.useState<
+    boolean | null
+  >(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [isWorking, setIsWorking] = React.useState(false);
+  const [copied, setCopied] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const privateKeyInputRef = React.useRef<HTMLInputElement>(null);
+  const publicKeyInputRef = React.useRef<HTMLInputElement>(null);
+  const ecdsaKeyCacheRef = React.useRef<
+    Partial<Record<EcdsaCurve, { privateKey: string; publicKey: string }>>
+  >({});
+  const eddsaKeyCacheRef = React.useRef<
+    Partial<Record<EddsaCurve, { privateKey: string; publicKey: string }>>
+  >({});
+  const pqcKeyCacheRef = React.useRef<
+    Partial<Record<string, { privateKey: string; publicKey: string }>>
+  >({});
+  const prevEcdsaCurveRef = React.useRef<EcdsaCurve>(state.ecdsaCurve);
+  const prevEddsaCurveRef = React.useRef<EddsaCurve>(state.eddsaCurve);
+  const prevPqcSelectionRef = React.useRef(getPqcSelectionKey(state));
+  const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false);
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
+  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const [fileVersion, setFileVersion] = React.useState(0);
+  const [fileMeta, setFileMeta] = React.useState<{
+    name: string;
+    size: number;
+  } | null>(null);
   const paramsRef = React.useRef({
     mode: state.mode,
     algorithm: state.algorithm,
@@ -634,10 +776,10 @@ function SignatureInner({
     pqcPrivateKey: state.pqcPrivateKey,
     pqcPublicKey: state.pqcPublicKey,
     fileName,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
-  const runRef = React.useRef(0)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
+  const runRef = React.useRef(0);
 
   const historyParams = React.useMemo(
     () => ({
@@ -702,71 +844,77 @@ function SignatureInner({
       state.pqcPublicKey,
       fileName,
     ],
-  )
+  );
 
   React.useEffect(() => {
-    const prevCurve = prevEcdsaCurveRef.current
+    const prevCurve = prevEcdsaCurveRef.current;
     if (prevCurve !== state.ecdsaCurve) {
       ecdsaKeyCacheRef.current[prevCurve] = {
         privateKey: state.ecdsaPrivateKey,
         publicKey: state.ecdsaPublicKey,
-      }
-      const cached = ecdsaKeyCacheRef.current[state.ecdsaCurve]
-      const nextPrivate = cached?.privateKey ?? ""
-      const nextPublic = cached?.publicKey ?? ""
-      if (nextPrivate !== state.ecdsaPrivateKey) setParam("ecdsaPrivateKey", nextPrivate)
-      if (nextPublic !== state.ecdsaPublicKey) setParam("ecdsaPublicKey", nextPublic)
-      prevEcdsaCurveRef.current = state.ecdsaCurve
-      return
+      };
+      const cached = ecdsaKeyCacheRef.current[state.ecdsaCurve];
+      const nextPrivate = cached?.privateKey ?? "";
+      const nextPublic = cached?.publicKey ?? "";
+      if (nextPrivate !== state.ecdsaPrivateKey)
+        setParam("ecdsaPrivateKey", nextPrivate);
+      if (nextPublic !== state.ecdsaPublicKey)
+        setParam("ecdsaPublicKey", nextPublic);
+      prevEcdsaCurveRef.current = state.ecdsaCurve;
+      return;
     }
     ecdsaKeyCacheRef.current[state.ecdsaCurve] = {
       privateKey: state.ecdsaPrivateKey,
       publicKey: state.ecdsaPublicKey,
-    }
-  }, [state.ecdsaCurve, state.ecdsaPrivateKey, state.ecdsaPublicKey, setParam])
+    };
+  }, [state.ecdsaCurve, state.ecdsaPrivateKey, state.ecdsaPublicKey, setParam]);
 
   React.useEffect(() => {
-    const prevCurve = prevEddsaCurveRef.current
+    const prevCurve = prevEddsaCurveRef.current;
     if (prevCurve !== state.eddsaCurve) {
       eddsaKeyCacheRef.current[prevCurve] = {
         privateKey: state.eddsaPrivateKey,
         publicKey: state.eddsaPublicKey,
-      }
-      const cached = eddsaKeyCacheRef.current[state.eddsaCurve]
-      const nextPrivate = cached?.privateKey ?? ""
-      const nextPublic = cached?.publicKey ?? ""
-      if (nextPrivate !== state.eddsaPrivateKey) setParam("eddsaPrivateKey", nextPrivate)
-      if (nextPublic !== state.eddsaPublicKey) setParam("eddsaPublicKey", nextPublic)
-      prevEddsaCurveRef.current = state.eddsaCurve
-      return
+      };
+      const cached = eddsaKeyCacheRef.current[state.eddsaCurve];
+      const nextPrivate = cached?.privateKey ?? "";
+      const nextPublic = cached?.publicKey ?? "";
+      if (nextPrivate !== state.eddsaPrivateKey)
+        setParam("eddsaPrivateKey", nextPrivate);
+      if (nextPublic !== state.eddsaPublicKey)
+        setParam("eddsaPublicKey", nextPublic);
+      prevEddsaCurveRef.current = state.eddsaCurve;
+      return;
     }
     eddsaKeyCacheRef.current[state.eddsaCurve] = {
       privateKey: state.eddsaPrivateKey,
       publicKey: state.eddsaPublicKey,
-    }
-  }, [state.eddsaCurve, state.eddsaPrivateKey, state.eddsaPublicKey, setParam])
+    };
+  }, [state.eddsaCurve, state.eddsaPrivateKey, state.eddsaPublicKey, setParam]);
 
   React.useEffect(() => {
-    if (state.algorithm !== "ml-dsa" && state.algorithm !== "slh-dsa") return
-    const selectionKey = getPqcSelectionKey(state)
-    const prevKey = prevPqcSelectionRef.current
+    if (state.algorithm !== "ml-dsa" && state.algorithm !== "slh-dsa") return;
+    const selectionKey = getPqcSelectionKey(state);
+    const prevKey = prevPqcSelectionRef.current;
     if (prevKey !== selectionKey) {
       pqcKeyCacheRef.current[prevKey] = {
         privateKey: state.pqcPrivateKey,
         publicKey: state.pqcPublicKey,
-      }
-      const cached = pqcKeyCacheRef.current[selectionKey]
-      const nextPrivate = cached?.privateKey ?? ""
-      const nextPublic = cached?.publicKey ?? ""
-      if (nextPrivate !== state.pqcPrivateKey) setParam("pqcPrivateKey", nextPrivate)
-      if (nextPublic !== state.pqcPublicKey) setParam("pqcPublicKey", nextPublic)
-      prevPqcSelectionRef.current = selectionKey
-      return
+      };
+      const cached = pqcKeyCacheRef.current[selectionKey];
+      const nextPrivate = cached?.privateKey ?? "";
+      const nextPublic = cached?.publicKey ?? "";
+      if (nextPrivate !== state.pqcPrivateKey)
+        setParam("pqcPrivateKey", nextPrivate);
+      if (nextPublic !== state.pqcPublicKey)
+        setParam("pqcPublicKey", nextPublic);
+      prevPqcSelectionRef.current = selectionKey;
+      return;
     }
     pqcKeyCacheRef.current[selectionKey] = {
       privateKey: state.pqcPrivateKey,
       publicKey: state.pqcPublicKey,
-    }
+    };
   }, [
     state.algorithm,
     state.pqcDsaVariant,
@@ -774,64 +922,97 @@ function SignatureInner({
     state.pqcPrivateKey,
     state.pqcPublicKey,
     setParam,
-  ])
+  ]);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    const signature = fileName ? `file:${fileName}:${fileVersion}` : `text:${state.message}`
-    const inputSignature = `${signature}|sig:${state.signature}`
-    lastInputRef.current = inputSignature
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.message, state.signature, fileName, fileVersion])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    const signature = fileName
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.message}`;
+    const inputSignature = `${signature}|sig:${state.signature}`;
+    lastInputRef.current = inputSignature;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.message, state.signature, fileName, fileVersion]);
 
   React.useEffect(() => {
     if (!fileName && fileBytesRef.current) {
-      fileBytesRef.current = null
-      setFileMeta(null)
-      if (fileVersion) setFileVersion(0)
+      fileBytesRef.current = null;
+      setFileMeta(null);
+      if (fileVersion) setFileVersion(0);
     }
-  }, [fileName, fileVersion])
+  }, [fileName, fileVersion]);
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileVersion)
-    const signature = hasFile ? `file:${fileName}:${fileVersion}` : `text:${state.message}`
-    const inputSignature = `${signature}|sig:${state.signature}`
-    if ((!hasFile && !state.message && !state.signature) || inputSignature === lastInputRef.current) return
+    const hasFile = Boolean(fileName && fileVersion);
+    const signature = hasFile
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.message}`;
+    const inputSignature = `${signature}|sig:${state.signature}`;
+    if (
+      (!hasFile && !state.message && !state.signature) ||
+      inputSignature === lastInputRef.current
+    )
+      return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = inputSignature
-      const preview = fileName ?? (state.message ? state.message.slice(0, 100) : state.signature.slice(0, 100))
+      lastInputRef.current = inputSignature;
+      const preview =
+        fileName ??
+        (state.message
+          ? state.message.slice(0, 100)
+          : state.signature.slice(0, 100));
       upsertInputEntry(
         { message: fileName ? "" : state.message, signature: state.signature },
         historyParams,
         "left",
         preview,
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.message, state.signature, fileName, fileVersion, upsertInputEntry, historyParams])
+    return () => clearTimeout(timer);
+  }, [
+    state.message,
+    state.signature,
+    fileName,
+    fileVersion,
+    upsertInputEntry,
+    historyParams,
+  ]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
-      const hasInput = Boolean(state.message || state.signature)
+      hasHandledUrlRef.current = true;
+      const hasInput = Boolean(state.message || state.signature);
       if (hasInput) {
-        const preview = state.message ? state.message.slice(0, 100) : state.signature.slice(0, 100)
-        upsertInputEntry({ message: state.message, signature: state.signature }, historyParams, "left", preview)
+        const preview = state.message
+          ? state.message.slice(0, 100)
+          : state.signature.slice(0, 100);
+        upsertInputEntry(
+          { message: state.message, signature: state.signature },
+          historyParams,
+          "left",
+          preview,
+        );
       } else {
-        upsertParams(historyParams, "interpretation")
+        upsertParams(historyParams, "interpretation");
       }
     }
-  }, [hasUrlParams, state.message, state.signature, historyParams, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.message,
+    state.signature,
+    historyParams,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   React.useEffect(() => {
-    const nextParams = historyParams
+    const nextParams = historyParams;
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.mode === nextParams.mode &&
@@ -864,264 +1045,305 @@ function SignatureInner({
       paramsRef.current.pqcPublicKey === nextParams.pqcPublicKey &&
       paramsRef.current.fileName === nextParams.fileName
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [historyParams, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [historyParams, upsertParams]);
 
   React.useEffect(() => {
     if (fileName) {
       if (state.inputEncoding !== "binary") {
-        setParam("inputEncoding", "binary", true)
+        setParam("inputEncoding", "binary", true);
       }
-      return
+      return;
     }
-    const allowed: InputEncoding[] = ["utf8", "base64", "hex"]
+    const allowed: InputEncoding[] = ["utf8", "base64", "hex"];
     if (!allowed.includes(state.inputEncoding)) {
-      setParam("inputEncoding", "utf8", true)
+      setParam("inputEncoding", "utf8", true);
     }
-  }, [fileName, state.inputEncoding, setParam])
+  }, [fileName, state.inputEncoding, setParam]);
 
-  const keySelection = React.useMemo(() => getKeySelection(state), [
-    state.algorithm,
-    state.rsaPrivateKey,
-    state.rsaPublicKey,
-    state.ecdsaPrivateKey,
-    state.ecdsaPublicKey,
-    state.eddsaPrivateKey,
-    state.eddsaPublicKey,
-    state.schnorrPrivateKey,
-    state.schnorrPublicKey,
-  ])
+  const keySelection = React.useMemo(
+    () => getKeySelection(state),
+    [
+      state.algorithm,
+      state.rsaPrivateKey,
+      state.rsaPublicKey,
+      state.ecdsaPrivateKey,
+      state.ecdsaPublicKey,
+      state.eddsaPrivateKey,
+      state.eddsaPublicKey,
+      state.schnorrPrivateKey,
+      state.schnorrPublicKey,
+    ],
+  );
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileBytesRef.current && fileName)
-    const hasMessage = hasFile || Boolean(state.message)
+    const hasFile = Boolean(fileBytesRef.current && fileName);
+    const hasMessage = hasFile || Boolean(state.message);
     if (!hasMessage) {
-      setOutput("")
-      setVerificationStatus(null)
-      setError(null)
-      setIsWorking(false)
-      return
+      setOutput("");
+      setVerificationStatus(null);
+      setError(null);
+      setIsWorking(false);
+      return;
     }
     if (state.mode === "verify" && !state.signature.trim()) {
-      setOutput("")
-      setVerificationStatus(null)
-      setError(null)
-      setIsWorking(false)
-      return
+      setOutput("");
+      setVerificationStatus(null);
+      setError(null);
+      setIsWorking(false);
+      return;
     }
 
-    const runId = ++runRef.current
-    setIsWorking(true)
-    setError(null)
+    const runId = ++runRef.current;
+    setIsWorking(true);
+    setError(null);
 
     const run = async () => {
       try {
         const messageBytes = hasFile
           ? (fileBytesRef.current as Uint8Array<ArrayBuffer>)
-          : decodeInputBytes(state.message, state.inputEncoding)
+          : decodeInputBytes(state.message, state.inputEncoding);
         if (state.mode === "sign") {
-          const signatureBytes = await signMessage({ messageBytes, state, privateKeyText: keySelection.privateKey })
-          const encoded = encodeSignatureBytes(signatureBytes, state.signatureEncoding)
-          if (runRef.current !== runId) return
-          setOutput(encoded)
-          setVerificationStatus(null)
+          const signatureBytes = await signMessage({
+            messageBytes,
+            state,
+            privateKeyText: keySelection.privateKey,
+          });
+          const encoded = encodeSignatureBytes(
+            signatureBytes,
+            state.signatureEncoding,
+          );
+          if (runRef.current !== runId) return;
+          setOutput(encoded);
+          setVerificationStatus(null);
         } else {
-          const signatureBytes = decodeSignatureBytes(state.signature, state.signatureEncoding)
+          const signatureBytes = decodeSignatureBytes(
+            state.signature,
+            state.signatureEncoding,
+          );
           const valid = await verifyMessage({
             messageBytes,
             signatureBytes,
             state,
             publicKeyText: keySelection.publicKey,
             privateKeyText: keySelection.privateKey,
-          })
-          if (runRef.current !== runId) return
-          setVerificationStatus(valid)
-          setOutput("")
+          });
+          if (runRef.current !== runId) return;
+          setVerificationStatus(valid);
+          setOutput("");
         }
-        setError(null)
+        setError(null);
       } catch (err) {
-        if (runRef.current !== runId) return
-        setError(formatSignatureError(err))
-        setOutput("")
-        setVerificationStatus(null)
+        if (runRef.current !== runId) return;
+        setError(formatSignatureError(err));
+        setOutput("");
+        setVerificationStatus(null);
       } finally {
         if (runRef.current === runId) {
-          setIsWorking(false)
+          setIsWorking(false);
         }
       }
-    }
+    };
 
-    run()
-  }, [state, fileName, fileVersion, keySelection])
+    run();
+  }, [state, fileName, fileVersion, keySelection]);
 
   const handleCopyOutput = async () => {
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownloadOutput = () => {
-    const blob = new Blob([output], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = `signature.${state.signatureEncoding === "hex" ? "hex" : "txt"}`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
+    const blob = new Blob([output], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `signature.${state.signatureEncoding === "hex" ? "hex" : "txt"}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleUploadClick = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
     reader.onload = () => {
-      const buffer = reader.result
-      if (!(buffer instanceof ArrayBuffer)) return
-      fileBytesRef.current = new Uint8Array(buffer)
-      setFileName(file.name)
-      setFileMeta({ name: file.name, size: file.size })
-      setFileVersion((prev) => prev + 1)
-    }
-    reader.readAsArrayBuffer(file)
-  }
+      const buffer = reader.result;
+      if (!(buffer instanceof ArrayBuffer)) return;
+      fileBytesRef.current = new Uint8Array(buffer);
+      setFileName(file.name);
+      setFileMeta({ name: file.name, size: file.size });
+      setFileVersion((prev) => prev + 1);
+    };
+    reader.readAsArrayBuffer(file);
+  };
 
   const handleClearFile = () => {
-    fileBytesRef.current = null
-    setFileName(null)
-    setFileMeta(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
-  }
+    fileBytesRef.current = null;
+    setFileName(null);
+    setFileMeta(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   const handleClearAll = React.useCallback(() => {
-    runRef.current += 1
-    resetToDefaults()
-    setFileName(null)
-    setFileMeta(null)
-    fileBytesRef.current = null
-    if (fileInputRef.current) fileInputRef.current.value = ""
-    setFileVersion(0)
-    setOutput("")
-    setVerificationStatus(null)
-    setError(null)
-    setIsWorking(false)
-    setCopied(false)
-  }, [resetToDefaults, setFileName])
+    runRef.current += 1;
+    resetToDefaults();
+    setFileName(null);
+    setFileMeta(null);
+    fileBytesRef.current = null;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFileVersion(0);
+    setOutput("");
+    setVerificationStatus(null);
+    setError(null);
+    setIsWorking(false);
+    setCopied(false);
+  }, [resetToDefaults, setFileName]);
 
   const handleGenerateKey = () => {
     try {
-      const bytes = randomBytes(hmacDefaultLength)
+      const bytes = randomBytes(hmacDefaultLength);
       const encoded =
         state.hmacKeyEncoding === "utf8"
           ? randomAsciiString(hmacDefaultLength)
           : state.hmacKeyEncoding === "hex"
-          ? encodeHex(bytes, { upperCase: false })
-          : encodeBase64(bytes, { urlSafe: false, padding: true })
-      setParam("hmacKey", encoded)
+            ? encodeHex(bytes, { upperCase: false })
+            : encodeBase64(bytes, { urlSafe: false, padding: true });
+      setParam("hmacKey", encoded);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to generate a key.")
+      setError(
+        err instanceof Error ? err.message : "Unable to generate a key.",
+      );
     }
-  }
+  };
 
   const handleKeyUploadClick = (type: "private" | "public") => {
     if (type === "private") {
-      privateKeyInputRef.current?.click()
+      privateKeyInputRef.current?.click();
     } else {
-      publicKeyInputRef.current?.click()
+      publicKeyInputRef.current?.click();
     }
-  }
+  };
 
-  const handleKeyFileUpload = (type: "private" | "public", event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
+  const handleKeyFileUpload = (
+    type: "private" | "public",
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result
-      if (typeof result !== "string") return
-      const fields = getKeyFields(state.algorithm)
-      setParam(type === "private" ? fields.privateKey : fields.publicKey, result)
-    }
-    reader.readAsText(file)
-  }
+      const result = reader.result;
+      if (typeof result !== "string") return;
+      const fields = getKeyFields(state.algorithm);
+      setParam(
+        type === "private" ? fields.privateKey : fields.publicKey,
+        result,
+      );
+    };
+    reader.readAsText(file);
+  };
 
   const handleGenerateKeypair = async () => {
     try {
-      setIsGeneratingKeys(true)
-      setError(null)
-      const { publicPem, privatePem } = await generateKeypair(state)
-      const fields = getKeyFields(state.algorithm)
-      setParam(fields.publicKey, publicPem)
-      setParam(fields.privateKey, privatePem)
+      setIsGeneratingKeys(true);
+      setError(null);
+      const { publicPem, privatePem } = await generateKeypair(state);
+      const fields = getKeyFields(state.algorithm);
+      setParam(fields.publicKey, publicPem);
+      setParam(fields.privateKey, privatePem);
     } catch (err) {
-      setError(formatSignatureError(err))
+      setError(formatSignatureError(err));
     } finally {
-      setIsGeneratingKeys(false)
+      setIsGeneratingKeys(false);
     }
-  }
+  };
 
   const inputWarning =
-    state.inputEncoding === "binary" && !fileName ? "Binary input requires a file upload." : null
-  const inputEncodingOptions: InputEncoding[] = fileName ? ["binary"] : ["utf8", "base64", "hex"]
-  const hmacDefaultLength = React.useMemo(() => getHmacKeyLength(state.hmacHash), [state.hmacHash])
+    state.inputEncoding === "binary" && !fileName
+      ? "Binary input requires a file upload."
+      : null;
+  const inputEncodingOptions: InputEncoding[] = fileName
+    ? ["binary"]
+    : ["utf8", "base64", "hex"];
+  const hmacDefaultLength = React.useMemo(
+    () => getHmacKeyLength(state.hmacHash),
+    [state.hmacHash],
+  );
   const hmacKeyWarning = React.useMemo(() => {
-    if (!state.hmacKey.trim()) return null
+    if (!state.hmacKey.trim()) return null;
     try {
-      const bytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding)
+      const bytes = decodeKeyBytes(state.hmacKey, state.hmacKeyEncoding);
       if (bytes.length < hmacDefaultLength) {
         return {
           message: `Key length is ${bytes.length} bytes; recommended at least ${hmacDefaultLength} bytes for ${state.hmacHash}.`,
           tone: "warning" as const,
-        }
+        };
       }
-      return null
+      return null;
     } catch {
-      return { message: "Key encoding is invalid.", tone: "error" as const }
+      return { message: "Key encoding is invalid.", tone: "error" as const };
     }
-  }, [state.hmacKey, state.hmacKeyEncoding, state.hmacHash, hmacDefaultLength])
+  }, [state.hmacKey, state.hmacKeyEncoding, state.hmacHash, hmacDefaultLength]);
 
   const privateKeyHint = React.useMemo(() => {
-    if (state.algorithm === "rsa") return "PEM (PKCS8) or JWK"
+    if (state.algorithm === "rsa") return "PEM (PKCS8) or JWK";
     if (state.algorithm === "ecdsa") {
-      return supportsPemForCurve(state.ecdsaCurve) ? "JWK (EC) or PEM (P-256/P-384/P-521)" : "JWK (EC)"
+      return supportsPemForCurve(state.ecdsaCurve)
+        ? "JWK (EC) or PEM (P-256/P-384/P-521)"
+        : "JWK (EC)";
     }
-    if (state.algorithm === "eddsa") return "JWK (OKP)"
-    if (state.algorithm === "schnorr") return "JWK (EC secp256k1)"
-    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") return "PQC JSON or raw key"
-    return ""
-  }, [state.algorithm, state.ecdsaCurve])
+    if (state.algorithm === "eddsa") return "JWK (OKP)";
+    if (state.algorithm === "schnorr") return "JWK (EC secp256k1)";
+    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa")
+      return "PQC JSON or raw key";
+    return "";
+  }, [state.algorithm, state.ecdsaCurve]);
 
   const publicKeyHint = React.useMemo(() => {
-    if (state.algorithm === "rsa") return "PEM (SPKI) or JWK"
+    if (state.algorithm === "rsa") return "PEM (SPKI) or JWK";
     if (state.algorithm === "ecdsa") {
-      return supportsPemForCurve(state.ecdsaCurve) ? "JWK (EC) or PEM (P-256/P-384/P-521)" : "JWK (EC)"
+      return supportsPemForCurve(state.ecdsaCurve)
+        ? "JWK (EC) or PEM (P-256/P-384/P-521)"
+        : "JWK (EC)";
     }
-    if (state.algorithm === "eddsa") return "JWK (OKP)"
-    if (state.algorithm === "schnorr") return "JWK (EC secp256k1)"
-    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa") return "PQC JSON or raw key"
-    return ""
-  }, [state.algorithm, state.ecdsaCurve])
+    if (state.algorithm === "eddsa") return "JWK (OKP)";
+    if (state.algorithm === "schnorr") return "JWK (EC secp256k1)";
+    if (state.algorithm === "ml-dsa" || state.algorithm === "slh-dsa")
+      return "PQC JSON or raw key";
+    return "";
+  }, [state.algorithm, state.ecdsaCurve]);
 
-  const showHmac = state.algorithm === "hmac"
-  const showRsa = state.algorithm === "rsa"
-  const showEcdsa = state.algorithm === "ecdsa"
-  const showEddsa = state.algorithm === "eddsa"
-  const showSchnorr = state.algorithm === "schnorr"
-  const showPqcDsa = state.algorithm === "ml-dsa"
-  const showPqcSlh = state.algorithm === "slh-dsa"
-  const showPqc = showPqcDsa || showPqcSlh
-  const privateKeyPlaceholder = showPqc ? "PQC JSON or raw key" : "-----BEGIN PRIVATE KEY-----"
-  const publicKeyPlaceholder = showPqc ? "PQC JSON or raw key" : "-----BEGIN PUBLIC KEY-----"
+  const showHmac = state.algorithm === "hmac";
+  const showRsa = state.algorithm === "rsa";
+  const showEcdsa = state.algorithm === "ecdsa";
+  const showEddsa = state.algorithm === "eddsa";
+  const showSchnorr = state.algorithm === "schnorr";
+  const showPqcDsa = state.algorithm === "ml-dsa";
+  const showPqcSlh = state.algorithm === "slh-dsa";
+  const showPqc = showPqcDsa || showPqcSlh;
+  const privateKeyPlaceholder = showPqc
+    ? "PQC JSON or raw key"
+    : "-----BEGIN PRIVATE KEY-----";
+  const publicKeyPlaceholder = showPqc
+    ? "PQC JSON or raw key"
+    : "-----BEGIN PUBLIC KEY-----";
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as ModeValue, true)}>
+        <Tabs
+          value={state.mode}
+          onValueChange={(value) => setParam("mode", value as ModeValue, true)}
+        >
           <ScrollableTabsList>
             <TabsTrigger value="sign" className="px-5 text-base flex-none">
               Sign
@@ -1131,7 +1353,12 @@ function SignatureInner({
             </TabsTrigger>
           </ScrollableTabsList>
         </Tabs>
-        <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearAll}
+          className="h-8 px-3 text-sm"
+        >
           Clear
         </Button>
       </div>
@@ -1142,7 +1369,9 @@ function SignatureInner({
             <Label className="w-20 text-sm sm:w-28">Algorithm</Label>
             <Tabs
               value={state.algorithm}
-              onValueChange={(value) => setParam("algorithm", value as AlgorithmValue, true)}
+              onValueChange={(value) =>
+                setParam("algorithm", value as AlgorithmValue, true)
+              }
               className="min-w-0 flex-1"
             >
               <ScrollableTabsList>
@@ -1159,7 +1388,12 @@ function SignatureInner({
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Hash</Label>
-                <Tabs value={state.hmacHash} onValueChange={(value) => setParam("hmacHash", value as HmacHash, true)}>
+                <Tabs
+                  value={state.hmacHash}
+                  onValueChange={(value) =>
+                    setParam("hmacHash", value as HmacHash, true)
+                  }
+                >
                   <ScrollableTabsList>
                     {hmacHashes.map((hash) => (
                       <TabsTrigger key={hash} value={hash} className="text-xs">
@@ -1174,7 +1408,9 @@ function SignatureInner({
                 <div className="min-w-0 flex-1">
                   <Textarea
                     value={state.hmacKey}
-                    onChange={(event) => setParam("hmacKey", event.target.value)}
+                    onChange={(event) =>
+                      setParam("hmacKey", event.target.value)
+                    }
                     placeholder="Enter secret key..."
                     className={cn(
                       "min-h-[112px] font-mono text-xs break-all",
@@ -1184,17 +1420,28 @@ function SignatureInner({
                   <div className="mt-2 flex items-center justify-end gap-2">
                     <Tabs
                       value={state.hmacKeyEncoding}
-                      onValueChange={(value) => setParam("hmacKeyEncoding", value as KeyEncoding, true)}
+                      onValueChange={(value) =>
+                        setParam("hmacKeyEncoding", value as KeyEncoding, true)
+                      }
                       className="flex-row gap-0"
                     >
                       <InlineTabsList className="h-6 gap-1">
-                        <TabsTrigger value="utf8" className="text-[10px] sm:text-xs px-2">
+                        <TabsTrigger
+                          value="utf8"
+                          className="text-[10px] sm:text-xs px-2"
+                        >
                           {encodingLabels.utf8}
                         </TabsTrigger>
-                        <TabsTrigger value="base64" className="text-[10px] sm:text-xs px-2">
+                        <TabsTrigger
+                          value="base64"
+                          className="text-[10px] sm:text-xs px-2"
+                        >
                           {encodingLabels.base64}
                         </TabsTrigger>
-                        <TabsTrigger value="hex" className="text-[10px] sm:text-xs px-2">
+                        <TabsTrigger
+                          value="hex"
+                          className="text-[10px] sm:text-xs px-2"
+                        >
                           {encodingLabels.hex}
                         </TabsTrigger>
                       </InlineTabsList>
@@ -1214,13 +1461,22 @@ function SignatureInner({
               {oversizeKeys.includes("hmacKey") && (
                 <div className="flex items-start gap-3">
                   <div className="w-20 sm:w-28" />
-                  <p className="text-xs text-muted-foreground">Key exceeds 2 KB and is not synced to the URL.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Key exceeds 2 KB and is not synced to the URL.
+                  </p>
                 </div>
               )}
               {hmacKeyWarning && (
                 <div className="flex items-start gap-3">
                   <div className="w-20 sm:w-28" />
-                  <p className={cn("text-xs", hmacKeyWarning.tone === "error" ? "text-destructive" : "text-muted-foreground")}>
+                  <p
+                    className={cn(
+                      "text-xs",
+                      hmacKeyWarning.tone === "error"
+                        ? "text-destructive"
+                        : "text-muted-foreground",
+                    )}
+                  >
                     {hmacKeyWarning.message}
                   </p>
                 </div>
@@ -1232,10 +1488,19 @@ function SignatureInner({
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Scheme</Label>
-                <Tabs value={state.rsaScheme} onValueChange={(value) => setParam("rsaScheme", value as RsaScheme, true)}>
+                <Tabs
+                  value={state.rsaScheme}
+                  onValueChange={(value) =>
+                    setParam("rsaScheme", value as RsaScheme, true)
+                  }
+                >
                   <ScrollableTabsList>
                     {rsaSchemes.map((scheme) => (
-                      <TabsTrigger key={scheme} value={scheme} className="text-xs flex-none">
+                      <TabsTrigger
+                        key={scheme}
+                        value={scheme}
+                        className="text-xs flex-none"
+                      >
                         {scheme}
                       </TabsTrigger>
                     ))}
@@ -1244,7 +1509,12 @@ function SignatureInner({
               </div>
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Hash</Label>
-                <Tabs value={state.rsaHash} onValueChange={(value) => setParam("rsaHash", value as RsaHash, true)}>
+                <Tabs
+                  value={state.rsaHash}
+                  onValueChange={(value) =>
+                    setParam("rsaHash", value as RsaHash, true)
+                  }
+                >
                   <ScrollableTabsList>
                     {rsaHashes.map((hash) => (
                       <TabsTrigger key={hash} value={hash} className="text-xs">
@@ -1263,8 +1533,12 @@ function SignatureInner({
                     max={1024}
                     value={state.rsaSaltLength}
                     onChange={(event) => {
-                      const value = Number.parseInt(event.target.value, 10)
-                      setParam("rsaSaltLength", Number.isNaN(value) ? 0 : value, true)
+                      const value = Number.parseInt(event.target.value, 10);
+                      setParam(
+                        "rsaSaltLength",
+                        Number.isNaN(value) ? 0 : value,
+                        true,
+                      );
                     }}
                     className="h-9 w-28"
                   />
@@ -1280,10 +1554,19 @@ function SignatureInner({
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Curve</Label>
-                <Tabs value={state.ecdsaCurve} onValueChange={(value) => setParam("ecdsaCurve", value as EcdsaCurve, true)}>
+                <Tabs
+                  value={state.ecdsaCurve}
+                  onValueChange={(value) =>
+                    setParam("ecdsaCurve", value as EcdsaCurve, true)
+                  }
+                >
                   <ScrollableTabsList>
                     {ecdsaCurves.map((curve) => (
-                      <TabsTrigger key={curve} value={curve} className="text-xs">
+                      <TabsTrigger
+                        key={curve}
+                        value={curve}
+                        className="text-xs"
+                      >
                         {curve}
                       </TabsTrigger>
                     ))}
@@ -1292,7 +1575,12 @@ function SignatureInner({
               </div>
               <div className="flex items-center gap-3">
                 <Label className="w-20 text-sm sm:w-28">Hash</Label>
-                <Tabs value={state.ecdsaHash} onValueChange={(value) => setParam("ecdsaHash", value as EcdsaHash, true)}>
+                <Tabs
+                  value={state.ecdsaHash}
+                  onValueChange={(value) =>
+                    setParam("ecdsaHash", value as EcdsaHash, true)
+                  }
+                >
                   <ScrollableTabsList>
                     {ecdsaHashes.map((hash) => (
                       <TabsTrigger key={hash} value={hash} className="text-xs">
@@ -1308,10 +1596,19 @@ function SignatureInner({
           {showEddsa && (
             <div className="flex items-center gap-3">
               <Label className="w-20 text-sm sm:w-28">Curve</Label>
-              <Tabs value={state.eddsaCurve} onValueChange={(value) => setParam("eddsaCurve", value as EddsaCurve, true)}>
+              <Tabs
+                value={state.eddsaCurve}
+                onValueChange={(value) =>
+                  setParam("eddsaCurve", value as EddsaCurve, true)
+                }
+              >
                 <ScrollableTabsList>
                   {eddsaCurves.map((curve) => (
-                    <TabsTrigger key={curve} value={curve} className="text-xs flex-none">
+                    <TabsTrigger
+                      key={curve}
+                      value={curve}
+                      className="text-xs flex-none"
+                    >
                       {curve}
                     </TabsTrigger>
                   ))}
@@ -1332,12 +1629,18 @@ function SignatureInner({
               <Label className="w-20 text-sm sm:w-28">Parameter Set</Label>
               <Tabs
                 value={state.pqcDsaVariant}
-                onValueChange={(value) => setParam("pqcDsaVariant", value as PqcDsaVariant, true)}
+                onValueChange={(value) =>
+                  setParam("pqcDsaVariant", value as PqcDsaVariant, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
                   {pqcDsaVariants.map((variant) => (
-                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                    <TabsTrigger
+                      key={variant}
+                      value={variant}
+                      className="text-xs"
+                    >
                       {variant}
                     </TabsTrigger>
                   ))}
@@ -1351,12 +1654,18 @@ function SignatureInner({
               <Label className="w-20 text-sm sm:w-28">Parameter Set</Label>
               <Tabs
                 value={state.pqcSlhVariant}
-                onValueChange={(value) => setParam("pqcSlhVariant", value as PqcSlhVariant, true)}
+                onValueChange={(value) =>
+                  setParam("pqcSlhVariant", value as PqcSlhVariant, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
                   {pqcSlhVariants.map((variant) => (
-                    <TabsTrigger key={variant} value={variant} className="text-xs">
+                    <TabsTrigger
+                      key={variant}
+                      value={variant}
+                      className="text-xs"
+                    >
                       {variant}
                     </TabsTrigger>
                   ))}
@@ -1369,20 +1678,31 @@ function SignatureInner({
             <div className="space-y-3">
               {state.mode === "sign" ? (
                 <div className="flex items-start gap-3">
-                  <Label className="w-20 text-sm sm:w-28 pt-2">Private Key</Label>
+                  <Label className="w-20 text-sm sm:w-28 pt-2">
+                    Private Key
+                  </Label>
                   <div className="min-w-0 flex-1">
                     <Textarea
                       rows={10}
                       value={keySelection.privateKey}
-                      onChange={(event) => setParam(getKeyFields(state.algorithm).privateKey, event.target.value)}
+                      onChange={(event) =>
+                        setParam(
+                          getKeyFields(state.algorithm).privateKey,
+                          event.target.value,
+                        )
+                      }
                       placeholder={privateKeyPlaceholder}
                       className={cn(
                         "min-h-[160px] max-h-[160px] overflow-auto break-all font-mono text-xs",
-                        oversizeKeys.includes(getKeyFields(state.algorithm).privateKey) && "border-destructive",
+                        oversizeKeys.includes(
+                          getKeyFields(state.algorithm).privateKey,
+                        ) && "border-destructive",
                       )}
                     />
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">{privateKeyHint}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {privateKeyHint}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
@@ -1409,12 +1729,22 @@ function SignatureInner({
                       <div className="mt-2 flex items-center justify-end">
                         <Tabs
                           value={state.pqcKeyEncoding}
-                          onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "pqcKeyEncoding",
+                              value as PqcKeyEncoding,
+                              true,
+                            )
+                          }
                           className="flex-row gap-0"
                         >
                           <InlineTabsList className="h-6 gap-1">
                             {pqcKeyEncodings.map((encoding) => (
-                              <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                              <TabsTrigger
+                                key={encoding}
+                                value={encoding}
+                                className="text-[10px] sm:text-xs px-2"
+                              >
                                 {encodingLabels[encoding]}
                               </TabsTrigger>
                             ))}
@@ -1422,7 +1752,9 @@ function SignatureInner({
                         </Tabs>
                       </div>
                     )}
-                    {oversizeKeys.includes(getKeyFields(state.algorithm).privateKey) && (
+                    {oversizeKeys.includes(
+                      getKeyFields(state.algorithm).privateKey,
+                    ) && (
                       <p className="text-xs text-muted-foreground">
                         Private key exceeds 2 KB and is not synced to the URL.
                       </p>
@@ -1431,20 +1763,31 @@ function SignatureInner({
                 </div>
               ) : (
                 <div className="flex items-start gap-3">
-                  <Label className="w-20 text-sm sm:w-28 pt-2">Public Key</Label>
+                  <Label className="w-20 text-sm sm:w-28 pt-2">
+                    Public Key
+                  </Label>
                   <div className="min-w-0 flex-1">
                     <Textarea
                       rows={10}
                       value={keySelection.publicKey}
-                      onChange={(event) => setParam(getKeyFields(state.algorithm).publicKey, event.target.value)}
+                      onChange={(event) =>
+                        setParam(
+                          getKeyFields(state.algorithm).publicKey,
+                          event.target.value,
+                        )
+                      }
                       placeholder={publicKeyPlaceholder}
                       className={cn(
                         "min-h-[160px] max-h-[160px] overflow-auto break-all font-mono text-xs",
-                        oversizeKeys.includes(getKeyFields(state.algorithm).publicKey) && "border-destructive",
+                        oversizeKeys.includes(
+                          getKeyFields(state.algorithm).publicKey,
+                        ) && "border-destructive",
                       )}
                     />
                     <div className="mt-2 flex items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">{publicKeyHint}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {publicKeyHint}
+                      </p>
                       <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
@@ -1471,12 +1814,22 @@ function SignatureInner({
                       <div className="mt-2 flex items-center justify-end">
                         <Tabs
                           value={state.pqcKeyEncoding}
-                          onValueChange={(value) => setParam("pqcKeyEncoding", value as PqcKeyEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "pqcKeyEncoding",
+                              value as PqcKeyEncoding,
+                              true,
+                            )
+                          }
                           className="flex-row gap-0"
                         >
                           <InlineTabsList className="h-6 gap-1">
                             {pqcKeyEncodings.map((encoding) => (
-                              <TabsTrigger key={encoding} value={encoding} className="text-[10px] sm:text-xs px-2">
+                              <TabsTrigger
+                                key={encoding}
+                                value={encoding}
+                                className="text-[10px] sm:text-xs px-2"
+                              >
                                 {encodingLabels[encoding]}
                               </TabsTrigger>
                             ))}
@@ -1484,7 +1837,9 @@ function SignatureInner({
                         </Tabs>
                       </div>
                     )}
-                    {oversizeKeys.includes(getKeyFields(state.algorithm).publicKey) && (
+                    {oversizeKeys.includes(
+                      getKeyFields(state.algorithm).publicKey,
+                    ) && (
                       <p className="text-xs text-muted-foreground">
                         Public key exceeds 2 KB and is not synced to the URL.
                       </p>
@@ -1514,18 +1869,29 @@ function SignatureInner({
               <Label className="text-sm">Message</Label>
               <Tabs
                 value={state.inputEncoding}
-                onValueChange={(value) => setParam("inputEncoding", value as InputEncoding, true)}
+                onValueChange={(value) =>
+                  setParam("inputEncoding", value as InputEncoding, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <InlineTabsList>
                   {inputEncodingOptions.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
+                    <TabsTrigger
+                      key={encoding}
+                      value={encoding}
+                      className="text-xs flex-none"
+                    >
                       {encodingLabels[encoding]}
                     </TabsTrigger>
                   ))}
                 </InlineTabsList>
               </Tabs>
-              <Button variant="ghost" size="sm" onClick={handleUploadClick} className="h-7 gap-1 px-2 text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUploadClick}
+                className="h-7 gap-1 px-2 text-xs"
+              >
                 <Upload className="h-3 w-3" />
                 Upload
               </Button>
@@ -1556,11 +1922,20 @@ function SignatureInner({
                 </div>
               )}
             </div>
-            <input ref={fileInputRef} type="file" onChange={handleFileUpload} className="hidden" />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
             {oversizeKeys.includes("message") && (
-              <p className="text-xs text-muted-foreground">Message exceeds 2 KB and is not synced to the URL.</p>
+              <p className="text-xs text-muted-foreground">
+                Message exceeds 2 KB and is not synced to the URL.
+              </p>
             )}
-            {inputWarning && <p className="text-xs text-muted-foreground">{inputWarning}</p>}
+            {inputWarning && (
+              <p className="text-xs text-muted-foreground">{inputWarning}</p>
+            )}
           </div>
 
           {state.mode === "verify" && (
@@ -1569,12 +1944,22 @@ function SignatureInner({
                 <Label className="text-sm">Signature</Label>
                 <Tabs
                   value={state.signatureEncoding}
-                  onValueChange={(value) => setParam("signatureEncoding", value as SignatureEncoding, true)}
+                  onValueChange={(value) =>
+                    setParam(
+                      "signatureEncoding",
+                      value as SignatureEncoding,
+                      true,
+                    )
+                  }
                   className="min-w-0 flex-1"
                 >
                   <InlineTabsList>
                     {signatureEncodings.map((encoding) => (
-                      <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
+                      <TabsTrigger
+                        key={encoding}
+                        value={encoding}
+                        className="text-xs flex-none"
+                      >
                         {encodingLabels[encoding]}
                       </TabsTrigger>
                     ))}
@@ -1591,23 +1976,35 @@ function SignatureInner({
                 )}
               />
               {oversizeKeys.includes("signature") && (
-                <p className="text-xs text-muted-foreground">Signature exceeds 2 KB and is not synced to the URL.</p>
+                <p className="text-xs text-muted-foreground">
+                  Signature exceeds 2 KB and is not synced to the URL.
+                </p>
               )}
               <div className="rounded-md border p-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Verification Result</Label>
+                  <Label className="text-sm font-medium">
+                    Verification Result
+                  </Label>
                   {verificationStatus !== null && (
-                    <Badge variant={verificationStatus ? "default" : "destructive"}>
+                    <Badge
+                      variant={verificationStatus ? "default" : "destructive"}
+                    >
                       {verificationStatus ? "Valid" : "Invalid"}
                     </Badge>
                   )}
                 </div>
                 {verificationStatus === null ? (
-                  <p className="text-sm text-muted-foreground">Provide a message and signature to verify.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Provide a message and signature to verify.
+                  </p>
                 ) : verificationStatus ? (
-                  <p className="text-sm text-emerald-600">Signature matches the message.</p>
+                  <p className="text-sm text-emerald-600">
+                    Signature matches the message.
+                  </p>
                 ) : (
-                  <p className="text-sm text-destructive">Signature does not match the message.</p>
+                  <p className="text-sm text-destructive">
+                    Signature does not match the message.
+                  </p>
                 )}
               </div>
             </div>
@@ -1619,17 +2016,27 @@ function SignatureInner({
                 <Label className="text-sm">Signature</Label>
                 <Tabs
                   value={state.signatureEncoding}
-                  onValueChange={(value) => setParam("signatureEncoding", value as SignatureEncoding, true)}
+                  onValueChange={(value) =>
+                    setParam(
+                      "signatureEncoding",
+                      value as SignatureEncoding,
+                      true,
+                    )
+                  }
                   className="min-w-0 flex-1"
                 >
-                <InlineTabsList>
-                  {signatureEncodings.map((encoding) => (
-                    <TabsTrigger key={encoding} value={encoding} className="text-xs flex-none">
-                      {encodingLabels[encoding]}
-                    </TabsTrigger>
-                  ))}
-                </InlineTabsList>
-              </Tabs>
+                  <InlineTabsList>
+                    {signatureEncodings.map((encoding) => (
+                      <TabsTrigger
+                        key={encoding}
+                        value={encoding}
+                        className="text-xs flex-none"
+                      >
+                        {encodingLabels[encoding]}
+                      </TabsTrigger>
+                    ))}
+                  </InlineTabsList>
+                </Tabs>
                 <div className="flex shrink-0 items-center gap-1">
                   <Button
                     variant="ghost"
@@ -1639,7 +2046,11 @@ function SignatureInner({
                     aria-label="Copy signature"
                     disabled={!output}
                   >
-                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? (
+                      <Check className="h-3 w-3" />
+                    ) : (
+                      <Copy className="h-3 w-3" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
@@ -1662,7 +2073,9 @@ function SignatureInner({
             </div>
           )}
 
-          {isWorking && <p className="text-xs text-muted-foreground">Processing...</p>}
+          {isWorking && (
+            <p className="text-xs text-muted-foreground">Processing...</p>
+          )}
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
@@ -1672,5 +2085,5 @@ function SignatureInner({
         </div>
       </div>
     </div>
-  )
+  );
 }

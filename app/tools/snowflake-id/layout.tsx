@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Snowflake ID Generator/Parser - AutelysT",
@@ -15,8 +15,12 @@ export const metadata: Metadata = {
     "worker",
     "sequence",
   ],
-}
+};
 
-export default function SnowflakeIdLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function SnowflakeIdLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

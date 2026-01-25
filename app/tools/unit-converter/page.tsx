@@ -1,48 +1,71 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { ArrowRightLeft, Copy, Check } from "lucide-react"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import type { HistoryEntry } from "@/lib/history/db"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import { ArrowRightLeft, Copy, Check } from "lucide-react";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { HistoryEntry } from "@/lib/history/db";
 import {
   type UnitCategory,
   unitCategories,
   convert,
   formatNumber,
   getUnitsByCategory,
-} from "@/lib/units/converter"
+} from "@/lib/units/converter";
 
-const categoryValues = unitCategories.map((c) => c.id) as [UnitCategory, ...UnitCategory[]]
+const categoryValues = unitCategories.map((c) => c.id) as [
+  UnitCategory,
+  ...UnitCategory[],
+];
 
 const paramsSchema = z.object({
   value: z.string().default("1"),
   category: z.enum(categoryValues).default("length"),
   fromUnit: z.string().default("m"),
   toUnit: z.string().default("ft"),
-})
+});
 
 // Category families for tab grouping
 const categoryFamilies = {
   measurement: ["length", "mass", "volume", "area"],
   physics: ["speed", "pressure", "energy", "power", "force"],
-  other: ["temperature", "time", "data", "angle", "frequency", "fuel", "cooking"],
-} as const
+  other: [
+    "temperature",
+    "time",
+    "data",
+    "angle",
+    "frequency",
+    "fuel",
+    "cooking",
+  ],
+} as const;
 
-type CategoryFamily = keyof typeof categoryFamilies
+type CategoryFamily = keyof typeof categoryFamilies;
 
 const categoryFamilyLabels: Record<CategoryFamily, string> = {
   measurement: "Measurement",
   physics: "Physics",
   other: "Other",
-}
+};
 
 const categoryFamilyMap: Record<UnitCategory, CategoryFamily> = {
   length: "measurement",
@@ -61,7 +84,7 @@ const categoryFamilyMap: Record<UnitCategory, CategoryFamily> = {
   frequency: "other",
   fuel: "other",
   cooking: "other",
-}
+};
 
 const categoryLabels: Record<UnitCategory, string> = {
   length: "Length",
@@ -80,7 +103,7 @@ const categoryLabels: Record<UnitCategory, string> = {
   force: "Force",
   fuel: "Fuel",
   cooking: "Cooking",
-}
+};
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
   return (
@@ -89,7 +112,7 @@ function ScrollableTabsList({ children }: { children: React.ReactNode }) {
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
 export default function UnitConverterPage() {
@@ -97,25 +120,31 @@ export default function UnitConverterPage() {
     <Suspense fallback={null}>
       <UnitConverterContent />
     </Suspense>
-  )
+  );
 }
 
 function UnitConverterContent() {
-  const { state, setParam, hasUrlParams, hydrationSource } = useUrlSyncedState("unit-converter", {
-    schema: paramsSchema,
-    defaults: paramsSchema.parse({}),
-  })
+  const { state, setParam, hasUrlParams, hydrationSource } = useUrlSyncedState(
+    "unit-converter",
+    {
+      schema: paramsSchema,
+      defaults: paramsSchema.parse({}),
+    },
+  );
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
-      if (inputs.value !== undefined) setParam("value", inputs.value)
-      if (params.category) setParam("category", params.category as UnitCategory)
-      if (params.fromUnit !== undefined) setParam("fromUnit", params.fromUnit as string)
-      if (params.toUnit !== undefined) setParam("toUnit", params.toUnit as string)
+      const { inputs, params } = entry;
+      if (inputs.value !== undefined) setParam("value", inputs.value);
+      if (params.category)
+        setParam("category", params.category as UnitCategory);
+      if (params.fromUnit !== undefined)
+        setParam("fromUnit", params.fromUnit as string);
+      if (params.toUnit !== undefined)
+        setParam("toUnit", params.toUnit as string);
     },
     [setParam],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -131,7 +160,7 @@ function UnitConverterContent() {
         hydrationSource={hydrationSource}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function UnitConverterInner({
@@ -140,75 +169,101 @@ function UnitConverterInner({
   hasUrlParams,
   hydrationSource,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
+  ) => void;
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [output, setOutput] = React.useState("")
-  const [copied, setCopied] = React.useState(false)
-  const categoryFamily = categoryFamilyMap[state.category]
-  const activeCategories = categoryFamilies[categoryFamily]
-  const units = getUnitsByCategory(state.category)
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [output, setOutput] = React.useState("");
+  const [copied, setCopied] = React.useState(false);
+  const categoryFamily = categoryFamilyMap[state.category];
+  const activeCategories = categoryFamilies[categoryFamily];
+  const units = getUnitsByCategory(state.category);
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
   const paramsRef = React.useRef({
     category: state.category,
     fromUnit: state.fromUnit,
     toUnit: state.toUnit,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
 
   // Hydration tracking
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = state.value
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.value])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = state.value;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.value]);
 
   // Track input changes for history
   React.useEffect(() => {
-    if (!state.value || state.value === lastInputRef.current) return
+    if (!state.value || state.value === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
-      lastInputRef.current = state.value
+      lastInputRef.current = state.value;
       upsertInputEntry(
         { value: state.value },
-        { category: state.category, fromUnit: state.fromUnit, toUnit: state.toUnit },
+        {
+          category: state.category,
+          fromUnit: state.fromUnit,
+          toUnit: state.toUnit,
+        },
         "left",
         `${state.value} ${state.fromUnit}`,
-      )
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
-    return () => clearTimeout(timer)
-  }, [state.value, state.category, state.fromUnit, state.toUnit, upsertInputEntry])
+    return () => clearTimeout(timer);
+  }, [
+    state.value,
+    state.category,
+    state.fromUnit,
+    state.toUnit,
+    upsertInputEntry,
+  ]);
 
   // Handle URL params on load
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.value) {
         upsertInputEntry(
           { value: state.value },
-          { category: state.category, fromUnit: state.fromUnit, toUnit: state.toUnit },
+          {
+            category: state.category,
+            fromUnit: state.fromUnit,
+            toUnit: state.toUnit,
+          },
           "left",
           `${state.value} ${state.fromUnit}`,
-        )
+        );
       } else {
         upsertParams(
-          { category: state.category, fromUnit: state.fromUnit, toUnit: state.toUnit },
+          {
+            category: state.category,
+            fromUnit: state.fromUnit,
+            toUnit: state.toUnit,
+          },
           "interpretation",
-        )
+        );
       }
     }
-  }, [hasUrlParams, state.value, state.category, state.fromUnit, state.toUnit, upsertInputEntry, upsertParams])
+  }, [
+    hasUrlParams,
+    state.value,
+    state.category,
+    state.fromUnit,
+    state.toUnit,
+    upsertInputEntry,
+    upsertParams,
+  ]);
 
   // Track param changes
   React.useEffect(() => {
@@ -216,68 +271,73 @@ function UnitConverterInner({
       category: state.category,
       fromUnit: state.fromUnit,
       toUnit: state.toUnit,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
     if (
       paramsRef.current.category === nextParams.category &&
       paramsRef.current.fromUnit === nextParams.fromUnit &&
       paramsRef.current.toUnit === nextParams.toUnit
     ) {
-      return
+      return;
     }
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
-  }, [state.category, state.fromUnit, state.toUnit, upsertParams])
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
+  }, [state.category, state.fromUnit, state.toUnit, upsertParams]);
 
   // Perform conversion
   React.useEffect(() => {
-    const numValue = parseFloat(state.value)
+    const numValue = parseFloat(state.value);
     if (isNaN(numValue)) {
-      setOutput("")
-      return
+      setOutput("");
+      return;
     }
 
     try {
-      const result = convert(numValue, state.fromUnit, state.toUnit, state.category)
-      setOutput(formatNumber(result))
+      const result = convert(
+        numValue,
+        state.fromUnit,
+        state.toUnit,
+        state.category,
+      );
+      setOutput(formatNumber(result));
     } catch {
-      setOutput("Error")
+      setOutput("Error");
     }
-  }, [state.value, state.fromUnit, state.toUnit, state.category])
+  }, [state.value, state.fromUnit, state.toUnit, state.category]);
 
   // When category changes, reset units to sensible defaults
   const handleCategoryChange = React.useCallback(
     (newCategory: UnitCategory) => {
-      const newUnits = getUnitsByCategory(newCategory)
-      const defaultFrom = newUnits[0]?.id ?? ""
-      const defaultTo = newUnits[1]?.id ?? newUnits[0]?.id ?? ""
-      setParam("category", newCategory, true)
-      setParam("fromUnit", defaultFrom, true)
-      setParam("toUnit", defaultTo, true)
+      const newUnits = getUnitsByCategory(newCategory);
+      const defaultFrom = newUnits[0]?.id ?? "";
+      const defaultTo = newUnits[1]?.id ?? newUnits[0]?.id ?? "";
+      setParam("category", newCategory, true);
+      setParam("fromUnit", defaultFrom, true);
+      setParam("toUnit", defaultTo, true);
     },
     [setParam],
-  )
+  );
 
   const handleSwapUnits = () => {
-    const from = state.fromUnit
-    const to = state.toUnit
-    setParam("fromUnit", to, true)
-    setParam("toUnit", from, true)
-  }
+    const from = state.fromUnit;
+    const to = state.toUnit;
+    setParam("fromUnit", to, true);
+    setParam("toUnit", from, true);
+  };
 
   const handleCopy = async () => {
-    if (!output) return
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  const fromUnit = units.find((u) => u.id === state.fromUnit)
-  const toUnit = units.find((u) => u.id === state.toUnit)
+  const fromUnit = units.find((u) => u.id === state.fromUnit);
+  const toUnit = units.find((u) => u.id === state.toUnit);
 
   return (
     <div className="flex h-full flex-col gap-4">
@@ -289,28 +349,40 @@ function UnitConverterInner({
             <Tabs
               value={categoryFamily}
               onValueChange={(value) => {
-                const family = value as CategoryFamily
-                const next = categoryFamilies[family][0] as UnitCategory
+                const family = value as CategoryFamily;
+                const next = categoryFamilies[family][0] as UnitCategory;
                 if (state.category !== next) {
-                  handleCategoryChange(next)
+                  handleCategoryChange(next);
                 }
               }}
             >
               <ScrollableTabsList>
-                {(Object.keys(categoryFamilies) as CategoryFamily[]).map((family) => (
-                  <TabsTrigger key={family} value={family} className="flex-none text-xs">
-                    {categoryFamilyLabels[family]}
-                  </TabsTrigger>
-                ))}
+                {(Object.keys(categoryFamilies) as CategoryFamily[]).map(
+                  (family) => (
+                    <TabsTrigger
+                      key={family}
+                      value={family}
+                      className="flex-none text-xs"
+                    >
+                      {categoryFamilyLabels[family]}
+                    </TabsTrigger>
+                  ),
+                )}
               </ScrollableTabsList>
             </Tabs>
             <Tabs
               value={state.category}
-              onValueChange={(value) => handleCategoryChange(value as UnitCategory)}
+              onValueChange={(value) =>
+                handleCategoryChange(value as UnitCategory)
+              }
             >
               <ScrollableTabsList>
                 {activeCategories.map((cat) => (
-                  <TabsTrigger key={cat} value={cat} className="flex-none text-xs">
+                  <TabsTrigger
+                    key={cat}
+                    value={cat}
+                    className="flex-none text-xs"
+                  >
                     {categoryLabels[cat as UnitCategory]}
                   </TabsTrigger>
                 ))}
@@ -327,7 +399,10 @@ function UnitConverterInner({
           <div className="flex items-center justify-between gap-2">
             <Label className="text-sm font-medium">From</Label>
           </div>
-          <Select value={state.fromUnit} onValueChange={(v) => setParam("fromUnit", v, true)}>
+          <Select
+            value={state.fromUnit}
+            onValueChange={(v) => setParam("fromUnit", v, true)}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select unit" />
             </SelectTrigger>
@@ -378,11 +453,18 @@ function UnitConverterInner({
               disabled={!output}
               className="h-7 gap-1 px-2 text-xs"
             >
-              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+              {copied ? (
+                <Check className="h-3 w-3" />
+              ) : (
+                <Copy className="h-3 w-3" />
+              )}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
-          <Select value={state.toUnit} onValueChange={(v) => setParam("toUnit", v, true)}>
+          <Select
+            value={state.toUnit}
+            onValueChange={(v) => setParam("toUnit", v, true)}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select unit" />
             </SelectTrigger>
@@ -410,22 +492,29 @@ function UnitConverterInner({
         <h3 className="mb-2 text-sm font-medium">Quick Reference</h3>
         <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {units.slice(0, 8).map((unit) => {
-            const numValue = parseFloat(state.value)
-            if (isNaN(numValue) || unit.id === state.fromUnit) return null
+            const numValue = parseFloat(state.value);
+            if (isNaN(numValue) || unit.id === state.fromUnit) return null;
             try {
-              const converted = convert(numValue, state.fromUnit, unit.id, state.category)
+              const converted = convert(
+                numValue,
+                state.fromUnit,
+                unit.id,
+                state.category,
+              );
               return (
                 <div key={unit.id} className="flex justify-between gap-2">
                   <span>{unit.name}:</span>
-                  <span className="font-mono">{formatNumber(converted, 6)} {unit.symbol}</span>
+                  <span className="font-mono">
+                    {formatNumber(converted, 6)} {unit.symbol}
+                  </span>
                 </div>
-              )
+              );
             } catch {
-              return null
+              return null;
             }
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }

@@ -1,28 +1,28 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Check, Copy } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import UrlParamEditor from "./url-param-editor"
-import UrlEncodingSelect from "./url-encoding-select"
-import { buildEncodedHash, buildEncodedQuery } from "./url-builder-utils"
-import type { ParsedUrlData, UrlParam } from "./url-builder-types"
+import * as React from "react";
+import { Check, Copy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import UrlParamEditor from "./url-param-editor";
+import UrlEncodingSelect from "./url-encoding-select";
+import { buildEncodedHash, buildEncodedQuery } from "./url-builder-utils";
+import type { ParsedUrlData, UrlParam } from "./url-builder-types";
 
 type UrlBuilderFormProps = {
-  url: string
-  encoding: string
-  encodingOptions: Array<{ value: string; label: string }>
-  parsed: ParsedUrlData
-  oversizeUrl: boolean
-  onUrlChange: (value: string) => void
-  onEncodingChange: (value: string) => void
-  onPartsChange: (next: Partial<ParsedUrlData>) => void
-  onQueryParamsChange: (params: UrlParam[]) => void
-  onHashParamsChange: (params: UrlParam[]) => void
-}
+  url: string;
+  encoding: string;
+  encodingOptions: Array<{ value: string; label: string }>;
+  parsed: ParsedUrlData;
+  oversizeUrl: boolean;
+  onUrlChange: (value: string) => void;
+  onEncodingChange: (value: string) => void;
+  onPartsChange: (next: Partial<ParsedUrlData>) => void;
+  onQueryParamsChange: (params: UrlParam[]) => void;
+  onHashParamsChange: (params: UrlParam[]) => void;
+};
 
 export default function UrlBuilderForm({
   url,
@@ -36,20 +36,20 @@ export default function UrlBuilderForm({
   onQueryParamsChange,
   onHashParamsChange,
 }: UrlBuilderFormProps) {
-  const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
+  const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
 
   const handleCopy = React.useCallback(async (text: string, key: string) => {
-    if (!text) return
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(text)
-      setCopiedKey(key)
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
       setTimeout(() => {
-        setCopiedKey((current) => (current === key ? null : current))
-      }, 2000)
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 2000);
     } catch (error) {
-      console.error("URL Builder copy failed", error)
+      console.error("URL Builder copy failed", error);
     }
-  }, [])
+  }, []);
 
   const renderCopyInput = React.useCallback(
     ({
@@ -58,10 +58,10 @@ export default function UrlBuilderForm({
       onChange,
       fieldKey,
     }: {
-      value: string
-      placeholder: string
-      onChange: (value: string) => void
-      fieldKey: string
+      value: string;
+      placeholder: string;
+      onChange: (value: string) => void;
+      fieldKey: string;
     }) => (
       <div className="relative">
         <Input
@@ -78,12 +78,16 @@ export default function UrlBuilderForm({
           onClick={() => handleCopy(value, fieldKey)}
           disabled={!value}
         >
-          {copiedKey === fieldKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copiedKey === fieldKey ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
         </Button>
       </div>
     ),
     [copiedKey, handleCopy],
-  )
+  );
 
   const renderReadOnlyCopy = React.useCallback(
     ({
@@ -91,13 +95,15 @@ export default function UrlBuilderForm({
       placeholder,
       fieldKey,
     }: {
-      value: string
-      placeholder: string
-      fieldKey: string
+      value: string;
+      placeholder: string;
+      fieldKey: string;
     }) => (
       <div className="flex items-start justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2">
         <div className="min-w-0 flex-1 font-mono text-xs text-foreground break-all">
-          {value || <span className="text-muted-foreground">{placeholder}</span>}
+          {value || (
+            <span className="text-muted-foreground">{placeholder}</span>
+          )}
         </div>
         <Button
           type="button"
@@ -107,22 +113,36 @@ export default function UrlBuilderForm({
           onClick={() => handleCopy(value, fieldKey)}
           disabled={!value}
         >
-          {copiedKey === fieldKey ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          {copiedKey === fieldKey ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
         </Button>
       </div>
     ),
     [copiedKey, handleCopy],
-  )
+  );
 
-  const encodedQuery = buildEncodedQuery(parsed.queryParams, encoding)
-  const encodedHash = buildEncodedHash(parsed.hashPathname, parsed.hashParams, encoding)
+  const encodedQuery = buildEncodedQuery(parsed.queryParams, encoding);
+  const encodedHash = buildEncodedHash(
+    parsed.hashPathname,
+    parsed.hashParams,
+    encoding,
+  );
 
   return (
     <div className="flex flex-col gap-6">
       <div className="rounded-lg border bg-background p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <Label className="text-sm font-medium">URL</Label>
-          <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs" onClick={() => handleCopy(url, "url")} disabled={!url}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1 px-2 text-xs"
+            onClick={() => handleCopy(url, "url")}
+            disabled={!url}
+          >
             {copiedKey === "url" ? (
               <>
                 <Check className="h-3 w-3" />
@@ -142,11 +162,21 @@ export default function UrlBuilderForm({
           placeholder="https://example.com/path?key=value#section"
           className="mt-2 min-h-[120px] resize-y font-mono text-xs break-all"
         />
-        {oversizeUrl && <p className="mt-2 text-xs text-muted-foreground">URL exceeds 2 KB and is not synced.</p>}
+        {oversizeUrl && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            URL exceeds 2 KB and is not synced.
+          </p>
+        )}
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Label className="text-sm font-medium">Encoding</Label>
-          <UrlEncodingSelect value={encoding} options={encodingOptions} onChange={onEncodingChange} />
-          <span className="text-xs text-muted-foreground">Applies to pathname, query, and hash values.</span>
+          <UrlEncodingSelect
+            value={encoding}
+            options={encodingOptions}
+            onChange={onEncodingChange}
+          />
+          <span className="text-xs text-muted-foreground">
+            Applies to pathname, query, and hash values.
+          </span>
         </div>
       </div>
 
@@ -222,7 +252,11 @@ export default function UrlBuilderForm({
                   fieldKey: "encodedQuery",
                 })}
               </div>
-              <UrlParamEditor label="Query Parameters" params={parsed.queryParams} onChange={onQueryParamsChange} />
+              <UrlParamEditor
+                label="Query Parameters"
+                params={parsed.queryParams}
+                onChange={onQueryParamsChange}
+              />
             </div>
           </div>
 
@@ -246,11 +280,15 @@ export default function UrlBuilderForm({
                   fieldKey: "hashPathname",
                 })}
               </div>
-              <UrlParamEditor label="Hash Parameters" params={parsed.hashParams} onChange={onHashParamsChange} />
+              <UrlParamEditor
+                label="Hash Parameters"
+                params={parsed.hashParams}
+                onChange={onHashParamsChange}
+              />
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

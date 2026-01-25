@@ -1,5 +1,5 @@
-import type React from "react"
-import type { Metadata } from "next"
+import type React from "react";
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "URL Escape Encoder/Decoder - AutelysT",
@@ -16,8 +16,12 @@ export const metadata: Metadata = {
     "url encoding",
     "base64 to url",
   ],
-}
+};
 
-export default function UrlEscapeLayout({ children }: { children: React.ReactNode }) {
-  return children
+export default function UrlEscapeLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

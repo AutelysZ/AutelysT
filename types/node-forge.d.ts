@@ -1,1 +1,1 @@
-declare module "node-forge"
+declare module "node-forge";

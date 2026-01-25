@@ -1,22 +1,26 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 const { store, openDBMock } = vi.hoisted(() => {
-  const store = new Map<string, unknown>()
+  const store = new Map<string, unknown>();
   const openDBMock = vi.fn(async () => ({
     get: async (_store: string, key: string) => store.get(key),
     put: async (_store: string, value: unknown, key: string) => {
-      store.set(key, value)
+      store.set(key, value);
     },
     delete: async (_store: string, key: string) => {
-      store.delete(key)
+      store.delete(key);
     },
-  }))
-  return { store, openDBMock }
-})
+  }));
+  return { store, openDBMock };
+});
 
-vi.mock("idb", () => ({ openDB: openDBMock }))
+vi.mock("idb", () => ({ openDB: openDBMock }));
 
-import { loadCsvState, saveCsvState, clearCsvState } from "../../../lib/csv/storage"
+import {
+  loadCsvState,
+  saveCsvState,
+  clearCsvState,
+} from "../../../lib/csv/storage";
 
 const sampleState = {
   files: [
@@ -40,37 +44,37 @@ const sampleState = {
     ],
   },
   activeFileId: "file-1",
-}
+};
 
 describe("csv storage", () => {
   beforeEach(() => {
-    store.clear()
-    openDBMock.mockClear()
-  })
+    store.clear();
+    openDBMock.mockClear();
+  });
 
   afterEach(() => {
-    delete (globalThis as { window?: unknown }).window
-  })
+    delete (globalThis as { window?: unknown }).window;
+  });
 
   it("skips storage when window is undefined", async () => {
-    delete (globalThis as { window?: unknown }).window
-    const result = await loadCsvState()
-    expect(result).toBeNull()
-    expect(openDBMock).not.toHaveBeenCalled()
-  })
+    delete (globalThis as { window?: unknown }).window;
+    const result = await loadCsvState();
+    expect(result).toBeNull();
+    expect(openDBMock).not.toHaveBeenCalled();
+  });
 
   it("saves and loads state", async () => {
-    ;(globalThis as { window?: unknown }).window = {}
-    await saveCsvState(sampleState)
-    const loaded = await loadCsvState()
-    expect(loaded).toEqual(sampleState)
-  })
+    (globalThis as { window?: unknown }).window = {};
+    await saveCsvState(sampleState);
+    const loaded = await loadCsvState();
+    expect(loaded).toEqual(sampleState);
+  });
 
   it("clears stored state", async () => {
-    ;(globalThis as { window?: unknown }).window = {}
-    await saveCsvState(sampleState)
-    await clearCsvState()
-    const loaded = await loadCsvState()
-    expect(loaded).toBeNull()
-  })
-})
+    (globalThis as { window?: unknown }).window = {};
+    await saveCsvState(sampleState);
+    await clearCsvState();
+    const loaded = await loadCsvState();
+    expect(loaded).toBeNull();
+  });
+});

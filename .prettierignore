@@ -1,28 +1,29 @@
-# Ignore all files that shouldn't be formatted
-**
-# Only format source code in app/, lib/, and tests/ directories
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
-node_modules/
-pnpm-lock.yaml
-.npm/
+# dependencies
+/node_modules
 
-# Build outputs
-.next/
-out/
-dist/
-build/
+# next.js
+/.next/
+/out/
 
-# Generated files
-*.generated.ts
-*.generated.js
+# production
+/build
 
-# Configuration files that shouldn't be formatted
-*.md
-!.github/**/*.md
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Testing
-coverage/
+# env files
+.env*
 
-# Logs
-*.log
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+.pnpm-store/
+temp/

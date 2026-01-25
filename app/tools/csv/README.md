@@ -3,6 +3,7 @@
 Edit and convert CSV/Excel files with multi-tab management, frozen rows/columns, and fast scrolling for million-row datasets.
 
 ## Features
+
 - Upload multiple CSV files, Excel workbooks, or entire folders (recurses for all `.csv` files).
 - Excel sheets are imported as CSV with `sheet-name.csv` filenames; conflicts prompt to overwrite.
 - Pure text editing: no type conversion on import/export; values are kept exactly as displayed.
@@ -14,6 +15,7 @@ Edit and convert CSV/Excel files with multi-tab management, frozen rows/columns,
 - Local workspace restore: edits are saved in the browser for quick reloads (history entries are disabled for this tool).
 
 ## Usage
+
 1. Upload CSV/XLSX files or an entire folder of CSVs.
 2. Switch between files via tabs; adjust frozen rows/columns as needed.
 3. Edit cells directly; use the right-click menu on headers/cells for add/insert/freeze/auto-fit.

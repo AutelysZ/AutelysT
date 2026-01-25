@@ -17,7 +17,7 @@ const nextConfig = {
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,
-    }
+    };
 
     if (!isServer) {
       // 7z-wasm has optional Node.js dependencies that aren't needed in browser
@@ -26,10 +26,10 @@ const nextConfig = {
         fs: false,
         module: false,
         path: false,
-      }
+      };
     }
-    return config
+    return config;
   },
-}
+};
 
-export default nextConfig
+export default nextConfig;

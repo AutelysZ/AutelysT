@@ -1,24 +1,27 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Check, Copy, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import CspDirectiveRow from "./csp-directive-row"
-import type { CspDirective } from "./csp-builder-types"
-import { formatDirectiveValues, parseDirectiveValues } from "./csp-builder-utils"
+import * as React from "react";
+import { Check, Copy, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import CspDirectiveRow from "./csp-directive-row";
+import type { CspDirective } from "./csp-builder-types";
+import {
+  formatDirectiveValues,
+  parseDirectiveValues,
+} from "./csp-builder-utils";
 
 type CspBuilderFormProps = {
-  policy: string
-  directives: CspDirective[]
-  normalizedPolicy: string
-  parseError: string | null
-  oversizePolicy: boolean
-  onPolicyChange: (value: string) => void
-  onDirectivesChange: (directives: CspDirective[]) => void
-}
+  policy: string;
+  directives: CspDirective[];
+  normalizedPolicy: string;
+  parseError: string | null;
+  oversizePolicy: boolean;
+  onPolicyChange: (value: string) => void;
+  onDirectivesChange: (directives: CspDirective[]) => void;
+};
 
 export default function CspBuilderForm({
   policy,
@@ -29,62 +32,66 @@ export default function CspBuilderForm({
   onPolicyChange,
   onDirectivesChange,
 }: CspBuilderFormProps) {
-  const [copiedKey, setCopiedKey] = React.useState<string | null>(null)
-  const [newDirectiveName, setNewDirectiveName] = React.useState("")
-  const [newDirectiveValues, setNewDirectiveValues] = React.useState("")
+  const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+  const [newDirectiveName, setNewDirectiveName] = React.useState("");
+  const [newDirectiveValues, setNewDirectiveValues] = React.useState("");
 
   const handleCopy = React.useCallback(async (text: string, key: string) => {
-    if (!text) return
+    if (!text) return;
     try {
-      await navigator.clipboard.writeText(text)
-      setCopiedKey(key)
+      await navigator.clipboard.writeText(text);
+      setCopiedKey(key);
       setTimeout(() => {
-        setCopiedKey((current) => (current === key ? null : current))
-      }, 2000)
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 2000);
     } catch (error) {
-      console.error("CSP Builder copy failed", error)
+      console.error("CSP Builder copy failed", error);
     }
-  }, [])
+  }, []);
 
   const handleDirectiveNameChange = React.useCallback(
     (index: number, value: string) => {
       const next = directives.map((directive, idx) =>
         idx === index ? { ...directive, name: value } : directive,
-      )
-      onDirectivesChange(next)
+      );
+      onDirectivesChange(next);
     },
     [directives, onDirectivesChange],
-  )
+  );
 
   const handleDirectiveValuesChange = React.useCallback(
     (index: number, value: string) => {
       const next = directives.map((directive, idx) =>
-        idx === index ? { ...directive, values: parseDirectiveValues(value) } : directive,
-      )
-      onDirectivesChange(next)
+        idx === index
+          ? { ...directive, values: parseDirectiveValues(value) }
+          : directive,
+      );
+      onDirectivesChange(next);
     },
     [directives, onDirectivesChange],
-  )
+  );
 
   const handleRemoveDirective = React.useCallback(
     (index: number) => {
-      const next = directives.filter((_, idx) => idx !== index)
-      onDirectivesChange(next)
+      const next = directives.filter((_, idx) => idx !== index);
+      onDirectivesChange(next);
     },
     [directives, onDirectivesChange],
-  )
+  );
 
   const handleAddDirective = React.useCallback(() => {
-    const name = newDirectiveName.trim()
-    if (!name) return
-    const values = parseDirectiveValues(newDirectiveValues)
-    const next = [...directives, { name, values }]
-    onDirectivesChange(next)
-    setNewDirectiveName("")
-    setNewDirectiveValues("")
-  }, [newDirectiveName, newDirectiveValues, directives, onDirectivesChange])
+    const name = newDirectiveName.trim();
+    if (!name) return;
+    const values = parseDirectiveValues(newDirectiveValues);
+    const next = [...directives, { name, values }];
+    onDirectivesChange(next);
+    setNewDirectiveName("");
+    setNewDirectiveValues("");
+  }, [newDirectiveName, newDirectiveValues, directives, onDirectivesChange]);
 
-  const headerLine = normalizedPolicy ? `Content-Security-Policy: ${normalizedPolicy}` : ""
+  const headerLine = normalizedPolicy
+    ? `Content-Security-Policy: ${normalizedPolicy}`
+    : "";
 
   return (
     <div className="flex flex-col gap-6">
@@ -118,14 +125,23 @@ export default function CspBuilderForm({
           placeholder="default-src 'self'; script-src 'self' https://cdn.example.com;"
           className="mt-2 min-h-[140px] resize-y font-mono text-xs"
         />
-        {oversizePolicy && <p className="mt-2 text-xs text-muted-foreground">Policy exceeds 2 KB and is not synced.</p>}
-        {parseError && <p className="mt-2 text-xs text-destructive">{parseError}</p>}
+        {oversizePolicy && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Policy exceeds 2 KB and is not synced.
+          </p>
+        )}
+        {parseError && (
+          <p className="mt-2 text-xs text-destructive">{parseError}</p>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border bg-background p-4">
           <div className="mb-2 text-sm font-medium">Directives</div>
-          <p className="text-xs text-muted-foreground">Separate values with spaces or new lines. Use quotes for keywords like 'self'.</p>
+          <p className="text-xs text-muted-foreground">
+            Separate values with spaces or new lines. Use quotes for keywords
+            like 'self'.
+          </p>
 
           <div className="mt-4 space-y-4">
             {directives.length === 0 ? (
@@ -138,8 +154,12 @@ export default function CspBuilderForm({
                   key={`${directive.name}-${index}`}
                   name={directive.name}
                   valuesText={formatDirectiveValues(directive.values)}
-                  onNameChange={(value) => handleDirectiveNameChange(index, value)}
-                  onValuesChange={(value) => handleDirectiveValuesChange(index, value)}
+                  onNameChange={(value) =>
+                    handleDirectiveNameChange(index, value)
+                  }
+                  onValuesChange={(value) =>
+                    handleDirectiveValuesChange(index, value)
+                  }
                   onRemove={() => handleRemoveDirective(index)}
                 />
               ))
@@ -161,7 +181,13 @@ export default function CspBuilderForm({
                 placeholder="'self' https://api.example.com"
                 className="min-h-[64px] resize-y font-mono text-xs"
               />
-              <Button type="button" variant="secondary" size="sm" className="h-8 gap-1" onClick={handleAddDirective}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="h-8 gap-1"
+                onClick={handleAddDirective}
+              >
                 <Plus className="h-3 w-3" />
                 Add
               </Button>
@@ -183,12 +209,20 @@ export default function CspBuilderForm({
                   onClick={() => handleCopy(normalizedPolicy, "value")}
                   disabled={!normalizedPolicy}
                 >
-                  {copiedKey === "value" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copiedKey === "value" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               <div className="rounded-md border bg-muted/40 px-3 py-2">
                 <div className="font-mono text-xs break-all">
-                  {normalizedPolicy || <span className="text-muted-foreground">No policy generated yet.</span>}
+                  {normalizedPolicy || (
+                    <span className="text-muted-foreground">
+                      No policy generated yet.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -204,12 +238,20 @@ export default function CspBuilderForm({
                   onClick={() => handleCopy(headerLine, "header")}
                   disabled={!headerLine}
                 >
-                  {copiedKey === "header" ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {copiedKey === "header" ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
                 </Button>
               </div>
               <div className="rounded-md border bg-muted/40 px-3 py-2">
                 <div className="font-mono text-xs break-all">
-                  {headerLine || <span className="text-muted-foreground">Header line will appear here.</span>}
+                  {headerLine || (
+                    <span className="text-muted-foreground">
+                      Header line will appear here.
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -217,5 +259,5 @@ export default function CspBuilderForm({
         </div>
       </div>
     </div>
-  )
+  );
 }

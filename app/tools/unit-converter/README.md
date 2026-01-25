@@ -5,12 +5,14 @@ A comprehensive unit converter supporting 16 categories with over 150 units.
 ## Supported Categories
 
 ### Measurement
+
 - **Length**: meter, kilometer, centimeter, millimeter, micrometer, nanometer, mile, yard, foot, inch, nautical mile, light year, astronomical unit, parsec, angstrom, fathom, furlong, chain
 - **Mass**: kilogram, gram, milligram, microgram, metric ton, pound, ounce, stone, US ton, UK ton, carat, grain, dram, slug
 - **Volume**: liter, milliliter, centiliter, deciliter, cubic meter, cubic centimeter, cubic millimeter, US gallon, UK gallon, US quart, US pint, US cup, US fluid ounce, UK fluid ounce, tablespoon, teaspoon, barrel (oil), cubic foot, cubic inch
 - **Area**: square meter, square kilometer, square centimeter, square millimeter, hectare, acre, square mile, square yard, square foot, square inch, are
 
 ### Physics
+
 - **Speed**: meter/second, kilometer/hour, mile/hour, foot/second, knot, Mach, speed of light
 - **Pressure**: pascal, kilopascal, megapascal, bar, millibar, atmosphere, PSI, torr, mmHg, inHg
 - **Energy**: joule, kilojoule, megajoule, calorie, kilocalorie, watt-hour, kilowatt-hour, megawatt-hour, electronvolt, kiloelectronvolt, BTU, therm, erg, foot-pound
@@ -18,6 +20,7 @@ A comprehensive unit converter supporting 16 categories with over 150 units.
 - **Force**: newton, kilonewton, meganewton, dyne, pound-force, kilogram-force, ounce-force, poundal
 
 ### Other
+
 - **Temperature**: Celsius, Fahrenheit, Kelvin, Rankine
 - **Time**: second, millisecond, microsecond, nanosecond, minute, hour, day, week, month, year, decade, century
 - **Data Storage**: byte, kilobyte, megabyte, gigabyte, terabyte, petabyte, kibibyte, mebibyte, gibibyte, tebibyte, pebibyte, bit, kilobit, megabit, gigabit

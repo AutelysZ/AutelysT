@@ -1,62 +1,89 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Suspense } from "react"
-import { z } from "zod"
-import { AlertCircle, RefreshCcw } from "lucide-react"
-import CryptoJS from "crypto-js"
-import { ToolPageWrapper, useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper"
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS, useUrlSyncedState } from "@/lib/url-state/use-url-synced-state"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64"
-import { decodeHex, encodeHex } from "@/lib/encoding/hex"
-import type { HistoryEntry } from "@/lib/history/db"
-import { cn } from "@/lib/utils"
-import { SymmetricIoPanel } from "./symmetric-io-panel"
+import * as React from "react";
+import { Suspense } from "react";
+import { z } from "zod";
+import { AlertCircle, RefreshCcw } from "lucide-react";
+import CryptoJS from "crypto-js";
+import {
+  ToolPageWrapper,
+  useToolHistoryContext,
+} from "@/components/tool-ui/tool-page-wrapper";
+import {
+  DEFAULT_URL_SYNC_DEBOUNCE_MS,
+  useUrlSyncedState,
+} from "@/lib/url-state/use-url-synced-state";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { decodeBase64, encodeBase64 } from "@/lib/encoding/base64";
+import { decodeHex, encodeHex } from "@/lib/encoding/hex";
+import type { HistoryEntry } from "@/lib/history/db";
+import { cn } from "@/lib/utils";
+import { SymmetricIoPanel } from "./symmetric-io-panel";
 
-const algorithmValues = ["aes", "chacha20", "salsa20", "twofish", "blowfish", "des", "3des"] as const
-type AlgorithmValue = (typeof algorithmValues)[number]
+const algorithmValues = [
+  "aes",
+  "chacha20",
+  "salsa20",
+  "twofish",
+  "blowfish",
+  "des",
+  "3des",
+] as const;
+type AlgorithmValue = (typeof algorithmValues)[number];
 
-const aesModes = ["GCM", "CBC", "CFB", "CTR", "OFB", "ECB"] as const
-type AesMode = (typeof aesModes)[number]
+const aesModes = ["GCM", "CBC", "CFB", "CTR", "OFB", "ECB"] as const;
+type AesMode = (typeof aesModes)[number];
 
-const desModes = ["CBC", "ECB"] as const
-type DesMode = (typeof desModes)[number]
+const desModes = ["CBC", "ECB"] as const;
+type DesMode = (typeof desModes)[number];
 
-const paddings = ["Pkcs7", "AnsiX923", "Iso10126", "Iso97971", "ZeroPadding", "NoPadding"] as const
-type PaddingValue = (typeof paddings)[number]
+const paddings = [
+  "Pkcs7",
+  "AnsiX923",
+  "Iso10126",
+  "Iso97971",
+  "ZeroPadding",
+  "NoPadding",
+] as const;
+type PaddingValue = (typeof paddings)[number];
 
-const blowfishModes = ["ECB", "CBC"] as const
-type BlowfishMode = (typeof blowfishModes)[number]
+const blowfishModes = ["ECB", "CBC"] as const;
+type BlowfishMode = (typeof blowfishModes)[number];
 
-const blowfishPaddings = ["PKCS5", "ONE_AND_ZEROS", "LAST_BYTE", "NULL", "SPACES"] as const
-type BlowfishPadding = (typeof blowfishPaddings)[number]
+const blowfishPaddings = [
+  "PKCS5",
+  "ONE_AND_ZEROS",
+  "LAST_BYTE",
+  "NULL",
+  "SPACES",
+] as const;
+type BlowfishPadding = (typeof blowfishPaddings)[number];
 
-const twofishModes = ["ECB", "CBC"] as const
-type TwofishMode = (typeof twofishModes)[number]
+const twofishModes = ["ECB", "CBC"] as const;
+type TwofishMode = (typeof twofishModes)[number];
 
-const twofishPaddings = paddings
-type TwofishPadding = (typeof twofishPaddings)[number]
+const twofishPaddings = paddings;
+type TwofishPadding = (typeof twofishPaddings)[number];
 
-const kdfAlgorithms = ["PBKDF2", "HKDF"] as const
-type KdfAlgorithm = (typeof kdfAlgorithms)[number]
+const kdfAlgorithms = ["PBKDF2", "HKDF"] as const;
+type KdfAlgorithm = (typeof kdfAlgorithms)[number];
 
-const kdfHashes = ["SHA-256", "SHA-512"] as const
-type KdfHash = (typeof kdfHashes)[number]
+const kdfHashes = ["SHA-256", "SHA-512"] as const;
+type KdfHash = (typeof kdfHashes)[number];
 
-const inputEncodings = ["utf8", "base64", "hex", "binary"] as const
-type InputEncoding = (typeof inputEncodings)[number]
+const inputEncodings = ["utf8", "base64", "hex", "binary"] as const;
+type InputEncoding = (typeof inputEncodings)[number];
 
-const outputEncodings = ["base64", "base64url", "hex", "binary"] as const
-type OutputEncoding = (typeof outputEncodings)[number]
+const outputEncodings = ["base64", "base64url", "hex", "binary"] as const;
+type OutputEncoding = (typeof outputEncodings)[number];
 
-const paramEncodings = ["utf8", "base64", "hex"] as const
-type ParamEncoding = (typeof paramEncodings)[number]
+const paramEncodings = ["utf8", "base64", "hex"] as const;
+type ParamEncoding = (typeof paramEncodings)[number];
 
 const encodingLabels = {
   utf8: "UTF-8",
@@ -64,7 +91,7 @@ const encodingLabels = {
   base64url: "Base64url",
   hex: "Hex",
   binary: "Binary",
-} as const
+} as const;
 
 const paramsSchema = z.object({
   mode: z.enum(["encrypt", "decrypt"]).default("encrypt"),
@@ -106,7 +133,7 @@ const paramsSchema = z.object({
   salsaNonce: z.string().default(""),
   salsaNonceEncoding: z.enum(paramEncodings).default("base64"),
   salsaCounter: z.number().default(0),
-})
+});
 
 const algorithmLabels: Record<AlgorithmValue, string> = {
   aes: "AES",
@@ -116,7 +143,7 @@ const algorithmLabels: Record<AlgorithmValue, string> = {
   blowfish: "Blowfish",
   des: "DES",
   "3des": "3DES",
-}
+};
 
 const paddingMap: Record<PaddingValue, typeof CryptoJS.pad.Pkcs7> = {
   Pkcs7: CryptoJS.pad.Pkcs7,
@@ -125,7 +152,7 @@ const paddingMap: Record<PaddingValue, typeof CryptoJS.pad.Pkcs7> = {
   Iso97971: CryptoJS.pad.Iso97971,
   ZeroPadding: CryptoJS.pad.ZeroPadding,
   NoPadding: CryptoJS.pad.NoPadding,
-}
+};
 
 const aesModeMap: Record<Exclude<AesMode, "GCM">, typeof CryptoJS.mode.CBC> = {
   CBC: CryptoJS.mode.CBC,
@@ -133,142 +160,161 @@ const aesModeMap: Record<Exclude<AesMode, "GCM">, typeof CryptoJS.mode.CBC> = {
   CTR: CryptoJS.mode.CTR,
   OFB: CryptoJS.mode.OFB,
   ECB: CryptoJS.mode.ECB,
-}
+};
 
 const desModeMap: Record<DesMode, typeof CryptoJS.mode.CBC> = {
   CBC: CryptoJS.mode.CBC,
   ECB: CryptoJS.mode.ECB,
-}
+};
 
-const textEncoder = new TextEncoder()
-const textDecoder = new TextDecoder()
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
-const AES_IV_DEFAULT_LENGTH = 16
-const AES_GCM_IV_DEFAULT_LENGTH = 12
-const DES_IV_DEFAULT_LENGTH = 8
-const BLOWFISH_IV_DEFAULT_LENGTH = 8
-const TWOFISH_IV_DEFAULT_LENGTH = 16
-const CHACHA_NONCE_DEFAULT_LENGTH = 12
-const SALSA_NONCE_DEFAULT_LENGTH = 8
-const SALT_DEFAULT_LENGTH = 16
+const AES_IV_DEFAULT_LENGTH = 16;
+const AES_GCM_IV_DEFAULT_LENGTH = 12;
+const DES_IV_DEFAULT_LENGTH = 8;
+const BLOWFISH_IV_DEFAULT_LENGTH = 8;
+const TWOFISH_IV_DEFAULT_LENGTH = 16;
+const CHACHA_NONCE_DEFAULT_LENGTH = 12;
+const SALSA_NONCE_DEFAULT_LENGTH = 8;
+const SALT_DEFAULT_LENGTH = 16;
 
 function bytesToWordArray(bytes: Uint8Array) {
-  const words: number[] = []
+  const words: number[] = [];
   for (let i = 0; i < bytes.length; i += 4) {
     words.push(
       ((bytes[i] ?? 0) << 24) |
         ((bytes[i + 1] ?? 0) << 16) |
         ((bytes[i + 2] ?? 0) << 8) |
         (bytes[i + 3] ?? 0),
-    )
+    );
   }
-  return CryptoJS.lib.WordArray.create(words, bytes.length)
+  return CryptoJS.lib.WordArray.create(words, bytes.length);
 }
 
 function wordArrayToBytes(wordArray: CryptoJS.lib.WordArray) {
-  const { words, sigBytes } = wordArray
-  const bytes = new Uint8Array(sigBytes)
+  const { words, sigBytes } = wordArray;
+  const bytes = new Uint8Array(sigBytes);
   for (let i = 0; i < sigBytes; i++) {
-    bytes[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff
+    bytes[i] = (words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff;
   }
-  return bytes
+  return bytes;
 }
 
 function randomBytes(length: number) {
   if (!globalThis.crypto?.getRandomValues) {
-    throw new Error("Secure random generation is unavailable.")
+    throw new Error("Secure random generation is unavailable.");
   }
-  const bytes = new Uint8Array(length)
-  crypto.getRandomValues(bytes)
-  return bytes
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return bytes;
 }
 
 function randomAsciiString(length: number) {
-  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  const bytes = randomBytes(length)
-  let value = ""
+  const alphabet =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = randomBytes(length);
+  let value = "";
   for (let i = 0; i < bytes.length; i += 1) {
-    value += alphabet[bytes[i] % alphabet.length]
+    value += alphabet[bytes[i] % alphabet.length];
   }
-  return value
+  return value;
 }
 
 function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
   if (encoding === "binary") {
-    return { binary: bytes, text: "" }
+    return { binary: bytes, text: "" };
   }
   if (encoding === "base64") {
-    return { text: encodeBase64(bytes, { urlSafe: false, padding: true }), binary: null }
+    return {
+      text: encodeBase64(bytes, { urlSafe: false, padding: true }),
+      binary: null,
+    };
   }
   if (encoding === "hex") {
-    return { text: encodeHex(bytes, { upperCase: false }), binary: null }
+    return { text: encodeHex(bytes, { upperCase: false }), binary: null };
   }
-  return { text: encodeBase64(bytes, { urlSafe: true, padding: false }), binary: null }
+  return {
+    text: encodeBase64(bytes, { urlSafe: true, padding: false }),
+    binary: null,
+  };
 }
 
-function decodeInputText(value: string, encoding: InputEncoding): Uint8Array<ArrayBuffer> {
+function decodeInputText(
+  value: string,
+  encoding: InputEncoding,
+): Uint8Array<ArrayBuffer> {
   if (encoding === "binary") {
-    throw new Error("Binary input requires a file upload.")
+    throw new Error("Binary input requires a file upload.");
   }
-  if (!value) return new Uint8Array()
+  if (!value) return new Uint8Array();
   if (encoding === "utf8") {
-    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>;
   }
   if (encoding === "hex") {
-    return decodeHex(value)
+    return decodeHex(value);
   }
-  return decodeBase64(value)
+  return decodeBase64(value);
 }
 
-function decodeParamValue(value: string, encoding: ParamEncoding): Uint8Array<ArrayBuffer> {
-  if (!value) return new Uint8Array()
+function decodeParamValue(
+  value: string,
+  encoding: ParamEncoding,
+): Uint8Array<ArrayBuffer> {
+  if (!value) return new Uint8Array();
   if (encoding === "utf8") {
-    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>;
   }
   if (encoding === "hex") {
-    return decodeHex(value)
+    return decodeHex(value);
   }
-  return decodeBase64(value)
+  return decodeBase64(value);
 }
 
 function encodeParamValue(bytes: Uint8Array, encoding: ParamEncoding) {
   if (encoding === "utf8") {
-    return textDecoder.decode(bytes)
+    return textDecoder.decode(bytes);
   }
   if (encoding === "hex") {
-    return encodeHex(bytes, { upperCase: false })
+    return encodeHex(bytes, { upperCase: false });
   }
-  return encodeBase64(bytes, { urlSafe: false, padding: true })
+  return encodeBase64(bytes, { urlSafe: false, padding: true });
 }
 
 function xorBytes(left: Uint8Array, right: Uint8Array) {
-  const length = Math.min(left.length, right.length)
-  const result = new Uint8Array(length)
+  const length = Math.min(left.length, right.length);
+  const result = new Uint8Array(length);
   for (let i = 0; i < length; i += 1) {
-    result[i] = left[i] ^ right[i]
+    result[i] = left[i] ^ right[i];
   }
-  return result
+  return result;
 }
 
-function applyPadding(bytes: Uint8Array, padding: PaddingValue, blockSize: number) {
+function applyPadding(
+  bytes: Uint8Array,
+  padding: PaddingValue,
+  blockSize: number,
+) {
   if (padding === "NoPadding") {
     if (bytes.length % blockSize !== 0) {
-      throw new Error(`NoPadding requires plaintext length to be a multiple of ${blockSize} bytes.`)
+      throw new Error(
+        `NoPadding requires plaintext length to be a multiple of ${blockSize} bytes.`,
+      );
     }
-    return bytes
+    return bytes;
   }
-  const wordArray = bytesToWordArray(bytes)
-  paddingMap[padding].pad(wordArray, blockSize / 4)
-  return wordArrayToBytes(wordArray)
+  const wordArray = bytesToWordArray(bytes);
+  paddingMap[padding].pad(wordArray, blockSize / 4);
+  return wordArrayToBytes(wordArray);
 }
 
 function removePadding(bytes: Uint8Array, padding: PaddingValue) {
   if (padding === "NoPadding") {
-    return bytes
+    return bytes;
   }
-  const wordArray = bytesToWordArray(bytes)
-  paddingMap[padding].unpad(wordArray)
-  return wordArrayToBytes(wordArray)
+  const wordArray = bytesToWordArray(bytes);
+  paddingMap[padding].unpad(wordArray);
+  return wordArrayToBytes(wordArray);
 }
 
 function runStreamCipher(
@@ -279,38 +325,64 @@ function runStreamCipher(
   data: Uint8Array,
 ) {
   try {
-    const candidate = factory(key, nonce, counter)
-    if (candidate instanceof Uint8Array) return candidate
-    if (typeof candidate === "function") return candidate(data)
-    if (candidate && typeof (candidate as { encrypt?: (input: Uint8Array) => Uint8Array }).encrypt === "function") {
-      return (candidate as { encrypt: (input: Uint8Array) => Uint8Array }).encrypt(data)
+    const candidate = factory(key, nonce, counter);
+    if (candidate instanceof Uint8Array) return candidate;
+    if (typeof candidate === "function") return candidate(data);
+    if (
+      candidate &&
+      typeof (candidate as { encrypt?: (input: Uint8Array) => Uint8Array })
+        .encrypt === "function"
+    ) {
+      return (
+        candidate as { encrypt: (input: Uint8Array) => Uint8Array }
+      ).encrypt(data);
     }
   } catch {
     // Try alternate signatures.
   }
-  const direct = factory(key, nonce, counter, data)
-  if (direct instanceof Uint8Array) return direct
-  if (direct && typeof (direct as { encrypt?: (input: Uint8Array) => Uint8Array }).encrypt === "function") {
-    return (direct as { encrypt: (input: Uint8Array) => Uint8Array }).encrypt(data)
+  const direct = factory(key, nonce, counter, data);
+  if (direct instanceof Uint8Array) return direct;
+  if (
+    direct &&
+    typeof (direct as { encrypt?: (input: Uint8Array) => Uint8Array })
+      .encrypt === "function"
+  ) {
+    return (direct as { encrypt: (input: Uint8Array) => Uint8Array }).encrypt(
+      data,
+    );
   }
-  if (typeof direct === "function") return direct(data)
-  throw new Error("Unsupported cipher implementation.")
+  if (typeof direct === "function") return direct(data);
+  throw new Error("Unsupported cipher implementation.");
 }
 
 async function deriveKeyBytes(options: {
-  algorithm: KdfAlgorithm
-  passphraseBytes: Uint8Array<ArrayBuffer>
-  saltBytes: Uint8Array<ArrayBuffer>
-  iterations: number
-  hash: KdfHash
-  lengthBytes: number
-  infoBytes: Uint8Array<ArrayBuffer>
+  algorithm: KdfAlgorithm;
+  passphraseBytes: Uint8Array<ArrayBuffer>;
+  saltBytes: Uint8Array<ArrayBuffer>;
+  iterations: number;
+  hash: KdfHash;
+  lengthBytes: number;
+  infoBytes: Uint8Array<ArrayBuffer>;
 }) {
   if (!globalThis.crypto?.subtle) {
-    throw new Error("Web Crypto is unavailable in this browser.")
+    throw new Error("Web Crypto is unavailable in this browser.");
   }
-  const { algorithm, passphraseBytes, saltBytes, iterations, hash, lengthBytes, infoBytes } = options
-  const baseKey = await crypto.subtle.importKey("raw", passphraseBytes, algorithm, false, ["deriveBits"])
+  const {
+    algorithm,
+    passphraseBytes,
+    saltBytes,
+    iterations,
+    hash,
+    lengthBytes,
+    infoBytes,
+  } = options;
+  const baseKey = await crypto.subtle.importKey(
+    "raw",
+    passphraseBytes,
+    algorithm,
+    false,
+    ["deriveBits"],
+  );
   const bits = await crypto.subtle.deriveBits(
     algorithm === "PBKDF2"
       ? {
@@ -327,27 +399,27 @@ async function deriveKeyBytes(options: {
         },
     baseKey,
     lengthBytes * 8,
-  )
-  return new Uint8Array(bits)
+  );
+  return new Uint8Array(bits);
 }
 
 function getKeyLengthBytes(state: z.infer<typeof paramsSchema>) {
   if (state.algorithm === "aes") {
-    return Math.floor(state.aesKeySize / 8)
+    return Math.floor(state.aesKeySize / 8);
   }
   if (state.algorithm === "des") {
-    return 8
+    return 8;
   }
   if (state.algorithm === "3des") {
-    return 24
+    return 24;
   }
   if (state.algorithm === "blowfish") {
-    return 32
+    return 32;
   }
   if (state.algorithm === "twofish") {
-    return 32
+    return 32;
   }
-  return 32
+  return 32;
 }
 
 export default function SymmetricCryptoPage() {
@@ -355,37 +427,50 @@ export default function SymmetricCryptoPage() {
     <Suspense fallback={null}>
       <SymmetricCryptoContent />
     </Suspense>
-  )
+  );
 }
 
 function SymmetricCryptoContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } = useUrlSyncedState(
-    "symmetric-encryption",
-    {
-      schema: paramsSchema,
-      defaults: paramsSchema.parse({}),
-    },
-  )
-  const [fileName, setFileName] = React.useState<string | null>(null)
+  const {
+    state,
+    setParam,
+    oversizeKeys,
+    hasUrlParams,
+    hydrationSource,
+    resetToDefaults,
+  } = useUrlSyncedState("symmetric-encryption", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  });
+  const [fileName, setFileName] = React.useState<string | null>(null);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
-      const { inputs, params } = entry
+      const { inputs, params } = entry;
       if (params.fileName) {
-        alert("This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.")
-        return
+        alert(
+          "This history entry contains an uploaded file and cannot be restored. Only the file name was recorded.",
+        );
+        return;
       }
-      setFileName(null)
-      if (inputs.input !== undefined) setParam("input", inputs.input)
-      const typedParams = params as Partial<z.infer<typeof paramsSchema>>
-      ;(Object.keys(paramsSchema.shape) as (keyof z.infer<typeof paramsSchema>)[]).forEach((key) => {
+      setFileName(null);
+      if (inputs.input !== undefined) setParam("input", inputs.input);
+      const typedParams = params as Partial<z.infer<typeof paramsSchema>>;
+      (
+        Object.keys(paramsSchema.shape) as (keyof z.infer<
+          typeof paramsSchema
+        >)[]
+      ).forEach((key) => {
         if (typedParams[key] !== undefined) {
-          setParam(key, typedParams[key] as z.infer<typeof paramsSchema>[typeof key])
+          setParam(
+            key,
+            typedParams[key] as z.infer<typeof paramsSchema>[typeof key],
+          );
         }
-      })
+      });
     },
     [setParam, setFileName],
-  )
+  );
 
   return (
     <ToolPageWrapper
@@ -405,15 +490,15 @@ function SymmetricCryptoContent() {
         setFileName={setFileName}
       />
     </ToolPageWrapper>
-  )
+  );
 }
 
 function ScrollableTabsList({
   children,
   className,
 }: {
-  children: React.ReactNode
-  className?: string
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
     <div className="w-full min-w-0">
@@ -426,10 +511,16 @@ function ScrollableTabsList({
         {children}
       </TabsList>
     </div>
-  )
+  );
 }
 
-function InlineTabsList({ children, className }: { children: React.ReactNode; className?: string }) {
+function InlineTabsList({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <TabsList
       className={cn(
@@ -439,7 +530,7 @@ function InlineTabsList({ children, className }: { children: React.ReactNode; cl
     >
       {children}
     </TabsList>
-  )
+  );
 }
 
 function SymmetricCryptoInner({
@@ -452,31 +543,34 @@ function SymmetricCryptoInner({
   fileName,
   setFileName,
 }: {
-  state: z.infer<typeof paramsSchema>
+  state: z.infer<typeof paramsSchema>;
   setParam: <K extends keyof z.infer<typeof paramsSchema>>(
     key: K,
     value: z.infer<typeof paramsSchema>[K],
     immediate?: boolean,
-  ) => void
-  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[]
-  hasUrlParams: boolean
-  hydrationSource: "default" | "url" | "history"
-  resetToDefaults: () => void
-  fileName: string | null
-  setFileName: React.Dispatch<React.SetStateAction<string | null>>
+  ) => void;
+  oversizeKeys: (keyof z.infer<typeof paramsSchema>)[];
+  hasUrlParams: boolean;
+  hydrationSource: "default" | "url" | "history";
+  resetToDefaults: () => void;
+  fileName: string | null;
+  setFileName: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
-  const { upsertInputEntry, upsertParams } = useToolHistoryContext()
-  const [output, setOutput] = React.useState("")
-  const [error, setError] = React.useState<string | null>(null)
-  const [isWorking, setIsWorking] = React.useState(false)
-  const [binaryMeta, setBinaryMeta] = React.useState<{ name: string; size: number } | null>(null)
-  const [copied, setCopied] = React.useState(false)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-  const [fileVersion, setFileVersion] = React.useState(0)
-  const lastInputRef = React.useRef<string>("")
-  const hasHydratedInputRef = React.useRef(false)
-  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null)
-  const outputBytesRef = React.useRef<Uint8Array | null>(null)
+  const { upsertInputEntry, upsertParams } = useToolHistoryContext();
+  const [output, setOutput] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [isWorking, setIsWorking] = React.useState(false);
+  const [binaryMeta, setBinaryMeta] = React.useState<{
+    name: string;
+    size: number;
+  } | null>(null);
+  const [copied, setCopied] = React.useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [fileVersion, setFileVersion] = React.useState(0);
+  const lastInputRef = React.useRef<string>("");
+  const hasHydratedInputRef = React.useRef(false);
+  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null);
+  const outputBytesRef = React.useRef<Uint8Array | null>(null);
   const paramsRef = React.useRef({
     mode: state.mode,
     algorithm: state.algorithm,
@@ -517,72 +611,82 @@ function SymmetricCryptoInner({
     salsaNonce: state.salsaNonce,
     salsaNonceEncoding: state.salsaNonceEncoding,
     salsaCounter: state.salsaCounter,
-  })
-  const hasInitializedParamsRef = React.useRef(false)
-  const hasHandledUrlRef = React.useRef(false)
-  const runRef = React.useRef(0)
+  });
+  const hasInitializedParamsRef = React.useRef(false);
+  const hasHandledUrlRef = React.useRef(false);
+  const runRef = React.useRef(0);
 
   React.useEffect(() => {
     if (fileName) {
       if (state.mode === "encrypt") {
         if (state.inputEncoding !== "binary") {
-          setParam("inputEncoding", "binary", true)
+          setParam("inputEncoding", "binary", true);
         }
       } else {
-        const allowed = ["binary", "base64", "hex"]
+        const allowed = ["binary", "base64", "hex"];
         if (!allowed.includes(state.inputEncoding)) {
-          setParam("inputEncoding", "binary", true)
+          setParam("inputEncoding", "binary", true);
         }
       }
-      return
+      return;
     }
-    const allowed = ["utf8", "base64", "hex"]
+    const allowed = ["utf8", "base64", "hex"];
     if (!allowed.includes(state.inputEncoding)) {
-      setParam("inputEncoding", "base64", true)
+      setParam("inputEncoding", "base64", true);
     }
-  }, [fileName, state.mode, state.inputEncoding, setParam])
+  }, [fileName, state.mode, state.inputEncoding, setParam]);
 
   React.useEffect(() => {
     if (!fileName && fileBytesRef.current) {
-      fileBytesRef.current = null
-      if (fileVersion) setFileVersion(0)
+      fileBytesRef.current = null;
+      if (fileVersion) setFileVersion(0);
     }
-  }, [fileName, fileVersion])
+  }, [fileName, fileVersion]);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return
-    if (hydrationSource === "default") return
-    lastInputRef.current = fileName ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    hasHydratedInputRef.current = true
-  }, [hydrationSource, state.input, fileName, fileVersion])
+    if (hasHydratedInputRef.current) return;
+    if (hydrationSource === "default") return;
+    lastInputRef.current = fileName
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    hasHydratedInputRef.current = true;
+  }, [hydrationSource, state.input, fileName, fileVersion]);
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileVersion)
-    const signature = hasFile ? `file:${fileName}:${fileVersion}` : `text:${state.input}`
-    if ((!state.input && !hasFile) || signature === lastInputRef.current) return
+    const hasFile = Boolean(fileName && fileVersion);
+    const signature = hasFile
+      ? `file:${fileName}:${fileVersion}`
+      : `text:${state.input}`;
+    if ((!state.input && !hasFile) || signature === lastInputRef.current)
+      return;
     const timer = setTimeout(() => {
-      lastInputRef.current = signature
-      const preview = fileName || state.input.slice(0, 100)
-      upsertInputEntry({ input: fileName ? "" : state.input }, { ...paramsRef.current }, "left", preview)
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS)
-    return () => clearTimeout(timer)
-  }, [state.input, fileName, fileVersion, upsertInputEntry])
+      lastInputRef.current = signature;
+      const preview = fileName || state.input.slice(0, 100);
+      upsertInputEntry(
+        { input: fileName ? "" : state.input },
+        { ...paramsRef.current },
+        "left",
+        preview,
+      );
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [state.input, fileName, fileVersion, upsertInputEntry]);
 
   React.useEffect(() => {
     if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true
+      hasHandledUrlRef.current = true;
       if (state.input) {
         upsertInputEntry(
           { input: state.input },
           { ...paramsRef.current },
           "left",
           state.input.slice(0, 100),
-        )
+        );
       } else {
-        upsertParams({ ...paramsRef.current }, "interpretation")
+        upsertParams({ ...paramsRef.current }, "interpretation");
       }
     }
-  }, [hasUrlParams, state.input, upsertInputEntry, upsertParams])
+  }, [hasUrlParams, state.input, upsertInputEntry, upsertParams]);
 
   React.useEffect(() => {
     const nextParams = {
@@ -625,17 +729,19 @@ function SymmetricCryptoInner({
       salsaNonce: state.salsaNonce,
       salsaNonceEncoding: state.salsaNonceEncoding,
       salsaCounter: state.salsaCounter,
-    }
+    };
     if (!hasInitializedParamsRef.current) {
-      hasInitializedParamsRef.current = true
-      paramsRef.current = nextParams
-      return
+      hasInitializedParamsRef.current = true;
+      paramsRef.current = nextParams;
+      return;
     }
-    const prev = paramsRef.current
-    const unchanged = Object.entries(nextParams).every(([key, value]) => (prev as Record<string, unknown>)[key] === value)
-    if (unchanged) return
-    paramsRef.current = nextParams
-    upsertParams(nextParams, "interpretation")
+    const prev = paramsRef.current;
+    const unchanged = Object.entries(nextParams).every(
+      ([key, value]) => (prev as Record<string, unknown>)[key] === value,
+    );
+    if (unchanged) return;
+    paramsRef.current = nextParams;
+    upsertParams(nextParams, "interpretation");
   }, [
     state.mode,
     state.algorithm,
@@ -677,51 +783,57 @@ function SymmetricCryptoInner({
     state.salsaNonceEncoding,
     state.salsaCounter,
     upsertParams,
-  ])
+  ]);
 
   React.useEffect(() => {
-    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion)
-    const hasInputText = Boolean(state.input)
+    const hasFile = Boolean(fileName && fileBytesRef.current && fileVersion);
+    const hasInputText = Boolean(state.input);
     if (!hasInputText && !hasFile) {
-      setOutput("")
-      setError(null)
-      setIsWorking(false)
-      setBinaryMeta(null)
-      outputBytesRef.current = null
-      return
+      setOutput("");
+      setError(null);
+      setIsWorking(false);
+      setBinaryMeta(null);
+      outputBytesRef.current = null;
+      return;
     }
-    const runId = ++runRef.current
-    setIsWorking(true)
+    const runId = ++runRef.current;
+    setIsWorking(true);
 
     void (async () => {
       try {
-        let inputBytes: Uint8Array<ArrayBuffer>
+        let inputBytes: Uint8Array<ArrayBuffer>;
         if (hasFile) {
-          const bytes = fileBytesRef.current!
+          const bytes = fileBytesRef.current!;
           if (state.mode === "encrypt") {
-            inputBytes = bytes
+            inputBytes = bytes;
           } else if (state.inputEncoding === "binary") {
-            inputBytes = bytes
+            inputBytes = bytes;
           } else {
-            inputBytes = decodeInputText(textDecoder.decode(bytes), state.inputEncoding)
+            inputBytes = decodeInputText(
+              textDecoder.decode(bytes),
+              state.inputEncoding,
+            );
           }
         } else {
           if (state.inputEncoding === "binary") {
-            throw new Error("Binary input requires a file upload.")
+            throw new Error("Binary input requires a file upload.");
           }
-          inputBytes = decodeInputText(state.input, state.inputEncoding)
+          inputBytes = decodeInputText(state.input, state.inputEncoding);
         }
 
         if (!state.key) {
-          throw new Error("Key material is required.")
+          throw new Error("Key material is required.");
         }
 
-        const keyLength = getKeyLengthBytes(state)
-        let derivedKey: Uint8Array<ArrayBuffer>
+        const keyLength = getKeyLengthBytes(state);
+        let derivedKey: Uint8Array<ArrayBuffer>;
         if (state.useKdf) {
-          const keyBytes = decodeParamValue(state.key, state.keyEncoding)
-          const saltBytes = decodeParamValue(state.salt, state.saltEncoding)
-          const infoBytes = decodeParamValue(state.kdfInfo, state.kdfInfoEncoding)
+          const keyBytes = decodeParamValue(state.key, state.keyEncoding);
+          const saltBytes = decodeParamValue(state.salt, state.saltEncoding);
+          const infoBytes = decodeParamValue(
+            state.kdfInfo,
+            state.kdfInfoEncoding,
+          );
           derivedKey = await deriveKeyBytes({
             algorithm: state.kdfAlgorithm,
             passphraseBytes: keyBytes,
@@ -730,33 +842,38 @@ function SymmetricCryptoInner({
             hash: state.kdfHash,
             lengthBytes: keyLength,
             infoBytes,
-          })
+          });
         } else {
-          const rawKey = decodeParamValue(state.key, state.keyEncoding)
+          const rawKey = decodeParamValue(state.key, state.keyEncoding);
           if (state.algorithm === "blowfish") {
             if (rawKey.length < 4 || rawKey.length > 56) {
-              throw new Error("Blowfish keys must be between 4 and 56 bytes.")
+              throw new Error("Blowfish keys must be between 4 and 56 bytes.");
             }
           } else if (state.algorithm === "twofish") {
             if (![8, 16, 24, 32].includes(rawKey.length)) {
-              throw new Error("Twofish keys must be 8, 16, 24, or 32 bytes.")
+              throw new Error("Twofish keys must be 8, 16, 24, or 32 bytes.");
             }
           } else if (rawKey.length !== keyLength) {
-            throw new Error(`Key must be ${keyLength} bytes for the selected algorithm.`)
+            throw new Error(
+              `Key must be ${keyLength} bytes for the selected algorithm.`,
+            );
           }
-          derivedKey = rawKey
+          derivedKey = rawKey;
         }
 
-        let resultBytes: Uint8Array
+        let resultBytes: Uint8Array;
         if (state.algorithm === "aes") {
-          const ivBytes = state.aesMode === "ECB" ? new Uint8Array() : decodeParamValue(state.aesIv, state.aesIvEncoding)
+          const ivBytes =
+            state.aesMode === "ECB"
+              ? new Uint8Array()
+              : decodeParamValue(state.aesIv, state.aesIvEncoding);
           if (state.aesMode !== "ECB" && ivBytes.length === 0) {
-            throw new Error("IV is required for the selected AES mode.")
+            throw new Error("IV is required for the selected AES mode.");
           }
 
           if (state.aesMode === "GCM") {
             if (!globalThis.crypto?.subtle) {
-              throw new Error("Web Crypto is unavailable in this browser.")
+              throw new Error("Web Crypto is unavailable in this browser.");
             }
             const aesKey = await crypto.subtle.importKey(
               "raw",
@@ -764,169 +881,252 @@ function SymmetricCryptoInner({
               { name: "AES-GCM", length: keyLength * 8 },
               false,
               [state.mode === "encrypt" ? "encrypt" : "decrypt"],
-            )
-            const algo = { name: "AES-GCM", iv: ivBytes, tagLength: 128 }
-            const result = state.mode === "encrypt"
-              ? await crypto.subtle.encrypt(algo, aesKey, inputBytes)
-              : await crypto.subtle.decrypt(algo, aesKey, inputBytes)
-            resultBytes = new Uint8Array(result)
+            );
+            const algo = { name: "AES-GCM", iv: ivBytes, tagLength: 128 };
+            const result =
+              state.mode === "encrypt"
+                ? await crypto.subtle.encrypt(algo, aesKey, inputBytes)
+                : await crypto.subtle.decrypt(algo, aesKey, inputBytes);
+            resultBytes = new Uint8Array(result);
           } else {
-            if (state.aesMode !== "ECB" && ivBytes.length !== AES_IV_DEFAULT_LENGTH) {
-              throw new Error("IV must be 16 bytes for the selected AES mode.")
+            if (
+              state.aesMode !== "ECB" &&
+              ivBytes.length !== AES_IV_DEFAULT_LENGTH
+            ) {
+              throw new Error("IV must be 16 bytes for the selected AES mode.");
             }
-            const keyWordArray = bytesToWordArray(derivedKey)
-            const ivWordArray = state.aesMode === "ECB" ? undefined : bytesToWordArray(ivBytes)
-            const mode = aesModeMap[state.aesMode]
-            const padding = paddingMap[state.aesPadding]
+            const keyWordArray = bytesToWordArray(derivedKey);
+            const ivWordArray =
+              state.aesMode === "ECB" ? undefined : bytesToWordArray(ivBytes);
+            const mode = aesModeMap[state.aesMode];
+            const padding = paddingMap[state.aesPadding];
             if (state.mode === "encrypt") {
-              if (padding === CryptoJS.pad.NoPadding && inputBytes.length % 16 !== 0) {
-                throw new Error("NoPadding requires plaintext length to be a multiple of 16 bytes.")
+              if (
+                padding === CryptoJS.pad.NoPadding &&
+                inputBytes.length % 16 !== 0
+              ) {
+                throw new Error(
+                  "NoPadding requires plaintext length to be a multiple of 16 bytes.",
+                );
               }
-              const encrypted = CryptoJS.AES.encrypt(bytesToWordArray(inputBytes), keyWordArray, {
-                iv: ivWordArray,
-                mode,
-                padding,
-              })
-              resultBytes = wordArrayToBytes(encrypted.ciphertext)
+              const encrypted = CryptoJS.AES.encrypt(
+                bytesToWordArray(inputBytes),
+                keyWordArray,
+                {
+                  iv: ivWordArray,
+                  mode,
+                  padding,
+                },
+              );
+              resultBytes = wordArrayToBytes(encrypted.ciphertext);
             } else {
-              const cipherParams = CryptoJS.lib.CipherParams.create({ ciphertext: bytesToWordArray(inputBytes) })
-              const decrypted = CryptoJS.AES.decrypt(cipherParams, keyWordArray, {
-                iv: ivWordArray,
-                mode,
-                padding,
-              })
-              resultBytes = wordArrayToBytes(decrypted)
+              const cipherParams = CryptoJS.lib.CipherParams.create({
+                ciphertext: bytesToWordArray(inputBytes),
+              });
+              const decrypted = CryptoJS.AES.decrypt(
+                cipherParams,
+                keyWordArray,
+                {
+                  iv: ivWordArray,
+                  mode,
+                  padding,
+                },
+              );
+              resultBytes = wordArrayToBytes(decrypted);
             }
           }
         } else if (state.algorithm === "des" || state.algorithm === "3des") {
-          const ivBytes = state.desMode === "ECB" ? new Uint8Array() : decodeParamValue(state.desIv, state.desIvEncoding)
+          const ivBytes =
+            state.desMode === "ECB"
+              ? new Uint8Array()
+              : decodeParamValue(state.desIv, state.desIvEncoding);
           if (state.desMode !== "ECB" && ivBytes.length === 0) {
-            throw new Error("IV is required for the selected DES mode.")
+            throw new Error("IV is required for the selected DES mode.");
           }
-          if (state.desMode !== "ECB" && ivBytes.length !== DES_IV_DEFAULT_LENGTH) {
-            throw new Error("IV must be 8 bytes for the selected DES mode.")
+          if (
+            state.desMode !== "ECB" &&
+            ivBytes.length !== DES_IV_DEFAULT_LENGTH
+          ) {
+            throw new Error("IV must be 8 bytes for the selected DES mode.");
           }
-          const keyWordArray = bytesToWordArray(derivedKey)
-          const ivWordArray = state.desMode === "ECB" ? undefined : bytesToWordArray(ivBytes)
-          const mode = desModeMap[state.desMode]
-          const padding = paddingMap[state.desPadding]
-          const cipher = state.algorithm === "3des" ? CryptoJS.TripleDES : CryptoJS.DES
+          const keyWordArray = bytesToWordArray(derivedKey);
+          const ivWordArray =
+            state.desMode === "ECB" ? undefined : bytesToWordArray(ivBytes);
+          const mode = desModeMap[state.desMode];
+          const padding = paddingMap[state.desPadding];
+          const cipher =
+            state.algorithm === "3des" ? CryptoJS.TripleDES : CryptoJS.DES;
           if (state.mode === "encrypt") {
-            if (padding === CryptoJS.pad.NoPadding && inputBytes.length % 8 !== 0) {
-              throw new Error("NoPadding requires plaintext length to be a multiple of 8 bytes.")
+            if (
+              padding === CryptoJS.pad.NoPadding &&
+              inputBytes.length % 8 !== 0
+            ) {
+              throw new Error(
+                "NoPadding requires plaintext length to be a multiple of 8 bytes.",
+              );
             }
-            const encrypted = cipher.encrypt(bytesToWordArray(inputBytes), keyWordArray, {
-              iv: ivWordArray,
-              mode,
-              padding,
-            })
-            resultBytes = wordArrayToBytes(encrypted.ciphertext)
+            const encrypted = cipher.encrypt(
+              bytesToWordArray(inputBytes),
+              keyWordArray,
+              {
+                iv: ivWordArray,
+                mode,
+                padding,
+              },
+            );
+            resultBytes = wordArrayToBytes(encrypted.ciphertext);
           } else {
-            const cipherParams = CryptoJS.lib.CipherParams.create({ ciphertext: bytesToWordArray(inputBytes) })
+            const cipherParams = CryptoJS.lib.CipherParams.create({
+              ciphertext: bytesToWordArray(inputBytes),
+            });
             const decrypted = cipher.decrypt(cipherParams, keyWordArray, {
               iv: ivWordArray,
               mode,
               padding,
-            })
-            resultBytes = wordArrayToBytes(decrypted)
+            });
+            resultBytes = wordArrayToBytes(decrypted);
           }
         } else if (state.algorithm === "blowfish") {
-          const { Blowfish } = await import("egoroof-blowfish")
-          const mode = Blowfish.MODE[state.blowfishMode]
-          const padding = Blowfish.PADDING[state.blowfishPadding]
-          const bf = new Blowfish(derivedKey, mode, padding)
+          const { Blowfish } = await import("egoroof-blowfish");
+          const mode = Blowfish.MODE[state.blowfishMode];
+          const padding = Blowfish.PADDING[state.blowfishPadding];
+          const bf = new Blowfish(derivedKey, mode, padding);
           if (state.blowfishMode === "CBC") {
-            const ivBytes = decodeParamValue(state.blowfishIv, state.blowfishIvEncoding)
+            const ivBytes = decodeParamValue(
+              state.blowfishIv,
+              state.blowfishIvEncoding,
+            );
             if (!ivBytes.length) {
-              throw new Error("IV is required for Blowfish CBC mode.")
+              throw new Error("IV is required for Blowfish CBC mode.");
             }
             if (ivBytes.length !== BLOWFISH_IV_DEFAULT_LENGTH) {
-              throw new Error("IV must be 8 bytes for Blowfish CBC.")
+              throw new Error("IV must be 8 bytes for Blowfish CBC.");
             }
-            bf.setIv(ivBytes)
+            bf.setIv(ivBytes);
           }
           resultBytes =
             state.mode === "encrypt"
               ? bf.encode(inputBytes)
-              : bf.decode(inputBytes, Blowfish.TYPE.UINT8_ARRAY)
+              : bf.decode(inputBytes, Blowfish.TYPE.UINT8_ARRAY);
         } else if (state.algorithm === "twofish") {
-          const { makeSession, encrypt, decrypt } = await import("twofish-ts")
-          const blockSize = TWOFISH_IV_DEFAULT_LENGTH
-          let ivBytes = new Uint8Array()
+          const { makeSession, encrypt, decrypt } = await import("twofish-ts");
+          const blockSize = TWOFISH_IV_DEFAULT_LENGTH;
+          let ivBytes = new Uint8Array();
           if (state.twofishMode === "CBC") {
-            ivBytes = decodeParamValue(state.twofishIv, state.twofishIvEncoding)
+            ivBytes = decodeParamValue(
+              state.twofishIv,
+              state.twofishIvEncoding,
+            );
             if (!ivBytes.length) {
-              throw new Error("IV is required for Twofish CBC mode.")
+              throw new Error("IV is required for Twofish CBC mode.");
             }
             if (ivBytes.length !== blockSize) {
-              throw new Error("IV must be 16 bytes for Twofish CBC.")
+              throw new Error("IV must be 16 bytes for Twofish CBC.");
             }
           }
-          const session = makeSession(derivedKey)
+          const session = makeSession(derivedKey);
           if (state.mode === "encrypt") {
-            const padded = applyPadding(inputBytes, state.twofishPadding, blockSize)
-            const outputBuffer = new Uint8Array(padded.length)
-            let prev = ivBytes
+            const padded = applyPadding(
+              inputBytes,
+              state.twofishPadding,
+              blockSize,
+            );
+            const outputBuffer = new Uint8Array(padded.length);
+            let prev = ivBytes;
             for (let offset = 0; offset < padded.length; offset += blockSize) {
-              const block = padded.subarray(offset, offset + blockSize)
-              const toEncrypt = state.twofishMode === "CBC" ? xorBytes(block, prev) : block
-              const outBlock = new Uint8Array(blockSize)
-              encrypt(toEncrypt, 0, outBlock, 0, session)
-              outputBuffer.set(outBlock, offset)
+              const block = padded.subarray(offset, offset + blockSize);
+              const toEncrypt =
+                state.twofishMode === "CBC" ? xorBytes(block, prev) : block;
+              const outBlock = new Uint8Array(blockSize);
+              encrypt(toEncrypt, 0, outBlock, 0, session);
+              outputBuffer.set(outBlock, offset);
               if (state.twofishMode === "CBC") {
-                prev = outBlock
+                prev = outBlock;
               }
             }
-            resultBytes = outputBuffer
+            resultBytes = outputBuffer;
           } else {
             if (inputBytes.length % blockSize !== 0) {
-              throw new Error("Ciphertext length must be a multiple of 16 bytes for Twofish.")
+              throw new Error(
+                "Ciphertext length must be a multiple of 16 bytes for Twofish.",
+              );
             }
-            const outputBuffer = new Uint8Array(inputBytes.length)
-            let prev = ivBytes
-            for (let offset = 0; offset < inputBytes.length; offset += blockSize) {
-              const block = inputBytes.subarray(offset, offset + blockSize)
-              const outBlock = new Uint8Array(blockSize)
-              decrypt(block, 0, outBlock, 0, session)
-              const plainBlock = state.twofishMode === "CBC" ? xorBytes(outBlock, prev) : outBlock
-              outputBuffer.set(plainBlock, offset)
+            const outputBuffer = new Uint8Array(inputBytes.length);
+            let prev = ivBytes;
+            for (
+              let offset = 0;
+              offset < inputBytes.length;
+              offset += blockSize
+            ) {
+              const block = inputBytes.subarray(offset, offset + blockSize);
+              const outBlock = new Uint8Array(blockSize);
+              decrypt(block, 0, outBlock, 0, session);
+              const plainBlock =
+                state.twofishMode === "CBC"
+                  ? xorBytes(outBlock, prev)
+                  : outBlock;
+              outputBuffer.set(plainBlock, offset);
               if (state.twofishMode === "CBC") {
-                prev = block
+                prev = block;
               }
             }
-            resultBytes = removePadding(outputBuffer, state.twofishPadding)
+            resultBytes = removePadding(outputBuffer, state.twofishPadding);
           }
         } else if (state.algorithm === "chacha20") {
-          const nonceBytes = decodeParamValue(state.chachaNonce, state.chachaNonceEncoding)
+          const nonceBytes = decodeParamValue(
+            state.chachaNonce,
+            state.chachaNonceEncoding,
+          );
           if (!nonceBytes.length) {
-            throw new Error("Nonce is required for ChaCha20.")
+            throw new Error("Nonce is required for ChaCha20.");
           }
           if (nonceBytes.length !== CHACHA_NONCE_DEFAULT_LENGTH) {
-            throw new Error("Nonce must be 12 bytes for ChaCha20.")
+            throw new Error("Nonce must be 12 bytes for ChaCha20.");
           }
           if (state.chachaPoly1305) {
-            const { chacha20poly1305 } = await import("@noble/ciphers/chacha")
-            const aead = chacha20poly1305(derivedKey, nonceBytes)
-            resultBytes = state.mode === "encrypt" ? aead.encrypt(inputBytes) : aead.decrypt(inputBytes)
+            const { chacha20poly1305 } = await import("@noble/ciphers/chacha");
+            const aead = chacha20poly1305(derivedKey, nonceBytes);
+            resultBytes =
+              state.mode === "encrypt"
+                ? aead.encrypt(inputBytes)
+                : aead.decrypt(inputBytes);
           } else {
-            const { chacha20 } = await import("@noble/ciphers/chacha")
-            resultBytes = chacha20(derivedKey, nonceBytes, inputBytes, undefined, Math.max(0, state.chachaCounter))
+            const { chacha20 } = await import("@noble/ciphers/chacha");
+            resultBytes = chacha20(
+              derivedKey,
+              nonceBytes,
+              inputBytes,
+              undefined,
+              Math.max(0, state.chachaCounter),
+            );
           }
         } else {
-          const { salsa20 } = await import("@noble/ciphers/salsa")
-          const nonceBytes = decodeParamValue(state.salsaNonce, state.salsaNonceEncoding)
+          const { salsa20 } = await import("@noble/ciphers/salsa");
+          const nonceBytes = decodeParamValue(
+            state.salsaNonce,
+            state.salsaNonceEncoding,
+          );
           if (!nonceBytes.length) {
-            throw new Error("Nonce is required for Salsa20.")
+            throw new Error("Nonce is required for Salsa20.");
           }
           if (nonceBytes.length !== SALSA_NONCE_DEFAULT_LENGTH) {
-            throw new Error("Nonce must be 8 bytes for Salsa20.")
+            throw new Error("Nonce must be 8 bytes for Salsa20.");
           }
-          resultBytes = salsa20(derivedKey, nonceBytes, inputBytes, undefined, Math.max(0, state.salsaCounter))
+          resultBytes = salsa20(
+            derivedKey,
+            nonceBytes,
+            inputBytes,
+            undefined,
+            Math.max(0, state.salsaCounter),
+          );
         }
 
-        if (runRef.current !== runId) return
-        const { text, binary } = encodeOutputBytes(resultBytes, state.outputEncoding)
-        outputBytesRef.current = binary
+        if (runRef.current !== runId) return;
+        const { text, binary } = encodeOutputBytes(
+          resultBytes,
+          state.outputEncoding,
+        );
+        outputBytesRef.current = binary;
         if (state.outputEncoding === "binary") {
           const outputName = fileName
             ? state.mode === "encrypt"
@@ -934,24 +1134,28 @@ function SymmetricCryptoInner({
               : `${fileName}.dec`
             : state.mode === "encrypt"
               ? "encrypted.bin"
-              : "decrypted.bin"
-          setBinaryMeta(binary ? { name: outputName, size: binary.length } : null)
-          setOutput("")
+              : "decrypted.bin";
+          setBinaryMeta(
+            binary ? { name: outputName, size: binary.length } : null,
+          );
+          setOutput("");
         } else {
-          setBinaryMeta(null)
-          setOutput(text)
+          setBinaryMeta(null);
+          setOutput(text);
         }
-        setError(null)
+        setError(null);
       } catch (err) {
-        if (runRef.current !== runId) return
-        setOutput("")
-        setBinaryMeta(null)
-        outputBytesRef.current = null
-        setError(err instanceof Error ? err.message : "Failed to process input.")
+        if (runRef.current !== runId) return;
+        setOutput("");
+        setBinaryMeta(null);
+        outputBytesRef.current = null;
+        setError(
+          err instanceof Error ? err.message : "Failed to process input.",
+        );
       } finally {
-        if (runRef.current === runId) setIsWorking(false)
+        if (runRef.current === runId) setIsWorking(false);
       }
-    })()
+    })();
   }, [
     state.mode,
     state.algorithm,
@@ -994,176 +1198,191 @@ function SymmetricCryptoInner({
     state.salsaCounter,
     fileName,
     fileVersion,
-  ])
+  ]);
 
   const isDeprecated =
     state.algorithm === "salsa20" ||
     state.algorithm === "twofish" ||
     state.algorithm === "blowfish" ||
     state.algorithm === "des" ||
-    state.algorithm === "3des"
+    state.algorithm === "3des";
 
   const handleGenerate = (
-    field: "key" | "salt" | "aesIv" | "desIv" | "blowfishIv" | "twofishIv" | "chachaNonce" | "salsaNonce",
+    field:
+      | "key"
+      | "salt"
+      | "aesIv"
+      | "desIv"
+      | "blowfishIv"
+      | "twofishIv"
+      | "chachaNonce"
+      | "salsaNonce",
   ) => {
     try {
-      let length = SALT_DEFAULT_LENGTH
-      let encoding: ParamEncoding = "base64"
+      let length = SALT_DEFAULT_LENGTH;
+      let encoding: ParamEncoding = "base64";
       if (field === "aesIv") {
-        length = state.aesMode === "GCM" ? AES_GCM_IV_DEFAULT_LENGTH : AES_IV_DEFAULT_LENGTH
-        encoding = state.aesIvEncoding
+        length =
+          state.aesMode === "GCM"
+            ? AES_GCM_IV_DEFAULT_LENGTH
+            : AES_IV_DEFAULT_LENGTH;
+        encoding = state.aesIvEncoding;
       }
       if (field === "desIv") {
-        length = DES_IV_DEFAULT_LENGTH
-        encoding = state.desIvEncoding
+        length = DES_IV_DEFAULT_LENGTH;
+        encoding = state.desIvEncoding;
       }
       if (field === "blowfishIv") {
-        length = BLOWFISH_IV_DEFAULT_LENGTH
-        encoding = state.blowfishIvEncoding
+        length = BLOWFISH_IV_DEFAULT_LENGTH;
+        encoding = state.blowfishIvEncoding;
       }
       if (field === "twofishIv") {
-        length = TWOFISH_IV_DEFAULT_LENGTH
-        encoding = state.twofishIvEncoding
+        length = TWOFISH_IV_DEFAULT_LENGTH;
+        encoding = state.twofishIvEncoding;
       }
       if (field === "chachaNonce") {
-        length = CHACHA_NONCE_DEFAULT_LENGTH
-        encoding = state.chachaNonceEncoding
+        length = CHACHA_NONCE_DEFAULT_LENGTH;
+        encoding = state.chachaNonceEncoding;
       }
       if (field === "salsaNonce") {
-        length = SALSA_NONCE_DEFAULT_LENGTH
-        encoding = state.salsaNonceEncoding
+        length = SALSA_NONCE_DEFAULT_LENGTH;
+        encoding = state.salsaNonceEncoding;
       }
       if (field === "salt") {
-        length = SALT_DEFAULT_LENGTH
-        encoding = state.saltEncoding
+        length = SALT_DEFAULT_LENGTH;
+        encoding = state.saltEncoding;
       }
       if (field === "key") {
-        length = getKeyLengthBytes(state)
-        encoding = state.keyEncoding
+        length = getKeyLengthBytes(state);
+        encoding = state.keyEncoding;
       }
 
       const value =
         encoding === "utf8"
           ? randomAsciiString(length)
-          : encodeParamValue(randomBytes(length), encoding)
-      setParam(field, value)
-      setError(null)
+          : encodeParamValue(randomBytes(length), encoding);
+      setParam(field, value);
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to generate random bytes.")
+      setError(
+        err instanceof Error ? err.message : "Failed to generate random bytes.",
+      );
     }
-  }
+  };
 
   const handleFileUpload = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ""
-      if (!file) return
-      const reader = new FileReader()
+      const file = event.target.files?.[0];
+      event.target.value = "";
+      if (!file) return;
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const buffer = e.target?.result as ArrayBuffer
-        if (!buffer) return
-        fileBytesRef.current = new Uint8Array(buffer)
-        setParam("input", "")
-        setParam("inputEncoding", "binary", true)
-        setFileName(file.name)
-        setFileVersion((prev) => prev + 1)
-        setError(null)
-      }
-      reader.readAsArrayBuffer(file)
+        const buffer = e.target?.result as ArrayBuffer;
+        if (!buffer) return;
+        fileBytesRef.current = new Uint8Array(buffer);
+        setParam("input", "");
+        setParam("inputEncoding", "binary", true);
+        setFileName(file.name);
+        setFileVersion((prev) => prev + 1);
+        setError(null);
+      };
+      reader.readAsArrayBuffer(file);
     },
     [setParam, setFileName],
-  )
+  );
 
   const handleClearFile = React.useCallback(() => {
-    setFileName(null)
-    fileBytesRef.current = null
-    setFileVersion(0)
-  }, [setFileName])
+    setFileName(null);
+    fileBytesRef.current = null;
+    setFileVersion(0);
+  }, [setFileName]);
 
   const handleClearAll = React.useCallback(() => {
-    runRef.current += 1
-    resetToDefaults()
-    setFileName(null)
-    fileBytesRef.current = null
-    outputBytesRef.current = null
-    if (fileInputRef.current) fileInputRef.current.value = ""
-    setFileVersion(0)
-    setOutput("")
-    setError(null)
-    setIsWorking(false)
-    setBinaryMeta(null)
-    setCopied(false)
-  }, [resetToDefaults, setFileName])
+    runRef.current += 1;
+    resetToDefaults();
+    setFileName(null);
+    fileBytesRef.current = null;
+    outputBytesRef.current = null;
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFileVersion(0);
+    setOutput("");
+    setError(null);
+    setIsWorking(false);
+    setBinaryMeta(null);
+    setCopied(false);
+  }, [resetToDefaults, setFileName]);
 
   const handleInputChange = (value: string) => {
-    setParam("input", value)
+    setParam("input", value);
     if (fileName || fileBytesRef.current) {
-      handleClearFile()
+      handleClearFile();
     }
-  }
+  };
 
   const handleDownloadOutput = React.useCallback(() => {
-    const bytes = outputBytesRef.current
-    if (!bytes) return
-    const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = binaryMeta?.name ?? "output.bin"
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
-  }, [binaryMeta])
+    const bytes = outputBytesRef.current;
+    if (!bytes) return;
+    const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], {
+      type: "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = binaryMeta?.name ?? "output.bin";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }, [binaryMeta]);
 
   const handleCopyResult = async () => {
-    if (!output) return
-    await navigator.clipboard.writeText(output)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    if (!output) return;
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleDownloadTextResult = () => {
-    if (!output) return
-    const blob = new Blob([output], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement("a")
-    link.href = url
-    link.download = "result.txt"
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 0)
-  }
+    if (!output) return;
+    const blob = new Blob([output], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "result.txt";
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  };
 
   const inputWarning = oversizeKeys.includes("input")
     ? "Input exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const keyWarning = oversizeKeys.includes("key")
     ? "Key exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const saltWarning = oversizeKeys.includes("salt")
     ? "Salt exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const kdfInfoWarning = oversizeKeys.includes("kdfInfo")
     ? "Info exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const aesIvWarning = oversizeKeys.includes("aesIv")
     ? "IV exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const desIvWarning = oversizeKeys.includes("desIv")
     ? "IV exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const blowfishIvWarning = oversizeKeys.includes("blowfishIv")
     ? "IV exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const twofishIvWarning = oversizeKeys.includes("twofishIv")
     ? "IV exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const chachaNonceWarning = oversizeKeys.includes("chachaNonce")
     ? "Nonce exceeds 2 KB and is not synced to the URL."
-    : null
+    : null;
   const salsaNonceWarning = oversizeKeys.includes("salsaNonce")
     ? "Nonce exceeds 2 KB and is not synced to the URL."
-    : null
-  const hasFileInput = Boolean(fileName)
-  const showInputEncodingSelect = !hasFileInput || state.mode === "decrypt"
+    : null;
+  const hasFileInput = Boolean(fileName);
+  const showInputEncodingSelect = !hasFileInput || state.mode === "decrypt";
   const inputEncodingOptions = showInputEncodingSelect
     ? hasFileInput
       ? ([
@@ -1176,12 +1395,17 @@ function SymmetricCryptoInner({
           { value: "base64", label: encodingLabels.base64 },
           { value: "hex", label: encodingLabels.hex },
         ] as { value: InputEncoding; label: string }[])
-    : []
+    : [];
 
   return (
-      <div className="flex h-full flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Tabs value={state.mode} onValueChange={(value) => setParam("mode", value as "encrypt" | "decrypt", true)}>
+    <div className="flex h-full flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Tabs
+          value={state.mode}
+          onValueChange={(value) =>
+            setParam("mode", value as "encrypt" | "decrypt", true)
+          }
+        >
           <ScrollableTabsList>
             <TabsTrigger value="encrypt" className="px-5 text-base flex-none">
               Encrypt
@@ -1190,11 +1414,16 @@ function SymmetricCryptoInner({
               Decrypt
             </TabsTrigger>
           </ScrollableTabsList>
-          </Tabs>
-          <Button variant="ghost" size="sm" onClick={handleClearAll} className="h-8 px-3 text-sm">
-            Clear
-          </Button>
-        </div>
+        </Tabs>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleClearAll}
+          className="h-8 px-3 text-sm"
+        >
+          Clear
+        </Button>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="flex flex-col gap-4 overflow-x-hidden">
@@ -1203,12 +1432,18 @@ function SymmetricCryptoInner({
               <Label className="w-20 text-sm sm:w-28">Algorithm</Label>
               <Tabs
                 value={state.algorithm}
-                onValueChange={(value) => setParam("algorithm", value as AlgorithmValue, true)}
+                onValueChange={(value) =>
+                  setParam("algorithm", value as AlgorithmValue, true)
+                }
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
                   {algorithmValues.map((value) => (
-                    <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                    <TabsTrigger
+                      key={value}
+                      value={value}
+                      className="whitespace-nowrap text-xs flex-none"
+                    >
                       {algorithmLabels[value]}
                     </TabsTrigger>
                   ))}
@@ -1242,12 +1477,18 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">AES Mode</Label>
                   <Tabs
                     value={state.aesMode}
-                    onValueChange={(value) => setParam("aesMode", value as AesMode, true)}
+                    onValueChange={(value) =>
+                      setParam("aesMode", value as AesMode, true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {aesModes.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1258,17 +1499,28 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">Key Size</Label>
                   <Tabs
                     value={String(state.aesKeySize)}
-                    onValueChange={(value) => setParam("aesKeySize", Number(value), true)}
+                    onValueChange={(value) =>
+                      setParam("aesKeySize", Number(value), true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
-                      <TabsTrigger value="128" className="whitespace-nowrap text-xs flex-none">
+                      <TabsTrigger
+                        value="128"
+                        className="whitespace-nowrap text-xs flex-none"
+                      >
                         128-bit
                       </TabsTrigger>
-                      <TabsTrigger value="192" className="whitespace-nowrap text-xs flex-none">
+                      <TabsTrigger
+                        value="192"
+                        className="whitespace-nowrap text-xs flex-none"
+                      >
                         192-bit
                       </TabsTrigger>
-                      <TabsTrigger value="256" className="whitespace-nowrap text-xs flex-none">
+                      <TabsTrigger
+                        value="256"
+                        className="whitespace-nowrap text-xs flex-none"
+                      >
                         256-bit
                       </TabsTrigger>
                     </ScrollableTabsList>
@@ -1280,15 +1532,23 @@ function SymmetricCryptoInner({
             {(state.algorithm === "des" || state.algorithm === "3des") && (
               <>
                 <div className="flex min-w-0 items-center gap-3">
-                  <Label className="w-20 text-sm sm:w-28">{state.algorithm === "3des" ? "3DES Mode" : "DES Mode"}</Label>
+                  <Label className="w-20 text-sm sm:w-28">
+                    {state.algorithm === "3des" ? "3DES Mode" : "DES Mode"}
+                  </Label>
                   <Tabs
                     value={state.desMode}
-                    onValueChange={(value) => setParam("desMode", value as DesMode, true)}
+                    onValueChange={(value) =>
+                      setParam("desMode", value as DesMode, true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {desModes.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1303,12 +1563,18 @@ function SymmetricCryptoInner({
                 <Label className="w-20 text-sm sm:w-28">Blowfish Mode</Label>
                 <Tabs
                   value={state.blowfishMode}
-                  onValueChange={(value) => setParam("blowfishMode", value as BlowfishMode, true)}
+                  onValueChange={(value) =>
+                    setParam("blowfishMode", value as BlowfishMode, true)
+                  }
                   className="min-w-0 flex-1"
                 >
                   <ScrollableTabsList>
                     {blowfishModes.map((value) => (
-                      <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                      <TabsTrigger
+                        key={value}
+                        value={value}
+                        className="whitespace-nowrap text-xs flex-none"
+                      >
                         {value}
                       </TabsTrigger>
                     ))}
@@ -1322,12 +1588,18 @@ function SymmetricCryptoInner({
                 <Label className="w-20 text-sm sm:w-28">Twofish Mode</Label>
                 <Tabs
                   value={state.twofishMode}
-                  onValueChange={(value) => setParam("twofishMode", value as TwofishMode, true)}
+                  onValueChange={(value) =>
+                    setParam("twofishMode", value as TwofishMode, true)
+                  }
                   className="min-w-0 flex-1"
                 >
                   <ScrollableTabsList>
                     {twofishModes.map((value) => (
-                      <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                      <TabsTrigger
+                        key={value}
+                        value={value}
+                        className="whitespace-nowrap text-xs flex-none"
+                      >
                         {value}
                       </TabsTrigger>
                     ))}
@@ -1344,7 +1616,9 @@ function SymmetricCryptoInner({
                     <Checkbox
                       id="chachaPoly1305"
                       checked={state.chachaPoly1305}
-                      onCheckedChange={(value) => setParam("chachaPoly1305", Boolean(value), true)}
+                      onCheckedChange={(value) =>
+                        setParam("chachaPoly1305", Boolean(value), true)
+                      }
                     />
                     <Label htmlFor="chachaPoly1305" className="text-sm">
                       Enabled
@@ -1371,17 +1645,28 @@ function SymmetricCryptoInner({
               <div className="flex min-w-0 flex-1 items-center gap-2">
                 <Tabs
                   value={state.keyEncoding}
-                  onValueChange={(value) => setParam("keyEncoding", value as ParamEncoding, true)}
+                  onValueChange={(value) =>
+                    setParam("keyEncoding", value as ParamEncoding, true)
+                  }
                   className="min-w-0 flex-1"
                 >
                   <InlineTabsList>
-                    <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                    <TabsTrigger
+                      value="utf8"
+                      className="whitespace-nowrap text-xs flex-none"
+                    >
                       {encodingLabels.utf8}
                     </TabsTrigger>
-                    <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                    <TabsTrigger
+                      value="base64"
+                      className="whitespace-nowrap text-xs flex-none"
+                    >
                       {encodingLabels.base64}
                     </TabsTrigger>
-                    <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                    <TabsTrigger
+                      value="hex"
+                      className="whitespace-nowrap text-xs flex-none"
+                    >
                       {encodingLabels.hex}
                     </TabsTrigger>
                   </InlineTabsList>
@@ -1397,7 +1682,9 @@ function SymmetricCryptoInner({
                 </Button>
               </div>
             </div>
-            {keyWarning && <p className="text-xs text-muted-foreground">{keyWarning}</p>}
+            {keyWarning && (
+              <p className="text-xs text-muted-foreground">{keyWarning}</p>
+            )}
           </div>
           <div className="space-y-2">
             <div className="flex min-w-0 items-center gap-3">
@@ -1406,20 +1693,27 @@ function SymmetricCryptoInner({
                 value={state.useKdf ? state.kdfAlgorithm : "none"}
                 onValueChange={(value) => {
                   if (value === "none") {
-                    setParam("useKdf", false, true)
+                    setParam("useKdf", false, true);
                   } else {
-                    setParam("useKdf", true, true)
-                    setParam("kdfAlgorithm", value as KdfAlgorithm, true)
+                    setParam("useKdf", true, true);
+                    setParam("kdfAlgorithm", value as KdfAlgorithm, true);
                   }
                 }}
                 className="min-w-0 flex-1"
               >
                 <ScrollableTabsList>
-                  <TabsTrigger value="none" className="whitespace-nowrap text-xs flex-none">
+                  <TabsTrigger
+                    value="none"
+                    className="whitespace-nowrap text-xs flex-none"
+                  >
                     None
                   </TabsTrigger>
                   {kdfAlgorithms.map((value) => (
-                    <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                    <TabsTrigger
+                      key={value}
+                      value={value}
+                      className="whitespace-nowrap text-xs flex-none"
+                    >
                       {value}
                     </TabsTrigger>
                   ))}
@@ -1432,12 +1726,18 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">Hash</Label>
                   <Tabs
                     value={state.kdfHash}
-                    onValueChange={(value) => setParam("kdfHash", value as KdfHash, true)}
+                    onValueChange={(value) =>
+                      setParam("kdfHash", value as KdfHash, true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {kdfHashes.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1451,7 +1751,13 @@ function SymmetricCryptoInner({
                       type="number"
                       min={1}
                       value={state.iterations}
-                      onChange={(e) => setParam("iterations", Math.max(1, Number(e.target.value) || 0), true)}
+                      onChange={(e) =>
+                        setParam(
+                          "iterations",
+                          Math.max(1, Number(e.target.value) || 0),
+                          true,
+                        )
+                      }
                       className="w-32"
                     />
                   </div>
@@ -1471,17 +1777,28 @@ function SymmetricCryptoInner({
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Tabs
                         value={state.saltEncoding}
-                        onValueChange={(value) => setParam("saltEncoding", value as ParamEncoding, true)}
+                        onValueChange={(value) =>
+                          setParam("saltEncoding", value as ParamEncoding, true)
+                        }
                         className="min-w-0 flex-1"
                       >
                         <InlineTabsList>
-                          <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="utf8"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.utf8}
                           </TabsTrigger>
-                          <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="base64"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.base64}
                           </TabsTrigger>
-                          <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="hex"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.hex}
                           </TabsTrigger>
                         </InlineTabsList>
@@ -1497,7 +1814,11 @@ function SymmetricCryptoInner({
                       </Button>
                     </div>
                   </div>
-                  {saltWarning && <p className="text-xs text-muted-foreground">{saltWarning}</p>}
+                  {saltWarning && (
+                    <p className="text-xs text-muted-foreground">
+                      {saltWarning}
+                    </p>
+                  )}
                 </div>
                 {state.kdfAlgorithm === "HKDF" && (
                   <div className="space-y-2">
@@ -1514,23 +1835,42 @@ function SymmetricCryptoInner({
                       <div className="w-20 sm:w-28" aria-hidden="true" />
                       <Tabs
                         value={state.kdfInfoEncoding}
-                        onValueChange={(value) => setParam("kdfInfoEncoding", value as ParamEncoding, true)}
+                        onValueChange={(value) =>
+                          setParam(
+                            "kdfInfoEncoding",
+                            value as ParamEncoding,
+                            true,
+                          )
+                        }
                         className="min-w-0 flex-1"
                       >
                         <InlineTabsList>
-                          <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="utf8"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.utf8}
                           </TabsTrigger>
-                          <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="base64"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.base64}
                           </TabsTrigger>
-                          <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="hex"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.hex}
                           </TabsTrigger>
                         </InlineTabsList>
                       </Tabs>
                     </div>
-                    {kdfInfoWarning && <p className="text-xs text-muted-foreground">{kdfInfoWarning}</p>}
+                    {kdfInfoWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {kdfInfoWarning}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -1546,12 +1886,18 @@ function SymmetricCryptoInner({
                     <Label className="w-20 text-sm sm:w-28">Padding</Label>
                     <Tabs
                       value={state.aesPadding}
-                      onValueChange={(value) => setParam("aesPadding", value as PaddingValue, true)}
+                      onValueChange={(value) =>
+                        setParam("aesPadding", value as PaddingValue, true)
+                      }
                       className="min-w-0 flex-1"
                     >
                       <ScrollableTabsList>
                         {paddings.map((value) => (
-                          <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            key={value}
+                            value={value}
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {value}
                           </TabsTrigger>
                         ))}
@@ -1575,17 +1921,32 @@ function SymmetricCryptoInner({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Tabs
                           value={state.aesIvEncoding}
-                          onValueChange={(value) => setParam("aesIvEncoding", value as ParamEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "aesIvEncoding",
+                              value as ParamEncoding,
+                              true,
+                            )
+                          }
                           className="min-w-0 flex-1"
                         >
                           <InlineTabsList>
-                            <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="utf8"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.utf8}
                             </TabsTrigger>
-                            <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="base64"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.base64}
                             </TabsTrigger>
-                            <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="hex"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.hex}
                             </TabsTrigger>
                           </InlineTabsList>
@@ -1601,7 +1962,11 @@ function SymmetricCryptoInner({
                         </Button>
                       </div>
                     </div>
-                    {aesIvWarning && <p className="text-xs text-muted-foreground">{aesIvWarning}</p>}
+                    {aesIvWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {aesIvWarning}
+                      </p>
+                    )}
                   </div>
                 )}
               </>
@@ -1613,12 +1978,18 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">Padding</Label>
                   <Tabs
                     value={state.desPadding}
-                    onValueChange={(value) => setParam("desPadding", value as PaddingValue, true)}
+                    onValueChange={(value) =>
+                      setParam("desPadding", value as PaddingValue, true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {paddings.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1641,17 +2012,32 @@ function SymmetricCryptoInner({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Tabs
                           value={state.desIvEncoding}
-                          onValueChange={(value) => setParam("desIvEncoding", value as ParamEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "desIvEncoding",
+                              value as ParamEncoding,
+                              true,
+                            )
+                          }
                           className="min-w-0 flex-1"
                         >
                           <InlineTabsList>
-                            <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="utf8"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.utf8}
                             </TabsTrigger>
-                            <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="base64"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.base64}
                             </TabsTrigger>
-                            <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="hex"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.hex}
                             </TabsTrigger>
                           </InlineTabsList>
@@ -1667,7 +2053,11 @@ function SymmetricCryptoInner({
                         </Button>
                       </div>
                     </div>
-                    {desIvWarning && <p className="text-xs text-muted-foreground">{desIvWarning}</p>}
+                    {desIvWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {desIvWarning}
+                      </p>
+                    )}
                   </div>
                 )}
               </>
@@ -1679,12 +2069,22 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">Padding</Label>
                   <Tabs
                     value={state.blowfishPadding}
-                    onValueChange={(value) => setParam("blowfishPadding", value as BlowfishPadding, true)}
+                    onValueChange={(value) =>
+                      setParam(
+                        "blowfishPadding",
+                        value as BlowfishPadding,
+                        true,
+                      )
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {blowfishPaddings.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1707,17 +2107,32 @@ function SymmetricCryptoInner({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Tabs
                           value={state.blowfishIvEncoding}
-                          onValueChange={(value) => setParam("blowfishIvEncoding", value as ParamEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "blowfishIvEncoding",
+                              value as ParamEncoding,
+                              true,
+                            )
+                          }
                           className="min-w-0 flex-1"
                         >
                           <InlineTabsList>
-                            <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="utf8"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.utf8}
                             </TabsTrigger>
-                            <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="base64"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.base64}
                             </TabsTrigger>
-                            <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="hex"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.hex}
                             </TabsTrigger>
                           </InlineTabsList>
@@ -1733,7 +2148,11 @@ function SymmetricCryptoInner({
                         </Button>
                       </div>
                     </div>
-                    {blowfishIvWarning && <p className="text-xs text-muted-foreground">{blowfishIvWarning}</p>}
+                    {blowfishIvWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {blowfishIvWarning}
+                      </p>
+                    )}
                   </div>
                 )}
               </>
@@ -1745,12 +2164,18 @@ function SymmetricCryptoInner({
                   <Label className="w-20 text-sm sm:w-28">Padding</Label>
                   <Tabs
                     value={state.twofishPadding}
-                    onValueChange={(value) => setParam("twofishPadding", value as TwofishPadding, true)}
+                    onValueChange={(value) =>
+                      setParam("twofishPadding", value as TwofishPadding, true)
+                    }
                     className="min-w-0 flex-1"
                   >
                     <ScrollableTabsList>
                       {twofishPaddings.map((value) => (
-                        <TabsTrigger key={value} value={value} className="whitespace-nowrap text-xs flex-none">
+                        <TabsTrigger
+                          key={value}
+                          value={value}
+                          className="whitespace-nowrap text-xs flex-none"
+                        >
                           {value}
                         </TabsTrigger>
                       ))}
@@ -1773,17 +2198,32 @@ function SymmetricCryptoInner({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Tabs
                           value={state.twofishIvEncoding}
-                          onValueChange={(value) => setParam("twofishIvEncoding", value as ParamEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "twofishIvEncoding",
+                              value as ParamEncoding,
+                              true,
+                            )
+                          }
                           className="min-w-0 flex-1"
                         >
                           <InlineTabsList>
-                            <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="utf8"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.utf8}
                             </TabsTrigger>
-                            <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="base64"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.base64}
                             </TabsTrigger>
-                            <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="hex"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.hex}
                             </TabsTrigger>
                           </InlineTabsList>
@@ -1799,7 +2239,11 @@ function SymmetricCryptoInner({
                         </Button>
                       </div>
                     </div>
-                    {twofishIvWarning && <p className="text-xs text-muted-foreground">{twofishIvWarning}</p>}
+                    {twofishIvWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {twofishIvWarning}
+                      </p>
+                    )}
                   </div>
                 )}
               </>
@@ -1813,7 +2257,9 @@ function SymmetricCryptoInner({
                       <Label className="w-20 text-sm sm:w-28">Nonce</Label>
                       <Input
                         value={state.chachaNonce}
-                        onChange={(e) => setParam("chachaNonce", e.target.value)}
+                        onChange={(e) =>
+                          setParam("chachaNonce", e.target.value)
+                        }
                         placeholder="Nonce value"
                         className="min-w-0 flex-1"
                       />
@@ -1823,17 +2269,32 @@ function SymmetricCryptoInner({
                       <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Tabs
                           value={state.chachaNonceEncoding}
-                          onValueChange={(value) => setParam("chachaNonceEncoding", value as ParamEncoding, true)}
+                          onValueChange={(value) =>
+                            setParam(
+                              "chachaNonceEncoding",
+                              value as ParamEncoding,
+                              true,
+                            )
+                          }
                           className="min-w-0 flex-1"
                         >
                           <InlineTabsList>
-                            <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="utf8"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.utf8}
                             </TabsTrigger>
-                            <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="base64"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.base64}
                             </TabsTrigger>
-                            <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                            <TabsTrigger
+                              value="hex"
+                              className="whitespace-nowrap text-xs flex-none"
+                            >
                               {encodingLabels.hex}
                             </TabsTrigger>
                           </InlineTabsList>
@@ -1849,7 +2310,11 @@ function SymmetricCryptoInner({
                         </Button>
                       </div>
                     </div>
-                    {chachaNonceWarning && <p className="text-xs text-muted-foreground">{chachaNonceWarning}</p>}
+                    {chachaNonceWarning && (
+                      <p className="text-xs text-muted-foreground">
+                        {chachaNonceWarning}
+                      </p>
+                    )}
                   </div>
                 )}
                 {!state.chachaPoly1305 && (
@@ -1859,7 +2324,13 @@ function SymmetricCryptoInner({
                       type="number"
                       min={0}
                       value={state.chachaCounter}
-                      onChange={(e) => setParam("chachaCounter", Number(e.target.value) || 0, true)}
+                      onChange={(e) =>
+                        setParam(
+                          "chachaCounter",
+                          Number(e.target.value) || 0,
+                          true,
+                        )
+                      }
                       className="w-24"
                     />
                   </div>
@@ -1884,17 +2355,32 @@ function SymmetricCryptoInner({
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <Tabs
                         value={state.salsaNonceEncoding}
-                        onValueChange={(value) => setParam("salsaNonceEncoding", value as ParamEncoding, true)}
+                        onValueChange={(value) =>
+                          setParam(
+                            "salsaNonceEncoding",
+                            value as ParamEncoding,
+                            true,
+                          )
+                        }
                         className="min-w-0 flex-1"
                       >
                         <InlineTabsList>
-                          <TabsTrigger value="utf8" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="utf8"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.utf8}
                           </TabsTrigger>
-                          <TabsTrigger value="base64" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="base64"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.base64}
                           </TabsTrigger>
-                          <TabsTrigger value="hex" className="whitespace-nowrap text-xs flex-none">
+                          <TabsTrigger
+                            value="hex"
+                            className="whitespace-nowrap text-xs flex-none"
+                          >
                             {encodingLabels.hex}
                           </TabsTrigger>
                         </InlineTabsList>
@@ -1910,7 +2396,11 @@ function SymmetricCryptoInner({
                       </Button>
                     </div>
                   </div>
-                  {salsaNonceWarning && <p className="text-xs text-muted-foreground">{salsaNonceWarning}</p>}
+                  {salsaNonceWarning && (
+                    <p className="text-xs text-muted-foreground">
+                      {salsaNonceWarning}
+                    </p>
+                  )}
                 </div>
                 <div className="flex min-w-0 items-center gap-3">
                   <Label className="w-20 text-sm sm:w-28">Counter</Label>
@@ -1918,14 +2408,19 @@ function SymmetricCryptoInner({
                     type="number"
                     min={0}
                     value={state.salsaCounter}
-                    onChange={(e) => setParam("salsaCounter", Number(e.target.value) || 0, true)}
+                    onChange={(e) =>
+                      setParam(
+                        "salsaCounter",
+                        Number(e.target.value) || 0,
+                        true,
+                      )
+                    }
                     className="w-24"
                   />
                 </div>
               </>
             )}
           </div>
-
         </div>
 
         <SymmetricIoPanel
@@ -1951,5 +2446,5 @@ function SymmetricCryptoInner({
         />
       </div>
     </div>
-  )
+  );
 }

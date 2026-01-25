@@ -1,79 +1,79 @@
-import * as XLSX from "xlsx"
+import * as XLSX from "xlsx";
 
 export type CsvFileData = {
-  name: string
-  rows: string[][]
-}
+  name: string;
+  rows: string[][];
+};
 
-const INVALID_SHEET_CHARS = /[:\\/?*\[\]]/
-const EXCEL_SHEET_NAME_LIMIT = 31
+const INVALID_SHEET_CHARS = /[:\\/?*\[\]]/;
+const EXCEL_SHEET_NAME_LIMIT = 31;
 
 export function parseCsv(text: string): string[][] {
-  const rows: string[][] = []
-  let current: string[] = []
-  let field = ""
-  let inQuotes = false
+  const rows: string[][] = [];
+  let current: string[] = [];
+  let field = "";
+  let inQuotes = false;
 
   const pushField = () => {
-    current.push(field)
-    field = ""
-  }
+    current.push(field);
+    field = "";
+  };
 
   const pushRow = () => {
-    pushField()
-    rows.push(current)
-    current = []
-  }
+    pushField();
+    rows.push(current);
+    current = [];
+  };
 
   for (let i = 0; i < text.length; i++) {
-    const char = text[i]
+    const char = text[i];
 
     if (inQuotes) {
       if (char === '"') {
-        const next = text[i + 1]
+        const next = text[i + 1];
         if (next === '"') {
-          field += '"'
-          i++
+          field += '"';
+          i++;
         } else {
-          inQuotes = false
+          inQuotes = false;
         }
       } else {
-        field += char
+        field += char;
       }
-      continue
+      continue;
     }
 
     if (char === '"') {
-      inQuotes = true
-      continue
+      inQuotes = true;
+      continue;
     }
 
     if (char === ",") {
-      pushField()
-      continue
+      pushField();
+      continue;
     }
 
     if (char === "\r") {
-      if (text[i + 1] === "\n") i++
-      pushRow()
-      continue
+      if (text[i + 1] === "\n") i++;
+      pushRow();
+      continue;
     }
 
     if (char === "\n") {
-      pushRow()
-      continue
+      pushRow();
+      continue;
     }
 
-    field += char
+    field += char;
   }
 
   // Push final field/row
-  pushField()
+  pushField();
   if (current.length > 1 || current[0] !== "" || rows.length > 0) {
-    rows.push(current)
+    rows.push(current);
   }
 
-  return rows
+  return rows;
 }
 
 export function stringifyCsv(rows: string[][]): string {
@@ -81,23 +81,23 @@ export function stringifyCsv(rows: string[][]): string {
     .map((row) =>
       row
         .map((cell = "") => {
-          const needsQuote = /[",\n\r]/.test(cell)
-          const escaped = cell.replace(/"/g, '""')
-          return needsQuote ? `"${escaped}"` : escaped
+          const needsQuote = /[",\n\r]/.test(cell);
+          const escaped = cell.replace(/"/g, '""');
+          return needsQuote ? `"${escaped}"` : escaped;
         })
         .join(","),
     )
-    .join("\n")
+    .join("\n");
 }
 
 export function stripCsvExtension(name: string): string {
-  return name.toLowerCase().endsWith(".csv") ? name.slice(0, -4) : name
+  return name.toLowerCase().endsWith(".csv") ? name.slice(0, -4) : name;
 }
 
 export function isValidSheetName(name: string): boolean {
-  if (!name) return false
-  if (name.length > EXCEL_SHEET_NAME_LIMIT) return false
-  return !INVALID_SHEET_CHARS.test(name)
+  if (!name) return false;
+  if (name.length > EXCEL_SHEET_NAME_LIMIT) return false;
+  return !INVALID_SHEET_CHARS.test(name);
 }
 
 export function worksheetToRows(sheet: XLSX.WorkSheet): string[][] {
@@ -106,46 +106,50 @@ export function worksheetToRows(sheet: XLSX.WorkSheet): string[][] {
     RS: "\n",
     blankrows: true,
     strip: false,
-  })
-  return parseCsv(csv)
+  });
+  return parseCsv(csv);
 }
 
 export async function readCsvFile(file: File): Promise<CsvFileData> {
-  const text = await file.text()
+  const text = await file.text();
   return {
     name: file.name,
     rows: parseCsv(text),
-  }
+  };
 }
 
 export async function readExcelFile(file: File): Promise<CsvFileData[]> {
-  const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: "array", cellText: true, cellDates: false })
+  const buffer = await file.arrayBuffer();
+  const workbook = XLSX.read(buffer, {
+    type: "array",
+    cellText: true,
+    cellDates: false,
+  });
 
   return workbook.SheetNames.map((sheetName) => {
-    const sheet = workbook.Sheets[sheetName]
-    const name = `${sheetName}.csv`
+    const sheet = workbook.Sheets[sheetName];
+    const name = `${sheetName}.csv`;
     return {
       name,
       rows: worksheetToRows(sheet),
-    }
-  })
+    };
+  });
 }
 
 export function rowsToWorksheet(rows: string[][]): XLSX.WorkSheet {
-  const sheet = XLSX.utils.aoa_to_sheet(rows, { sheetStubs: true })
+  const sheet = XLSX.utils.aoa_to_sheet(rows, { sheetStubs: true });
 
   // Force all cells to be text to avoid implicit conversions
   Object.keys(sheet).forEach((cellKey) => {
-    if (cellKey.startsWith("!")) return
-    const cell = sheet[cellKey]
-    const value = cell?.v ?? ""
+    if (cellKey.startsWith("!")) return;
+    const cell = sheet[cellKey];
+    const value = cell?.v ?? "";
     sheet[cellKey] = {
       t: "s",
       v: String(value),
       w: String(value),
-    } as XLSX.CellObject
-  })
+    } as XLSX.CellObject;
+  });
 
-  return sheet
+  return sheet;
 }
