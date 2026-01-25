@@ -143,8 +143,8 @@ function HtmlEncoderContent() {
   return (
     <ToolPageWrapper
       toolId="html-encoder"
-      title="HTML Encoder/Decoder"
-      description="Encode plain text to HTML entities or decode HTML back to readable text."
+      title="HTML Escape"
+      description="Escape text to HTML entities or unescape HTML entities back to readable text."
       onLoadHistory={handleLoadHistory}
     >
       <HtmlEncoderInner

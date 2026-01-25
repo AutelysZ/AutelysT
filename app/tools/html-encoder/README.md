@@ -1,6 +1,6 @@
-# HTML Encoder/Decoder
+# HTML Escape
 
-Encode plain text into HTML entities or decode HTML entities back to readable text.
+Escape plain text into HTML entities or unescape HTML entities back to readable text.
 
 ## Features
 - Two-way editable panes for plain text and HTML entities

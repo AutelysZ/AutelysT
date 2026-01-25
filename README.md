@@ -24,7 +24,7 @@
 ## 🌟 AI-Generated Features
 
 ### 🔤 Encoding & Conversion Tools
-**AI-Crafted Encoding Suite** - Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Encoder/Decoder with 100+ text encodings, file upload/download, and URL-safe modes.
+**AI-Crafted Encoding Suite** - Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Escape with 100+ text encodings, file upload/download, and URL-safe modes.
 
 ### 🔐 Cryptographic Tools (AI-Implemented)
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
@@ -57,7 +57,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **Number Format** - Chinese numerals, Roman numerals, scientific notation
 - **Timezone** - Convert times between timezones with Unix epoch support
 - **World Clock** - View multiple time zones with live or custom reference time
-- **URL Encoder** - Encode/decode URLs with component parsing
+- **URL Builder** - Parse and rebuild URLs with editable components and custom encodings
 
 ### ⚙️ Core Features (AI-Engineered)
 - **Search** - Full-text tool search with OpenSearch browser integration
@@ -68,9 +68,9 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 
 ## 🚀 Quick Start (AI-Powered Development Environment)
 
-\`\`\`bash
+```bash
 pnpm install && pnpm dev
-\`\`\`
+```
 
 Open [http://localhost:3000](http://localhost:3000) to experience the AI-crafted toolkit
 

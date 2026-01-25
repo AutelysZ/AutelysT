@@ -13,6 +13,8 @@ This file defines how coding agents should operate in this repository. Follow it
 - Preserve existing layout, structure, and UI interactions unless explicitly asked to change them.
 - Keep changes minimal and scoped to the user request.
 - Prefer reuse of existing components and helpers over new abstractions.
+- When implementing tool functionality, use existing npm packages instead of bespoke implementations unless no qualified package exists.
+- Keep components as small as practical, and keep each file to a single component unless the framework requires otherwise (e.g., Next.js route files).
 - Use ASCII in edits unless the target file already uses non-ASCII and the change requires it.
 - Do not add new UI libraries unless explicitly requested.
 - For large files (>2000 lines), try to split components into multiple files when editing them.
@@ -27,11 +29,11 @@ When adding or updating a tool:
 - Keep result/output fields out of URL unless asked.
 - Provide meaningful SEO text content for tool pages when required.
 - Update `lib/tools/registry.ts` with `id`, `name`, `category`, `route`, `keywords`, and `seo`.
-- Update homepage copy and README when new tools or major features are added.
+- Update project README when new tools or major features are added.
 - Create or update the tool's README whenever a tool is created or modified.
 - Always read the tool's README before modifying a tool.
 - Write unit tests for new utility functions in `tests/lib/<module>/`.
-- Run type check and tests before marking a task complete.
+- Run type check and tests if necessary before marking a task complete.
 
 ## URL Sync & State Restore
 - Parameters and inputs must reflect in the URL query string.
@@ -64,27 +66,27 @@ When adding or updating a tool:
 
 ### Type Checking
 Only run type checking when explicitly requested:
-\`\`\`bash
+```bash
 npx tsc --noEmit
-\`\`\`
+```
 When run, execute type checking for the entire project (no single-file checks).
 Fix all TypeScript errors before committing. Use `pnpm build` to verify full compilation only when explicitly requested.
 
 ### Testing
 Add or update unit tests for all new or modified code. Only run tests when explicitly requested:
-\`\`\`bash
+```bash
 # Run all tests
 npx vitest run
 
 # Run tests with watch mode (during development)
 npx vitest watch tests/lib/encoding/base64.test.ts
-\`\`\`
+```
 When run, execute tests for the entire project (no single-file runs unless explicitly requested).
 
 Test file location: `tests/` directory mirroring source structure (e.g., `tests/lib/encoding/` for `lib/encoding/`).
 
 ### Build & Lint
-\`\`\`bash
+```bash
 # Full production build
 pnpm build
 
@@ -93,7 +95,7 @@ pnpm dev
 
 # Linting (if configured)
 pnpm lint
-\`\`\`
+```
 Only run build/lint commands when explicitly requested. When run, use the full-project commands above.
 
 ### Toolchain
@@ -104,13 +106,8 @@ Use existing dependencies:
 - **Testing**: Vitest (default config)
 - **Validation**: Zod for runtime schema validation
 
-Do not add new tools or libraries without explicit approval.
-
 ## Git & Safety
 - Do not rewrite history.
-- Do not revert unrelated user changes.
 - Avoid destructive commands unless explicitly requested.
 - Do not commit changes automatically; only commit when explicitly requested by the user.
 
-## Output Expectations
-- Do not run type check (`npx tsc --noEmit`) or tests (`npx vitest run`) unless explicitly requested; when asked, run them for the entire project.

@@ -728,15 +728,15 @@ export const tools: Tool[] = [
   // Web Tools
   {
     id: "html-encoder",
-    name: "HTML Encoder/Decoder",
-    description: "Encode text to HTML entities and decode entities back to text with two-way editing.",
-    category: "Web",
+    name: "HTML Escape",
+    description: "Escape text to HTML entities and unescape entities back to text with two-way editing.",
+    category: "Encoding",
     route: "/tools/html-encoder",
-    keywords: ["html", "encode", "decode", "entities", "escape", "unescape"],
+    keywords: ["html", "escape", "unescape", "encode", "decode", "entities"],
     seo: {
-      title: "HTML Encoder/Decoder - AutelysT",
-      description: "Online HTML encoder/decoder with two-way editing and entity escape/unescape.",
-      keywords: ["html encoder", "html decoder", "html entities", "escape", "unescape"],
+      title: "HTML Escape - AutelysT",
+      description: "Online HTML escape/unescape tool with two-way editing and entity conversion.",
+      keywords: ["html escape", "html unescape", "html entities", "escape", "unescape", "html encoder"],
     },
   },
   {
@@ -766,17 +766,16 @@ export const tools: Tool[] = [
     },
   },
   {
-    id: "url-encode",
-    name: "URL Encoder/Decoder",
-    description: "Encode and decode URL strings with detailed parsing of components and query/hash params.",
+    id: "url-builder",
+    name: "URL Builder",
+    description: "Parse and rebuild URLs with editable components, hash query support, and custom encodings.",
     category: "Web",
-    route: "/tools/url-encode",
-    keywords: ["url", "encode", "decode", "percent", "uri", "query", "parser", "search params", "hash"],
+    route: "/tools/url-builder",
+    keywords: ["url builder", "url parser", "query params", "hash params", "encoding", "gbk", "percent encoding"],
     seo: {
-      title: "URL Encoder/Decoder - AutelysT",
-      description:
-        "Online URL encoder/decoder with detailed parsing of protocol, host, path, query, and hash parameters.",
-      keywords: ["url encoder", "url decoder", "percent encoding", "uri", "query string", "url parser", "hash params"],
+      title: "URL Builder - AutelysT",
+      description: "Online URL builder to edit components, query params, hash params, and custom percent-encoding.",
+      keywords: ["url builder", "url parser", "query string", "hash params", "percent encoding", "gbk url encoding"],
     },
   },
   {
