@@ -522,7 +522,7 @@ async function resolveKeyFromInput({
     throw new Error("DER input is empty. Provide data or upload a key file.")
   }
 
-  const buffer = derBytes.buffer.slice(derBytes.byteOffset, derBytes.byteOffset + derBytes.byteLength)
+  const buffer = derBytes.buffer.slice(derBytes.byteOffset, derBytes.byteOffset + derBytes.byteLength) as ArrayBuffer
 
   if (algorithmValue !== "auto") {
     const config = algorithmConfigByValue[algorithmValue]
@@ -656,7 +656,7 @@ function KeyExtractorInner({
   const { upsertInputEntry, upsertParams } = useToolHistoryContext()
   const [parsed, setParsed] = React.useState<ParsedKey | null>(null)
   const [outputText, setOutputText] = React.useState("")
-  const [binaryOutput, setBinaryOutput] = React.useState<Uint8Array | null>(null)
+  const [binaryOutput, setBinaryOutput] = React.useState<Uint8Array<ArrayBuffer> | null>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [copied, setCopied] = React.useState(false)
   const [inputFileName, setInputFileName] = React.useState<string | null>(null)

@@ -32,7 +32,7 @@ export function parseKSUID(ksuidStr: string): ParsedKSUID | { error: string } {
       ksuid: trimmed,
       timestamp: date.toISOString(),
       timestampRaw: Math.floor(date.getTime() / 1000),
-      payload: Buffer.from(parsed.payload).toString("hex"),
+      payload: parsed.payload.toString("hex"),
     }
   } catch {
     return { error: "Failed to parse KSUID" }

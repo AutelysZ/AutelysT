@@ -45,7 +45,7 @@ export function encodeBase58(bytes: Uint8Array): string {
   return result
 }
 
-export function decodeBase58(input: string): Uint8Array {
+export function decodeBase58(input: string): Uint8Array<ArrayBuffer> {
   if (input.length === 0) return new Uint8Array(0)
 
   // Validate input

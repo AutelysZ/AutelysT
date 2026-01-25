@@ -43,7 +43,7 @@ export function encodeBase36(bytes: Uint8Array, options: Base36Options = {}): st
   return upperCase ? result : result.toLowerCase()
 }
 
-export function decodeBase36(input: string): Uint8Array {
+export function decodeBase36(input: string): Uint8Array<ArrayBuffer> {
   const normalized = input.toUpperCase()
 
   // Validate input

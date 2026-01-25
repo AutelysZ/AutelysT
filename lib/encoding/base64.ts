@@ -58,7 +58,7 @@ export function encodeBase64(bytes: Uint8Array, options: Base64Options = {}): st
 }
 
 // Decode base64 to bytes
-export function decodeBase64(input: string): Uint8Array {
+export function decodeBase64(input: string): Uint8Array<ArrayBuffer> {
   // Remove whitespace and detect URL-safe variant
   const cleanInput = input.replace(/[\r\n\s]/g, "")
   const isUrlSafe = cleanInput.includes("-") || cleanInput.includes("_")

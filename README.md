@@ -52,6 +52,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **CSV Editor** - Multi-tab CSV/Excel editing with frozen rows/columns, million-row virtualization, and CSV/XLSX export
 - **Markdown Previewer** - Live Markdown editing with split preview, view modes, and shareable URL state
 - **CSP Builder** - Build and edit Content-Security-Policy headers with directive-aware editing
+- **Source Map Viewer** - Browse source maps with a tree view, Monaco preview, and downloads
 
 ### 🔄 Converters (AI-Optimized)
 - **Base Conversion** - Convert between binary, decimal, hex, and custom bases

@@ -15,7 +15,7 @@ export function encodeHex(bytes: Uint8Array, options: HexOptions = {}): string {
   return upperCase ? result.toUpperCase() : result.toLowerCase()
 }
 
-export function decodeHex(input: string): Uint8Array {
+export function decodeHex(input: string): Uint8Array<ArrayBuffer> {
   // Remove any whitespace
   const normalized = input.replace(/\s/g, "")
 

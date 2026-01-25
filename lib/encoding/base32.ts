@@ -42,7 +42,7 @@ export function encodeBase32(bytes: Uint8Array, options: Base32Options = {}): st
   return upperCase ? result : result.toLowerCase()
 }
 
-export function decodeBase32(input: string): Uint8Array {
+export function decodeBase32(input: string): Uint8Array<ArrayBuffer> {
   // Remove padding and normalize
   const normalized = input.toUpperCase().replace(/=+$/, "")
 

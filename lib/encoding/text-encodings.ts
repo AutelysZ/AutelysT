@@ -166,7 +166,7 @@ export function getAllEncodings(): { value: string; label: string }[] {
   return [...primary, ...others]
 }
 
-function encodeBinary(binaryStr: string): Uint8Array {
+function encodeBinary(binaryStr: string): Uint8Array<ArrayBuffer> {
   // Treat each character as a raw byte (Latin-1/ISO-8859-1)
   const bytes = new Uint8Array(binaryStr.length)
   for (let i = 0; i < binaryStr.length; i++) {
@@ -180,12 +180,12 @@ function decodeBinary(bytes: Uint8Array): string {
   return String.fromCharCode(...bytes)
 }
 
-export function encodeText(text: string, encoding: string): Uint8Array {
+export function encodeText(text: string, encoding: string): Uint8Array<ArrayBuffer> {
   const lower = encoding.toLowerCase()
 
   // UTF-8: use native TextEncoder
   if (lower === "utf-8") {
-    return new TextEncoder().encode(text)
+    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>
   }
 
   if (lower === "base64") {
@@ -256,10 +256,10 @@ export function encodeText(text: string, encoding: string): Uint8Array {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const iconv = require("iconv-lite")
     const buffer = iconv.encode(text, lower)
-    return new Uint8Array(buffer)
+    return buffer as Uint8Array<ArrayBuffer>
   } catch (err) {
     console.warn(`Encoding ${encoding} failed, falling back to UTF-8:`, err)
-    return new TextEncoder().encode(text)
+    return new TextEncoder().encode(text) as Uint8Array<ArrayBuffer>
   }
 }
 

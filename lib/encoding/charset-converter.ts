@@ -136,20 +136,20 @@ export function isValidUrlEncoded(input: string): boolean {
   }
 }
 
-export function decodeToBytes(input: string, encoding: InputEncodingType, charset: string): Uint8Array {
+export function decodeToBytes(input: string, encoding: InputEncodingType, charset: string): Uint8Array<ArrayBuffer> {
   switch (encoding) {
     case "raw": {
       if (!isUtf8Charset(charset)) {
         throw new Error("Raw input encoding is only supported for UTF-8 charset")
       }
-      return new TextEncoder().encode(input)
+      return new TextEncoder().encode(input) as Uint8Array<ArrayBuffer>
     }
     case "base64": {
       return decodeBase64(input)
     }
     case "url": {
       const decoded = decodeUrl(input, charset)
-      return new TextEncoder().encode(decoded)
+      return new TextEncoder().encode(decoded) as Uint8Array<ArrayBuffer>
     }
     case "hex-escape": {
       return decodeHexEscape(input)
@@ -330,7 +330,7 @@ export function convertBytesCharset(
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const iconv = require("iconv-lite")
       const buffer = iconv.encode(text, toLower)
-      return new Uint8Array(buffer)
+      return buffer as Uint8Array
     } catch {
       return new TextEncoder().encode(text)
     }
@@ -357,7 +357,7 @@ export function getBytesForDownload(
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const iconv = require("iconv-lite")
       const buffer = iconv.encode(new TextDecoder(charset.toLowerCase()).decode(bytes), charset.toLowerCase())
-      return { content: new Uint8Array(buffer), mimeType: "application/octet-stream" }
+      return { content: buffer as Uint8Array, mimeType: "application/octet-stream" }
     } catch {
       return { content: bytes, mimeType: "application/octet-stream" }
     }

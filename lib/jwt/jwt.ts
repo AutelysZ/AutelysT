@@ -40,10 +40,10 @@ export function base64UrlEncodeBytes(bytes: Uint8Array) {
 }
 
 export function base64UrlEncodeString(value: string) {
-  return base64UrlEncodeBytes(textEncoder.encode(value))
+  return base64UrlEncodeBytes(textEncoder.encode(value) as Uint8Array<ArrayBuffer>)
 }
 
-export function base64UrlDecodeToBytes(input: string) {
+export function base64UrlDecodeToBytes(input: string): Uint8Array<ArrayBuffer> {
   const normalized = normalizeBase64(input)
   const binary = atob(normalized)
   const bytes = new Uint8Array(binary.length)
@@ -82,9 +82,9 @@ export function parseJwt(token: string): { parsed?: JwtParsed; error?: string } 
   }
 }
 
-export function decodeSecret(secret: string, encoding: "utf8" | "base64" | "hex"): Uint8Array | null {
+export function decodeSecret(secret: string, encoding: "utf8" | "base64" | "hex"): Uint8Array<ArrayBuffer> | null {
   if (!secret) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(secret)
+  if (encoding === "utf8") return textEncoder.encode(secret) as Uint8Array<ArrayBuffer>
   if (encoding === "base64") {
     try {
       return base64UrlDecodeToBytes(secret)
@@ -259,7 +259,7 @@ async function importAsymmetricKey(secret: string, mode: "sign" | "verify", alg:
   return null
 }
 
-export async function signJwt(signingInput: string, secretBytes: Uint8Array, alg: JwtAlg) {
+export async function signJwt(signingInput: string, secretBytes: Uint8Array<ArrayBuffer>, alg: JwtAlg) {
   if (alg === "none") return ""
   const hashName = getHmacHash(alg)
   const key = await crypto.subtle.importKey(
@@ -285,7 +285,7 @@ export async function verifyJwtSignature({
   alg: JwtAlg
   signingInput: string
   signature: string
-  secretBytes: Uint8Array
+  secretBytes: Uint8Array<ArrayBuffer>
 }) {
   if (alg === "none") {
     return signature.length === 0

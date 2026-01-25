@@ -196,7 +196,7 @@ export function parseEcPrivateKey(input: string, curve: EcCurveId) {
   const privateKey = padBytes(decodeHex(key.prvKeyHex), spec.noble.lengths.secretKey)
   let publicKey = key.pubKeyHex ? decodeHex(key.pubKeyHex) : null
   if (!publicKey) {
-    publicKey = spec.noble.getPublicKey(privateKey, false)
+    publicKey = spec.noble.getPublicKey(privateKey, false) as Uint8Array<ArrayBuffer>
   }
   return { privateKey, publicKey }
 }

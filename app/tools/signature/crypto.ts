@@ -154,19 +154,19 @@ export function randomAsciiString(length: number) {
   return value
 }
 
-export function decodeInputBytes(value: string, encoding: InputEncoding) {
+export function decodeInputBytes(value: string, encoding: InputEncoding): Uint8Array<ArrayBuffer> {
   if (encoding === "binary") {
     throw new Error("Binary input requires a file upload.")
   }
   if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
 }
 
-export function decodeKeyBytes(value: string, encoding: KeyEncoding) {
+export function decodeKeyBytes(value: string, encoding: KeyEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
 }
@@ -177,7 +177,7 @@ export function encodeSignatureBytes(bytes: Uint8Array, encoding: SignatureEncod
   return encodeBase64(bytes, { urlSafe: true, padding: false })
 }
 
-export function decodeSignatureBytes(value: string, encoding: SignatureEncoding) {
+export function decodeSignatureBytes(value: string, encoding: SignatureEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
@@ -250,7 +250,7 @@ export function encodeBase64Url(bytes: Uint8Array) {
   return encodeBase64(bytes, { urlSafe: true, padding: false })
 }
 
-export function decodeBase64Url(value: string) {
+export function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   return decodeBase64(value)
 }
 
@@ -288,7 +288,7 @@ export function normalizePqcEncoding(value?: string): PqcKeyEncoding | null {
   return null
 }
 
-export function decodePqcKeyBytes(value: string, encoding: PqcKeyEncoding) {
+export function decodePqcKeyBytes(value: string, encoding: PqcKeyEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
@@ -522,7 +522,7 @@ export async function getSchnorrPublicKeyBytes(keyText: string) {
   throw new Error("Public EC JWK must include x.")
 }
 
-export async function hashMessageBytes(messageBytes: Uint8Array, hash: EcdsaHash) {
+export async function hashMessageBytes(messageBytes: Uint8Array<ArrayBuffer>, hash: EcdsaHash) {
   if (!globalThis.crypto?.subtle) {
     throw new Error("Web Crypto is unavailable in this environment.")
   }

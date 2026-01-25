@@ -53,9 +53,9 @@ const encodingLabels = {
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
-function decodeMessageBytes(value: string, encoding: MessageEncoding) {
+function decodeMessageBytes(value: string, encoding: MessageEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
 }
@@ -66,7 +66,7 @@ function encodeMessageBytes(bytes: Uint8Array, encoding: MessageEncoding) {
   return encodeBase64(bytes, { urlSafe: false, padding: true })
 }
 
-function decodeCipherBytes(value: string, encoding: CipherEncoding) {
+function decodeCipherBytes(value: string, encoding: CipherEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)

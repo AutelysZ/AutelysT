@@ -98,8 +98,8 @@ function replacer(_key: string, value: unknown): unknown {
 // CBOR Encode/Decode
 // ============================================================================
 
-export function encodeCbor(data: unknown): Uint8Array {
-  return encode(data)
+export function encodeCbor(data: unknown): Uint8Array<ArrayBuffer> {
+  return encode(data) as Uint8Array<ArrayBuffer>
 }
 
 export function decodeCbor(data: Uint8Array): unknown {

@@ -249,7 +249,9 @@ function CharsetConverterContent() {
         hexEscapeUpperCase: state.hexEscapeUpperCase,
       })
 
-      const blob = content instanceof Uint8Array ? new Blob([content], { type: mimeType }) : new Blob([content], { type: mimeType })
+      const blob = content instanceof Uint8Array
+        ? new Blob([content as Uint8Array<ArrayBuffer>], { type: mimeType })
+        : new Blob([content], { type: mimeType })
       const url = URL.createObjectURL(blob)
       const filename = `converted-${state.outputCharset.toLowerCase()}-${state.outputEncoding}.txt`
 

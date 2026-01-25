@@ -334,7 +334,7 @@ function CborCodecInner({
 
   const handleDownloadOutput = React.useCallback(() => {
     if (binaryMeta && outputBytesRef.current) {
-      const blob = new Blob([outputBytesRef.current], { type: "application/octet-stream" })
+      const blob = new Blob([outputBytesRef.current as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
       link.href = url

@@ -498,7 +498,7 @@ function HybridEncryptionInner({
             }
             const recipientPublicKey = await importHpkeKey(state.hpkePublicKey, "public", state.hpkeKem)
             const sender = await suite.createSenderContext({ recipientPublicKey })
-            const ciphertext = await sender.seal(textEncoder.encode(state.input))
+            const ciphertext = await sender.seal(textEncoder.encode(state.input).buffer)
             const enc = sender.enc instanceof Uint8Array ? sender.enc : new Uint8Array(sender.enc)
             nextOutput = encodeOutputBytes(
               ciphertext instanceof Uint8Array ? ciphertext : new Uint8Array(ciphertext),
@@ -513,8 +513,8 @@ function HybridEncryptionInner({
               throw new Error("Encapsulated key (enc) is required for HPKE decryption.")
             }
             const recipientKey = await importHpkeKey(state.hpkePrivateKey, "private", state.hpkeKem)
-            const enc = decodeOutputBytes(state.hpkeEnc, state.hpkeOutputEncoding)
-            const ciphertext = decodeOutputBytes(state.input, state.hpkeOutputEncoding)
+            const enc = decodeOutputBytes(state.hpkeEnc, state.hpkeOutputEncoding).buffer
+            const ciphertext = decodeOutputBytes(state.input, state.hpkeOutputEncoding).buffer
             const recipient = await suite.createRecipientContext({ recipientKey, enc })
             const plaintext = await recipient.open(ciphertext)
             nextOutput = textDecoder.decode(plaintext instanceof Uint8Array ? plaintext : new Uint8Array(plaintext))

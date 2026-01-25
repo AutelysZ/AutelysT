@@ -206,7 +206,7 @@ async function signMessage({
   state,
   privateKeyText,
 }: {
-  messageBytes: Uint8Array
+  messageBytes: Uint8Array<ArrayBuffer>
   state: SignatureState
   privateKeyText: string
 }) {
@@ -299,8 +299,8 @@ async function verifyMessage({
   publicKeyText,
   privateKeyText,
 }: {
-  messageBytes: Uint8Array
-  signatureBytes: Uint8Array
+  messageBytes: Uint8Array<ArrayBuffer>
+  signatureBytes: Uint8Array<ArrayBuffer>
   state: SignatureState
   publicKeyText: string
   privateKeyText: string
@@ -601,7 +601,7 @@ function SignatureInner({
   const [isGeneratingKeys, setIsGeneratingKeys] = React.useState(false)
   const lastInputRef = React.useRef<string>("")
   const hasHydratedInputRef = React.useRef(false)
-  const fileBytesRef = React.useRef<Uint8Array | null>(null)
+  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null)
   const [fileVersion, setFileVersion] = React.useState(0)
   const [fileMeta, setFileMeta] = React.useState<{ name: string; size: number } | null>(null)
   const paramsRef = React.useRef({
@@ -920,7 +920,7 @@ function SignatureInner({
     const run = async () => {
       try {
         const messageBytes = hasFile
-          ? fileBytesRef.current!
+          ? (fileBytesRef.current as Uint8Array<ArrayBuffer>)
           : decodeInputBytes(state.message, state.inputEncoding)
         if (state.mode === "sign") {
           const signatureBytes = await signMessage({ messageBytes, state, privateKeyText: keySelection.privateKey })

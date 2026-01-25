@@ -753,6 +753,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "source-map-viewer",
+    name: "Source Map Viewer",
+    description: "Browse source maps with a tree view and syntax-highlighted source preview.",
+    category: "Web",
+    route: "/tools/source-map-viewer",
+    keywords: ["source map", "sourcemap", "viewer", "debug", "stack trace", "sources"],
+    seo: {
+      title: "Source Map Viewer - AutelysT",
+      description: "Online source map viewer with file tree, Monaco preview, and downloads.",
+      keywords: ["source map viewer", "sourcemap", "stack trace", "debug", "monaco editor", "download sources"],
+    },
+  },
+  {
     id: "html-encoder",
     name: "HTML Escape",
     description: "Escape text to HTML entities and unescape entities back to text with two-way editing.",

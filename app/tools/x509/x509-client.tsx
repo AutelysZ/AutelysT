@@ -980,6 +980,9 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     for (const curve of EC_CURVE_IDS) {
       try {
         const { privateKey, publicKey } = parseEcPrivateKey(trimmed, curve)
+        if (!publicKey) {
+          throw new Error("EC public key is required.")
+        }
         return base64ToArrayBuffer(createEcPrivateKeyPem(curve, privateKey, publicKey))
       } catch {}
     }
@@ -1081,6 +1084,9 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
     for (const curve of EC_CURVE_IDS) {
       try {
         const { privateKey, publicKey } = parseEcPrivateKey(input, curve)
+        if (!publicKey) {
+          throw new Error("EC public key is required.")
+        }
         if (publicKey[0] !== 4) {
           throw new Error("Unsupported EC public key format.")
         }
@@ -1575,6 +1581,9 @@ function X509Inner({ initialTab }: { initialTab?: string }) {
           subjectPrivateKeyPem = KEYUTIL.getPEM(key, "PKCS1PRV")
         } else if (state.createKeyType === "ec") {
           const { privateKey, publicKey } = parseEcPrivateKey(state.createPrivateKeyPem, state.createEcCurve)
+          if (!publicKey) {
+            throw new Error("EC public key is required.")
+          }
           subjectPublicKey = { type: "ec", curve: state.createEcCurve, publicKeyBytes: publicKey }
           subjectSigner = { kind: "ecdsa", curve: state.createEcCurve, privateKey }
           subjectPrivateKeyPem = createEcPrivateKeyPem(state.createEcCurve, privateKey, publicKey)

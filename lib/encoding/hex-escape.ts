@@ -16,7 +16,7 @@ export function encodeHexEscape(bytes: Uint8Array, options: HexEscapeOptions = {
   return result
 }
 
-export function decodeHexEscape(input: string): Uint8Array {
+export function decodeHexEscape(input: string): Uint8Array<ArrayBuffer> {
   // Match \xNN patterns
   const regex = /\\x([0-9a-fA-F]{2})/g
   const bytes: number[] = []

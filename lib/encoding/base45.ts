@@ -39,7 +39,7 @@ export function encodeBase45(bytes: Uint8Array, options: Base45Options = {}): st
   return upperCase ? result : result.toLowerCase()
 }
 
-export function decodeBase45(input: string): Uint8Array {
+export function decodeBase45(input: string): Uint8Array<ArrayBuffer> {
   const normalized = input.toUpperCase()
 
   // Validate input

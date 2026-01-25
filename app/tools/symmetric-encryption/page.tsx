@@ -206,13 +206,13 @@ function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
   return { text: encodeBase64(bytes, { urlSafe: true, padding: false }), binary: null }
 }
 
-function decodeInputText(value: string, encoding: InputEncoding) {
+function decodeInputText(value: string, encoding: InputEncoding): Uint8Array<ArrayBuffer> {
   if (encoding === "binary") {
     throw new Error("Binary input requires a file upload.")
   }
   if (!value) return new Uint8Array()
   if (encoding === "utf8") {
-    return textEncoder.encode(value)
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   }
   if (encoding === "hex") {
     return decodeHex(value)
@@ -220,10 +220,10 @@ function decodeInputText(value: string, encoding: InputEncoding) {
   return decodeBase64(value)
 }
 
-function decodeParamValue(value: string, encoding: ParamEncoding) {
+function decodeParamValue(value: string, encoding: ParamEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
   if (encoding === "utf8") {
-    return textEncoder.encode(value)
+    return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   }
   if (encoding === "hex") {
     return decodeHex(value)
@@ -299,12 +299,12 @@ function runStreamCipher(
 
 async function deriveKeyBytes(options: {
   algorithm: KdfAlgorithm
-  passphraseBytes: Uint8Array
-  saltBytes: Uint8Array
+  passphraseBytes: Uint8Array<ArrayBuffer>
+  saltBytes: Uint8Array<ArrayBuffer>
   iterations: number
   hash: KdfHash
   lengthBytes: number
-  infoBytes: Uint8Array
+  infoBytes: Uint8Array<ArrayBuffer>
 }) {
   if (!globalThis.crypto?.subtle) {
     throw new Error("Web Crypto is unavailable in this browser.")
@@ -475,7 +475,7 @@ function SymmetricCryptoInner({
   const [fileVersion, setFileVersion] = React.useState(0)
   const lastInputRef = React.useRef<string>("")
   const hasHydratedInputRef = React.useRef(false)
-  const fileBytesRef = React.useRef<Uint8Array | null>(null)
+  const fileBytesRef = React.useRef<Uint8Array<ArrayBuffer> | null>(null)
   const outputBytesRef = React.useRef<Uint8Array | null>(null)
   const paramsRef = React.useRef({
     mode: state.mode,
@@ -695,7 +695,7 @@ function SymmetricCryptoInner({
 
     void (async () => {
       try {
-        let inputBytes: Uint8Array
+        let inputBytes: Uint8Array<ArrayBuffer>
         if (hasFile) {
           const bytes = fileBytesRef.current!
           if (state.mode === "encrypt") {
@@ -717,7 +717,7 @@ function SymmetricCryptoInner({
         }
 
         const keyLength = getKeyLengthBytes(state)
-        let derivedKey: Uint8Array
+        let derivedKey: Uint8Array<ArrayBuffer>
         if (state.useKdf) {
           const keyBytes = decodeParamValue(state.key, state.keyEncoding)
           const saltBytes = decodeParamValue(state.salt, state.saltEncoding)
@@ -1105,7 +1105,7 @@ function SymmetricCryptoInner({
   const handleDownloadOutput = React.useCallback(() => {
     const bytes = outputBytesRef.current
     if (!bytes) return
-    const blob = new Blob([bytes], { type: "application/octet-stream" })
+    const blob = new Blob([bytes as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.href = url

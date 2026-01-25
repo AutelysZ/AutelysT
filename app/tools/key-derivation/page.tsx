@@ -102,21 +102,21 @@ function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
   return encodeBase64(bytes, { urlSafe: true, padding: false })
 }
 
-function decodeInputBytes(value: string, encoding: InputEncoding) {
+function decodeInputBytes(value: string, encoding: InputEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
 }
 
-function decodeParamValue(value: string, encoding: ParamEncoding) {
+function decodeParamValue(value: string, encoding: ParamEncoding): Uint8Array<ArrayBuffer> {
   if (!value) return new Uint8Array()
-  if (encoding === "utf8") return textEncoder.encode(value)
+  if (encoding === "utf8") return textEncoder.encode(value) as Uint8Array<ArrayBuffer>
   if (encoding === "hex") return decodeHex(value)
   return decodeBase64(value)
 }
 
-async function deriveKeyBytes(inputBytes: Uint8Array, state: KeyDerivationState) {
+async function deriveKeyBytes(inputBytes: Uint8Array<ArrayBuffer>, state: KeyDerivationState) {
   if (!globalThis.crypto?.subtle) {
     throw new Error("Web Crypto is unavailable in this environment.")
   }

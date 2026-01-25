@@ -1904,7 +1904,7 @@ async function decompressWithLibarchive(
 ): Promise<DecompressionResult> {
   await initArchiveWorker()
 
-  const archive = await Archive.open(new File([data], filename))
+  const archive = await Archive.open(new File([data as Uint8Array<ArrayBuffer>], filename))
 
   if (password) {
     await archive.usePassword(password)
@@ -1942,7 +1942,7 @@ async function decompressWithLibarchive(
 // ============================================================================
 
 export function downloadFile(data: Uint8Array, filename: string) {
-  const blob = new Blob([data], { type: "application/octet-stream" })
+  const blob = new Blob([data as Uint8Array<ArrayBuffer>], { type: "application/octet-stream" })
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
   link.href = url

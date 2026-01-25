@@ -678,26 +678,26 @@ function KeypairGeneratorInner({
         if (state.algorithm === "ML-KEM") {
           const kem = pqcKemMap[state.pqcKemVariant]
           const keys = kem.keygen()
-          publicKey = keys.publicKey
-          secretKey = keys.secretKey
+          publicKey = keys.publicKey as Uint8Array<ArrayBuffer>
+          secretKey = keys.secretKey as Uint8Array<ArrayBuffer>
           algorithmLabel = state.pqcKemVariant
         } else if (state.algorithm === "Hybrid KEM") {
           const kem = pqcHybridMap[state.pqcHybridVariant]
           const keys = kem.keygen()
-          publicKey = keys.publicKey
-          secretKey = keys.secretKey
+          publicKey = keys.publicKey as Uint8Array<ArrayBuffer>
+          secretKey = keys.secretKey as Uint8Array<ArrayBuffer>
           algorithmLabel = state.pqcHybridVariant
         } else if (state.algorithm === "ML-DSA") {
           const signer = pqcDsaMap[state.pqcDsaVariant]
           const keys = signer.keygen()
-          publicKey = keys.publicKey
-          secretKey = keys.secretKey
+          publicKey = keys.publicKey as Uint8Array<ArrayBuffer>
+          secretKey = keys.secretKey as Uint8Array<ArrayBuffer>
           algorithmLabel = state.pqcDsaVariant
         } else {
           const signer = pqcSlhMap[state.pqcSlhVariant]
           const keys = signer.keygen()
-          publicKey = keys.publicKey
-          secretKey = keys.secretKey
+          publicKey = keys.publicKey as Uint8Array<ArrayBuffer>
+          secretKey = keys.secretKey as Uint8Array<ArrayBuffer>
           algorithmLabel = state.pqcSlhVariant
         }
 

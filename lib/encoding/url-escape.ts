@@ -54,7 +54,7 @@ export function encodeUrlEscape(bytes: Uint8Array, options: UrlEscapeOptions = {
  * @param input - Percent-encoded string
  * @returns Decoded bytes
  */
-export function decodeUrlEscape(input: string): Uint8Array {
+export function decodeUrlEscape(input: string): Uint8Array<ArrayBuffer> {
   const bytes: number[] = []
   let i = 0
 
