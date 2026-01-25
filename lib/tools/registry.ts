@@ -753,6 +753,19 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "markdown-previewer",
+    name: "Markdown Previewer",
+    description: "Live Markdown editor with split preview, view modes, URL sync, and history.",
+    category: "Web",
+    route: "/tools/markdown-previewer",
+    keywords: ["markdown", "md", "preview", "editor", "render", "live preview"],
+    seo: {
+      title: "Markdown Previewer - AutelysT",
+      description: "Live Markdown editor with split preview, view modes, URL sync, and history.",
+      keywords: ["markdown previewer", "markdown editor", "md preview", "live markdown", "split preview"],
+    },
+  },
+  {
     id: "url-encode",
     name: "URL Encoder/Decoder",
     description: "Encode and decode URL strings with detailed parsing of components and query/hash params.",

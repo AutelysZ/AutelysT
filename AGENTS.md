@@ -113,6 +113,4 @@ Do not add new tools or libraries without explicit approval.
 - Do not commit changes automatically; only commit when explicitly requested by the user.
 
 ## Output Expectations
-- Provide concise summaries with file paths.
-- Suggest tests or next steps only when they make sense.
 - Do not run type check (`npx tsc --noEmit`) or tests (`npx vitest run`) unless explicitly requested; when asked, run them for the entire project.

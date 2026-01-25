@@ -50,6 +50,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **JSON Schema Generator** - Generate JSON Schema from sample data
 - **Format Converter** - Convert between JSON, YAML, and TOML with auto-detection
 - **CSV Editor** - Multi-tab CSV/Excel editing with frozen rows/columns, million-row virtualization, and CSV/XLSX export
+- **Markdown Previewer** - Live Markdown editing with split preview, view modes, and shareable URL state
 
 ### 🔄 Converters (AI-Optimized)
 - **Base Conversion** - Convert between binary, decimal, hex, and custom bases
