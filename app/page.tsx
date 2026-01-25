@@ -92,7 +92,7 @@ function HomePage() {
           </div>
           <p className="mx-auto mb-4 max-w-2xl text-balance text-muted-foreground">
             Entirely AI-generated and running completely in your browser, AutelysT keeps your data local and secure
-            while providing a built-in history to revisit recent work, including the new Markdown Previewer and URL Builder.
+            while providing a built-in history to revisit recent work, including the new Markdown Previewer, URL Builder, and CSP Builder.
           </p>
           {/* Search Input */}
           <div className="relative mx-auto max-w-xl">

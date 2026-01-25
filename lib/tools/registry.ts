@@ -740,6 +740,19 @@ export const tools: Tool[] = [
   },
   // Web Tools
   {
+    id: "csp-builder",
+    name: "CSP Builder",
+    description: "Build and edit Content-Security-Policy headers with directive-aware editing.",
+    category: "Web",
+    route: "/tools/csp-builder",
+    keywords: ["csp", "content security policy", "security header", "script-src", "nonce", "report-uri"],
+    seo: {
+      title: "CSP Builder - AutelysT",
+      description: "Online CSP builder to edit directives, generate headers, and copy policy output.",
+      keywords: ["csp builder", "content security policy", "security header", "script-src", "nonce", "report-uri"],
+    },
+  },
+  {
     id: "html-encoder",
     name: "HTML Escape",
     description: "Escape text to HTML entities and unescape entities back to text with two-way editing.",
