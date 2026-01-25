@@ -725,6 +725,19 @@ export const tools: Tool[] = [
       keywords: ["cron parser", "cron expression", "crontab", "schedule parser", "cron validator", "next run time", "cron job"],
     },
   },
+  {
+    id: "duration",
+    name: "ISO 8601 Duration",
+    description: "Parse and build ISO 8601 duration strings with human-readable output and date calculations.",
+    category: "Date & Time",
+    route: "/tools/duration",
+    keywords: ["iso 8601", "duration", "parser", "builder", "time interval", "period", "P1Y2M3D", "PT1H30M", "time span"],
+    seo: {
+      title: "ISO 8601 Duration Parser & Builder - AutelysT",
+      description: "Online ISO 8601 duration parser and builder with real-time conversion, human-readable output, and date calculations.",
+      keywords: ["iso 8601 duration", "duration parser", "duration builder", "time interval", "period", "P1Y2M3D", "PT1H30M", "time span calculator"],
+    },
+  },
   // Web Tools
   {
     id: "html-encoder",
