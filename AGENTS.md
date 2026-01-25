@@ -14,6 +14,7 @@ This file defines how coding agents should operate in this repository. Follow it
 - Keep changes minimal and scoped to the user request.
 - Prefer reuse of existing components and helpers over new abstractions.
 - When implementing tool functionality, use existing npm packages instead of bespoke implementations unless no qualified package exists.
+- Do not use deprecated npm packages.
 - Keep components as small as practical, and keep each file to a single component unless the framework requires otherwise (e.g., Next.js route files).
 - Use ASCII in edits unless the target file already uses non-ASCII and the change requires it.
 - Do not add new UI libraries unless explicitly requested.
@@ -110,4 +111,3 @@ Use existing dependencies:
 - Do not rewrite history.
 - Avoid destructive commands unless explicitly requested.
 - Do not commit changes automatically; only commit when explicitly requested by the user.
-
