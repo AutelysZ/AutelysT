@@ -11,6 +11,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "7z-wasm": "^1.2.0",
     "@bokuweb/zstd-wasm": "^0.0.27",
     "@edge-runtime/vm": "latest",
     "@hookform/resolvers": "^3.10.0",
@@ -59,7 +60,6 @@
     "@vitest/browser-preview": "latest",
     "@vitest/browser-webdriverio": "latest",
     "@vitest/ui": "latest",
-    "7z-wasm": "^1.2.0",
     "asn1js": "^3.0.7",
     "autoprefixer": "^10.4.20",
     "bson": "7.0.0",
@@ -78,9 +78,11 @@
     "embla-carousel-react": "8.5.1",
     "farmhash-modern": "^1.1.0",
     "fflate": "^0.8.2",
+    "file-type": "^21.3.0",
     "gnablib": "^0.7.29",
     "happy-dom": "latest",
     "hash-wasm": "^4.11.0",
+    "heic2any": "^0.0.4",
     "highlight.js": "^11.11.1",
     "highwayhash-wasm": "^1.2.7",
     "iconv-lite": "0.7.2",

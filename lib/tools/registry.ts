@@ -1480,6 +1480,34 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "file-type-detector",
+    name: "File Type Detector",
+    description:
+      "Detect file types from signatures and preview printable formats.",
+    category: "Data",
+    route: "/tools/file-type-detector",
+    keywords: [
+      "file type",
+      "mime",
+      "detector",
+      "magic number",
+      "signature",
+      "preview",
+    ],
+    seo: {
+      title: "File Type Detector - AutelysT",
+      description:
+        "Online file type detector that identifies MIME types from signatures and previews printable files.",
+      keywords: [
+        "file type detector",
+        "mime detector",
+        "magic number",
+        "file signature",
+        "preview file",
+      ],
+    },
+  },
+  {
     id: "json-schema",
     name: "JSON Schema Generator",
     description:
