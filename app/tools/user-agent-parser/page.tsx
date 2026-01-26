@@ -265,28 +265,55 @@ function InfoRow({ label, value, hint }: { label: string; value: string; hint?: 
 export default function UserAgentParserPage() {
   return (
     <Suspense fallback={null}>
-      <UserAgentParserContent />
+      <UserAgentParserWrapper />
     </Suspense>
   );
 }
 
-function UserAgentParserContent() {
+function UserAgentParserWrapper() {
+  const [loadedEntry, setLoadedEntry] = React.useState<HistoryEntry | null>(null);
+
+  const handleLoadHistory = React.useCallback((entry: HistoryEntry) => {
+    setLoadedEntry(entry);
+  }, []);
+
+  return (
+    <ToolPageWrapper
+      toolId="user-agent-parser"
+      title="User Agent Parser"
+      description="Parse and analyze user agent strings to detect browser, OS, device type, engine, and bots."
+      onLoadHistory={handleLoadHistory}
+    >
+      <UserAgentParserContent loadedEntry={loadedEntry} clearLoadedEntry={() => setLoadedEntry(null)} />
+    </ToolPageWrapper>
+  );
+}
+
+function UserAgentParserContent({ 
+  loadedEntry, 
+  clearLoadedEntry 
+}: { 
+  loadedEntry: HistoryEntry | null;
+  clearLoadedEntry: () => void;
+}) {
   const { state, setParam, hydrationSource } = useUrlSyncedState("user-agent-parser", {
     schema: paramsSchema,
     defaults: paramsSchema.parse({}),
   });
 
   const [copyFeedback, setCopyFeedback] = React.useState(false);
+  const historyCtx = useToolHistoryContext();
 
-  const handleLoadHistory = React.useCallback(
-    (entry: HistoryEntry) => {
-      const { inputs } = entry;
+  // Handle loading history entry
+  React.useEffect(() => {
+    if (loadedEntry) {
+      const { inputs } = loadedEntry;
       if (inputs.userAgent !== undefined) {
         setParam("userAgent", inputs.userAgent);
       }
-    },
-    [setParam],
-  );
+      clearLoadedEntry();
+    }
+  }, [loadedEntry, setParam, clearLoadedEntry]);
 
   const parsed = React.useMemo(() => parseUserAgent(state.userAgent), [state.userAgent]);
 
@@ -303,27 +330,17 @@ function UserAgentParserContent() {
     window.setTimeout(() => setCopyFeedback(false), 1200);
   }, [state.userAgent]);
 
-  const historyCtx = useToolHistoryContext();
-
   React.useEffect(() => {
     if (hydrationSource === "defaults" || !state.userAgent) return;
-    historyCtx.saveEntry({
-      inputs: { userAgent: state.userAgent },
-      params: {},
-      outputs: {
-        browser: `${parsed.browser.name} ${parsed.browser.version}`,
-        os: `${parsed.os.name} ${parsed.os.version}`,
-        device: parsed.device.type,
-      },
-      labels: { userAgent: "User Agent" },
-    });
+    historyCtx.upsertInputEntry(
+      { userAgent: state.userAgent },
+      {},
+      "userAgent",
+      `${parsed.browser.name} ${parsed.browser.version} on ${parsed.os.name}`,
+    );
   }, [state.userAgent, parsed, hydrationSource, historyCtx]);
 
   return (
-    <ToolPageWrapper
-      toolId="user-agent-parser"
-      onLoadHistory={handleLoadHistory}
-    >
       <div className="flex flex-col gap-6">
         {/* Input Section */}
         <div className="space-y-3">
