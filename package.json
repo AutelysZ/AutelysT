@@ -25,6 +25,7 @@
     "@noble/post-quantum": "^0.5.4",
     "@opentelemetry/api": "latest",
     "@peculiar/x509": "^1.14.3",
+    "@phc/format": "^1.0.0",
     "@prettier/plugin-pug": "^3.4.2",
     "@prettier/plugin-xml": "^3.4.2",
     "@radix-ui/react-accordion": "1.2.2",

@@ -25,7 +25,7 @@ export type ScryptParsed = {
   hash: string;
 };
 
-const scryptRegex = /^\$scrypt\$ln=(\d+),r=(\d+),p=(\d+)\$([^$]+)\$([^$]+)$/i;
+const phc = require("@phc/format");
 
 export async function hashScrypt(
   password: string,
@@ -49,7 +49,12 @@ export async function hashScrypt(
   const saltBase64 = encodeBase64NoPadding(salt);
   const hashBase64 = encodeBase64NoPadding(derived);
 
-  return `$scrypt$ln=${ln},r=${r},p=${p}$${saltBase64}$${hashBase64}`;
+  return phc.serialize({
+    id: "scrypt",
+    params: { ln, r, p },
+    salt: Buffer.from(salt),
+    hash: Buffer.from(derived),
+  });
 }
 
 export async function verifyScrypt(
@@ -78,18 +83,19 @@ export async function verifyScrypt(
 }
 
 export function parseScryptHash(hash: string): ScryptParsed | null {
-  const trimmed = hash.trim();
-  if (!trimmed) return null;
-  const match = scryptRegex.exec(trimmed);
-  if (!match) return null;
-  const [, lnStr, rStr, pStr, salt, digest] = match;
-  const ln = Number(lnStr);
-  const N = Number.isFinite(ln) ? 2 ** ln : 0;
-  return {
-    N,
-    r: Number(rStr),
-    p: Number(pStr),
-    salt,
-    hash: digest,
-  };
+  try {
+    const parsed = phc.deserialize(hash);
+    if (parsed.id !== "scrypt") return null;
+    const { ln, r, p } = parsed.params;
+    const N = Number.isFinite(Number(ln)) ? 2 ** Number(ln) : 0;
+    return {
+      N,
+      r: Number(r),
+      p: Number(p),
+      salt: encodeBase64NoPadding(parsed.salt),
+      hash: encodeBase64NoPadding(parsed.hash),
+    };
+  } catch {
+    return null;
+  }
 }

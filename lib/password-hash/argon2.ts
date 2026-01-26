@@ -1,4 +1,9 @@
-import { randomBytes, toPositiveInt, utf8ToBytes } from "./utils";
+import {
+  encodeBase64NoPadding,
+  randomBytes,
+  toPositiveInt,
+  utf8ToBytes,
+} from "./utils";
 
 export type Argon2Variant = "argon2d" | "argon2i" | "argon2id";
 
@@ -22,8 +27,6 @@ export type Argon2Parsed = {
   hash?: string;
 };
 
-const argon2Regex =
-  /^\$(argon2id|argon2i|argon2d)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)$/i;
 const ARGON2_SCRIPT_URL =
   "https://unpkg.com/argon2-browser@1.18.0/dist/argon2-bundled.min.js";
 
@@ -138,21 +141,25 @@ export async function verifyArgon2(
   }
 }
 
+const phc = require("@phc/format");
+
 export function parseArgon2Hash(hash: string): Argon2Parsed | null {
-  const trimmed = hash.trim();
-  if (!trimmed) return null;
-  const match = argon2Regex.exec(trimmed);
-  if (!match) return null;
-  const [, type, version, memory, time, parallelism, salt, digest] = match;
-  return {
-    type: type.toLowerCase() as Argon2Variant,
-    version,
-    memory: Number(memory),
-    time: Number(time),
-    parallelism: Number(parallelism),
-    salt,
-    hash: digest,
-  };
+  try {
+    const parsed = phc.deserialize(hash);
+    if (!["argon2id", "argon2i", "argon2d"].includes(parsed.id)) return null;
+    const { m, t, p } = parsed.params;
+    return {
+      type: parsed.id as Argon2Variant,
+      version: parsed.version,
+      memory: Number(m),
+      time: Number(t),
+      parallelism: Number(p),
+      salt: encodeBase64NoPadding(parsed.salt),
+      hash: encodeBase64NoPadding(parsed.hash),
+    };
+  } catch {
+    return null;
+  }
 }
 
 function getArgonTypeKey(

@@ -26,19 +26,17 @@ type PasswordHashFormProps = {
   bcryptError: string | null;
   bcryptVerifyResult: "valid" | "invalid" | null;
   onBcryptGenerate: () => void;
-  onBcryptVerify: () => void;
+
   parsedBcrypt: BcryptParsed | null;
   scryptError: string | null;
   scryptVerifyResult: "valid" | "invalid" | null;
   scryptWorking: boolean;
   onScryptGenerate: () => void;
-  onScryptVerify: () => void;
   parsedScrypt: ScryptParsed | null;
   argon2Error: string | null;
   argon2VerifyResult: "valid" | "invalid" | null;
   argon2Working: boolean;
   onArgon2Generate: () => void;
-  onArgon2Verify: () => void;
   parsedArgon2: Argon2Parsed | null;
 };
 
@@ -56,19 +54,16 @@ export default function PasswordHashForm({
   bcryptError,
   bcryptVerifyResult,
   onBcryptGenerate,
-  onBcryptVerify,
   parsedBcrypt,
   scryptError,
   scryptVerifyResult,
   scryptWorking,
   onScryptGenerate,
-  onScryptVerify,
   parsedScrypt,
   argon2Error,
   argon2VerifyResult,
   argon2Working,
   onArgon2Generate,
-  onArgon2Verify,
   parsedArgon2,
 }: PasswordHashFormProps) {
   const [copiedField, setCopiedField] = React.useState<string | null>(null);
@@ -78,16 +73,6 @@ export default function PasswordHashForm({
     await navigator.clipboard.writeText(value);
     setCopiedField(key);
     setTimeout(() => setCopiedField(null), 1500);
-  };
-
-  const handleVerifyKeyDown = (
-    event: React.KeyboardEvent<HTMLInputElement>,
-    onVerify: () => void,
-  ) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      onVerify();
-    }
   };
 
   const oversizeMessage = oversizeKeys.length
@@ -252,10 +237,6 @@ export default function PasswordHashForm({
                 value={state.bcryptVerifyPassword}
                 onChange={(e) =>
                   setParam("bcryptVerifyPassword", e.target.value)
-                }
-                onBlur={onBcryptVerify}
-                onKeyDown={(event) =>
-                  handleVerifyKeyDown(event, onBcryptVerify)
                 }
                 placeholder="Password to verify"
               />
@@ -436,10 +417,6 @@ export default function PasswordHashForm({
                 value={state.scryptVerifyPassword}
                 onChange={(e) =>
                   setParam("scryptVerifyPassword", e.target.value)
-                }
-                onBlur={onScryptVerify}
-                onKeyDown={(event) =>
-                  handleVerifyKeyDown(event, onScryptVerify)
                 }
                 placeholder="Password to verify"
               />
@@ -669,10 +646,6 @@ export default function PasswordHashForm({
                 value={state.argon2VerifyPassword}
                 onChange={(e) =>
                   setParam("argon2VerifyPassword", e.target.value)
-                }
-                onBlur={onArgon2Verify}
-                onKeyDown={(event) =>
-                  handleVerifyKeyDown(event, onArgon2Verify)
                 }
                 placeholder="Password to verify"
               />

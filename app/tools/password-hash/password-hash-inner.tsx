@@ -84,7 +84,7 @@ export default function PasswordHashInner({
         state.scryptVerifyHash ||
         state.argon2VerifyHash ||
         "Password hash inputs";
-      upsertInputEntry({ ...state }, {}, "left", preview.slice(0, 120));
+      upsertInputEntry({ ...state } as any, {}, "left", preview.slice(0, 120));
     }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
@@ -127,27 +127,35 @@ export default function PasswordHashInner({
     }
   }, [setParam, state.bcryptPassword, state.bcryptRounds]);
 
-  const handleBcryptVerify = React.useCallback(() => {
-    if (!state.bcryptVerifyPassword || !state.bcryptParseHash) {
-      setBcryptVerifyResult(null);
-      return;
+  // Reactive bcrypt verification
+  React.useEffect(() => {
+    const runVerify = () => {
+      if (!state.bcryptVerifyPassword || !state.bcryptParseHash) {
+        setBcryptVerifyResult(null);
+        return;
+      }
+      try {
+        setBcryptError(null);
+        const result = verifyBcrypt(
+          state.bcryptVerifyPassword,
+          state.bcryptParseHash,
+        );
+        setBcryptVerifyResult(result ? "valid" : "invalid");
+      } catch (error) {
+        console.error(error);
+        // Don't show error for reactive verification unless it's critical
+        // setBcryptError(error instanceof Error ? error.message : "Failed to verify bcrypt hash.");
+        setBcryptVerifyResult(null);
+      }
+    };
+
+    // Immediate verification if hash changes
+    if (state.bcryptParseHash !== lastSignatureRef.current) {
+      runVerify();
     }
-    try {
-      setBcryptError(null);
-      const result = verifyBcrypt(
-        state.bcryptVerifyPassword,
-        state.bcryptParseHash,
-      );
-      setBcryptVerifyResult(result ? "valid" : "invalid");
-    } catch (error) {
-      console.error(error);
-      setBcryptError(
-        error instanceof Error
-          ? error.message
-          : "Failed to verify bcrypt hash.",
-      );
-      setBcryptVerifyResult(null);
-    }
+
+    const timer = setTimeout(runVerify, 300);
+    return () => clearTimeout(timer);
   }, [state.bcryptParseHash, state.bcryptVerifyPassword]);
 
   const handleScryptGenerate = React.useCallback(async () => {
@@ -184,30 +192,38 @@ export default function PasswordHashInner({
     setParam,
   ]);
 
-  const handleScryptVerify = React.useCallback(async () => {
-    if (!state.scryptVerifyPassword || !state.scryptParseHash) {
-      setScryptVerifyResult(null);
-      return;
-    }
-    try {
-      setScryptWorking(true);
-      setScryptError(null);
-      const result = await verifyScrypt(
-        state.scryptVerifyPassword,
-        state.scryptParseHash,
-      );
-      setScryptVerifyResult(result ? "valid" : "invalid");
-    } catch (error) {
-      console.error(error);
-      setScryptError(
-        error instanceof Error
-          ? error.message
-          : "Failed to verify scrypt hash.",
-      );
-      setScryptVerifyResult(null);
-    } finally {
-      setScryptWorking(false);
-    }
+  // Reactive scrypt verification
+  React.useEffect(() => {
+    let active = true;
+    const runVerify = async () => {
+      if (!state.scryptVerifyPassword || !state.scryptParseHash) {
+        if (active) setScryptVerifyResult(null);
+        return;
+      }
+      try {
+        if (active) setScryptWorking(true);
+        if (active) setScryptError(null);
+        const result = await verifyScrypt(
+          state.scryptVerifyPassword,
+          state.scryptParseHash,
+        );
+        if (active) setScryptVerifyResult(result ? "valid" : "invalid");
+      } catch (error) {
+        console.error(error);
+        if (active) {
+          // setScryptError(error instanceof Error ? error.message : "Failed to verify scrypt hash.");
+          setScryptVerifyResult(null);
+        }
+      } finally {
+        if (active) setScryptWorking(false);
+      }
+    };
+
+    const timer = setTimeout(runVerify, 500);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [state.scryptParseHash, state.scryptVerifyPassword]);
 
   const handleArgon2Generate = React.useCallback(async () => {
@@ -246,30 +262,38 @@ export default function PasswordHashInner({
     setParam,
   ]);
 
-  const handleArgon2Verify = React.useCallback(async () => {
-    if (!state.argon2VerifyPassword || !state.argon2ParseHash) {
-      setArgon2VerifyResult(null);
-      return;
-    }
-    try {
-      setArgon2Working(true);
-      setArgon2Error(null);
-      const result = await verifyArgon2(
-        state.argon2VerifyPassword,
-        state.argon2ParseHash,
-      );
-      setArgon2VerifyResult(result ? "valid" : "invalid");
-    } catch (error) {
-      console.error(error);
-      setArgon2Error(
-        error instanceof Error
-          ? error.message
-          : "Failed to verify Argon2 hash.",
-      );
-      setArgon2VerifyResult(null);
-    } finally {
-      setArgon2Working(false);
-    }
+  // Reactive Argon2 verification
+  React.useEffect(() => {
+    let active = true;
+    const runVerify = async () => {
+      if (!state.argon2VerifyPassword || !state.argon2ParseHash) {
+        if (active) setArgon2VerifyResult(null);
+        return;
+      }
+      try {
+        if (active) setArgon2Working(true);
+        if (active) setArgon2Error(null);
+        const result = await verifyArgon2(
+          state.argon2VerifyPassword,
+          state.argon2ParseHash,
+        );
+        if (active) setArgon2VerifyResult(result ? "valid" : "invalid");
+      } catch (error) {
+        console.error(error);
+        if (active) {
+          // setArgon2Error(error instanceof Error ? error.message : "Failed to verify Argon2 hash.");
+          setArgon2VerifyResult(null);
+        }
+      } finally {
+        if (active) setArgon2Working(false);
+      }
+    };
+
+    const timer = setTimeout(runVerify, 500);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
   }, [state.argon2ParseHash, state.argon2VerifyPassword]);
 
   const parsedBcrypt = React.useMemo(
@@ -287,18 +311,6 @@ export default function PasswordHashInner({
     [state.argon2ParseHash],
   );
 
-  React.useEffect(() => {
-    setBcryptVerifyResult(null);
-  }, [state.bcryptVerifyPassword, state.bcryptParseHash]);
-
-  React.useEffect(() => {
-    setScryptVerifyResult(null);
-  }, [state.scryptVerifyPassword, state.scryptParseHash]);
-
-  React.useEffect(() => {
-    setArgon2VerifyResult(null);
-  }, [state.argon2VerifyPassword, state.argon2ParseHash]);
-
   return (
     <PasswordHashForm
       state={state}
@@ -308,19 +320,16 @@ export default function PasswordHashInner({
       bcryptError={bcryptError}
       bcryptVerifyResult={bcryptVerifyResult}
       onBcryptGenerate={handleBcryptGenerate}
-      onBcryptVerify={handleBcryptVerify}
       parsedBcrypt={parsedBcrypt}
       scryptError={scryptError}
       scryptVerifyResult={scryptVerifyResult}
       scryptWorking={scryptWorking}
       onScryptGenerate={handleScryptGenerate}
-      onScryptVerify={handleScryptVerify}
       parsedScrypt={parsedScrypt}
       argon2Error={argon2Error}
       argon2VerifyResult={argon2VerifyResult}
       argon2Working={argon2Working}
       onArgon2Generate={handleArgon2Generate}
-      onArgon2Verify={handleArgon2Verify}
       parsedArgon2={parsedArgon2}
     />
   );
