@@ -15,7 +15,10 @@ interface PaneProps {
   warning?: string | null;
   placeholder?: string;
   disabled?: boolean;
+  readOnly?: boolean;
   onFileUpload?: (file: File) => void;
+  onCopy?: () => Promise<void> | void;
+  overlay?: React.ReactNode;
   leftDownload?: () => void;
   rightDownload?: () => void;
   fileResult?: {
@@ -36,7 +39,10 @@ function Pane({
   warning,
   placeholder,
   disabled,
+  readOnly,
   onFileUpload,
+  onCopy,
+  overlay,
   leftDownload,
   rightDownload,
   fileResult,
@@ -47,9 +53,17 @@ function Pane({
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(value);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      if (onCopy) {
+        await onCopy();
+      } else {
+        await navigator.clipboard.writeText(value);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Copy failed", error);
+    }
   };
 
   const handleDrop = React.useCallback(
@@ -117,7 +131,7 @@ function Pane({
             variant="ghost"
             size="sm"
             onClick={handleCopy}
-            disabled={!value}
+            disabled={!value && !onCopy}
             className="h-7 gap-1 px-2 text-xs"
           >
             {copied ? (
@@ -205,6 +219,7 @@ function Pane({
             onChange={(e) => onChange(e.target.value)}
             placeholder={placeholder}
             disabled={disabled}
+            readOnly={readOnly}
             className={cn(
               "h-full min-h-[200px] max-h-[400px] resize-none overflow-auto font-mono text-sm break-all",
               error && "border-destructive",
@@ -212,6 +227,9 @@ function Pane({
             )}
             style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
           />
+          {overlay && (
+            <div className="absolute inset-0 z-10">{overlay}</div>
+          )}
         </div>
       )}
 
@@ -237,6 +255,12 @@ interface DualPaneLayoutProps {
   rightWarning?: string | null;
   leftPlaceholder?: string;
   rightPlaceholder?: string;
+  leftReadOnly?: boolean;
+  rightReadOnly?: boolean;
+  leftOverlay?: React.ReactNode;
+  rightOverlay?: React.ReactNode;
+  leftOnCopy?: () => Promise<void> | void;
+  rightOnCopy?: () => Promise<void> | void;
   leftFileUpload?: (file: File) => void;
   rightFileUpload?: (file: File) => void;
   leftDownload?: () => void;
@@ -272,6 +296,12 @@ export function DualPaneLayout({
   rightWarning,
   leftPlaceholder,
   rightPlaceholder,
+  leftReadOnly,
+  rightReadOnly,
+  leftOverlay,
+  rightOverlay,
+  leftOnCopy,
+  rightOnCopy,
   leftFileUpload,
   rightFileUpload,
   leftDownload,
@@ -297,7 +327,10 @@ export function DualPaneLayout({
           error={leftError}
           warning={leftWarning}
           placeholder={leftPlaceholder}
+          readOnly={leftReadOnly}
           onFileUpload={leftFileUpload}
+          onCopy={leftOnCopy}
+          overlay={leftOverlay}
           leftDownload={leftDownload}
           fileResult={leftFileResult}
           onClearFile={onClearLeftFile}
@@ -315,7 +348,10 @@ export function DualPaneLayout({
           error={rightError}
           warning={rightWarning}
           placeholder={rightPlaceholder}
+          readOnly={rightReadOnly}
           onFileUpload={rightFileUpload}
+          onCopy={rightOnCopy}
+          overlay={rightOverlay}
           rightDownload={rightDownload}
           fileResult={rightFileResult}
           onClearFile={onClearRightFile}
