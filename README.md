@@ -58,7 +58,9 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **CSP Builder** - Build and edit Content-Security-Policy headers with directive-aware editing
 - **Code Formatter** - Format code files with Prettier using a file tree and Monaco editor
 - **Source Map Viewer** - Browse source maps with a tree view, Monaco preview, and downloads
+- **Bencode** - Encode and decode Bencode data with JSON/YAML conversion and file input
 - **Set-Cookie Builder & Parser** - Build and parse Set-Cookie headers with JSON conversion
+- **User Agent Parser & Builder** - Parse and build User-Agent strings with JSON/table editing
 - **File Type Detector** - Detect file MIME types and preview printable files
 - **MIME Lookup** - Detect MIME types by filename and list known extensions
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates

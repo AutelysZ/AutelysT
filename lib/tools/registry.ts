@@ -1199,6 +1199,35 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "user-agent",
+    name: "User Agent",
+    description:
+      "Parse and build User-Agent strings with JSON/table editing and dual-panel sync.",
+    category: "Web",
+    route: "/tools/user-agent",
+    keywords: [
+      "user agent",
+      "user-agent",
+      "ua parser",
+      "ua builder",
+      "browser detection",
+      "http header",
+    ],
+    seo: {
+      title: "User Agent Parser & Builder - AutelysT",
+      description:
+        "Parse and build User-Agent strings with JSON/table editing, copy-ready output, and history support.",
+      keywords: [
+        "user agent parser",
+        "user-agent builder",
+        "ua parser",
+        "ua builder",
+        "browser detection",
+        "http header",
+      ],
+    },
+  },
+  {
     id: "mime",
     name: "MIME Lookup",
     description:
@@ -1455,6 +1484,42 @@ export const tools: Tool[] = [
         "msgpack to yaml",
         "compact serialization",
         "msgpack decoder",
+      ],
+    },
+  },
+  {
+    id: "bencode",
+    name: "Bencode",
+    description:
+      "Encode and decode Bencode data with JSON/YAML conversion and type details.",
+    category: "Data",
+    route: "/tools/bencode",
+    keywords: [
+      "bencode",
+      "bittorrent",
+      "torrent",
+      "encode",
+      "decode",
+      "binary",
+      "json",
+      "yaml",
+    ],
+    seo: {
+      title: "Bencode Encoder/Decoder - AutelysT",
+      description:
+        "Online Bencode encoder/decoder with JSON/YAML conversion, type inspection, and binary format support.",
+      keywords: [
+        "bencode",
+        "bittorrent",
+        "torrent",
+        "encode bencode",
+        "decode bencode",
+        "binary serialization",
+        "json to bencode",
+        "bencode to json",
+        "yaml to bencode",
+        "bencode to yaml",
+        "bencode decoder",
       ],
     },
   },
