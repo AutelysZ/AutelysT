@@ -1754,6 +1754,45 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "license-generator",
+    name: "License Generator",
+    description:
+      "Choose a software license with a guided questionnaire and generate ready-to-use license text.",
+    category: "Utility",
+    route: "/tools/license-generator",
+    keywords: [
+      "license",
+      "license generator",
+      "spdx",
+      "mit",
+      "apache",
+      "gpl",
+      "agpl",
+      "lgpl",
+      "mpl",
+      "bsd",
+      "open source",
+      "copyright",
+    ],
+    seo: {
+      title: "License Generator - AutelysT",
+      description:
+        "Guided software license generator with SPDX templates, auto-filled placeholders, and instant copy/download.",
+      keywords: [
+        "license generator",
+        "software license",
+        "spdx",
+        "mit license",
+        "apache 2.0",
+        "gpl",
+        "agpl",
+        "lgpl",
+        "mpl",
+        "bsd license",
+      ],
+    },
+  },
+  {
     id: "svg-converter",
     name: "SVG Converter",
     description:

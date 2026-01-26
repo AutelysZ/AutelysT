@@ -386,6 +386,9 @@ importers:
       source-map-js:
         specifier: ^1.2.1
         version: 1.2.1
+      spdx-license-list:
+        specifier: ^6.11.0
+        version: 6.11.0
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
@@ -4086,6 +4089,10 @@ packages:
 
   spacetrim@0.11.59:
     resolution: {integrity: sha512-lLYsktklSRKprreOm7NXReW8YiX2VBjbgmXYEziOoGf/qsJqAEACaDvoTtUOycwjpaSh+bT8eu0KrJn7UNxiCg==}
+
+  spdx-license-list@6.11.0:
+    resolution: {integrity: sha512-p5ICd51dSnh7zIMtPgbB9ShBg3HMT77OeI6WVhrFFvxa5KIFYNcqxD4joAE+n1zZ7wlJdEkrOMwC75JUMMmsJA==}
+    engines: {node: '>=8'}
 
   split2@4.2.0:
     resolution: {integrity: sha512-UcjcJOWknrNkF6PLX83qcHM6KHgVKNkV62Y8a5uYDVv9ydGQVwAHMKqHdJje1VTWpljG0WYpCDhrCdAOYH4TWg==}
@@ -8243,6 +8250,8 @@ snapshots:
     optional: true
 
   spacetrim@0.11.59: {}
+
+  spdx-license-list@6.11.0: {}
 
   split2@4.2.0: {}
 
