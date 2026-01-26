@@ -4,6 +4,7 @@ import {
   type CountryCode,
   type NumberFormat,
   type PhoneNumber,
+  type Extension,
 } from "libphonenumber-js";
 
 export type PhoneNumberJson = {
@@ -153,7 +154,7 @@ export function buildPhoneNumberFromJson(
       return { number: "", error: "Unable to parse phone number." };
     }
     if (data.extension) {
-      phoneNumber.setExt(data.extension);
+      phoneNumber.setExt(data.extension as Extension);
     }
 
     return {
