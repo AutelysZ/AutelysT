@@ -1228,6 +1228,36 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "phone-number",
+    name: "Phone Number",
+    description:
+      "Parse and build phone numbers with region defaults, formatting options, and JSON output.",
+    category: "Web",
+    route: "/tools/phone-number",
+    keywords: [
+      "phone number",
+      "libphonenumber",
+      "parser",
+      "format",
+      "e164",
+      "rfc3966",
+      "international",
+    ],
+    seo: {
+      title: "Phone Number Parser - AutelysT",
+      description:
+        "Parse and build phone numbers with region defaults, formatting options, and JSON/table output.",
+      keywords: [
+        "phone number parser",
+        "libphonenumber",
+        "e164",
+        "rfc3966",
+        "international format",
+        "national format",
+      ],
+    },
+  },
+  {
     id: "mime",
     name: "MIME Lookup",
     description:

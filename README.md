@@ -61,6 +61,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **Bencode** - Encode and decode Bencode data with JSON/YAML conversion and file input
 - **Set-Cookie Builder & Parser** - Build and parse Set-Cookie headers with JSON conversion
 - **User Agent Parser & Builder** - Parse and build User-Agent strings with JSON/table editing
+- **Phone Number Parser** - Parse and build phone numbers with region defaults and formatting
 - **File Type Detector** - Detect file MIME types and preview printable files
 - **MIME Lookup** - Detect MIME types by filename and list known extensions
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates
