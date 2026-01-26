@@ -1188,6 +1188,35 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "code-formatter",
+    name: "Code Formatter",
+    description:
+      "Format code files with Prettier using a file tree, Monaco editor, and configurable options.",
+    category: "Web",
+    route: "/tools/code-formatter",
+    keywords: [
+      "code formatter",
+      "prettier",
+      "format",
+      "beautify",
+      "monaco",
+      "editor",
+    ],
+    seo: {
+      title: "Code Formatter - AutelysT",
+      description:
+        "Format code with Prettier across popular languages using a file tree and Monaco editor.",
+      keywords: [
+        "code formatter",
+        "prettier",
+        "format",
+        "beautify",
+        "monaco editor",
+        "file formatter",
+      ],
+    },
+  },
+  {
     id: "source-map-viewer",
     name: "Source Map Viewer",
     description:

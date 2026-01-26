@@ -153,7 +153,9 @@ export default function CharsetConverterContent() {
         "write" in navigator.clipboard
       ) {
         const mimeType = "text/plain";
-        const blob = new Blob([outputBytes], { type: mimeType });
+        const blob = new Blob([outputBytes as Uint8Array<ArrayBuffer>], {
+          type: mimeType,
+        });
         await navigator.clipboard.write([new ClipboardItem({ [mimeType]: blob })]);
         return;
       }

@@ -7,6 +7,7 @@ import {
   File,
   Folder,
   FolderOpen,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SourceTreeNode } from "./source-map-viewer-types";
@@ -15,6 +16,7 @@ type SourceMapFileTreeProps = {
   nodes: SourceTreeNode[];
   activeFileId: string;
   onSelect: (node: SourceTreeNode) => void;
+  onDelete?: (node: SourceTreeNode) => void;
 };
 
 function collectDirectoryIds(nodes: SourceTreeNode[], set: Set<string>) {
@@ -30,6 +32,7 @@ export default function SourceMapFileTree({
   nodes,
   activeFileId,
   onSelect,
+  onDelete,
 }: SourceMapFileTreeProps) {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
 
@@ -55,13 +58,14 @@ export default function SourceMapFileTree({
     const isDirectory = node.type === "directory";
     const isExpanded = isDirectory && expandedIds.has(node.id);
     const isActive = !!node.fileId && node.fileId === activeFileId;
+    const canDelete = Boolean(onDelete) && node.id !== "root";
 
     return (
       <div key={node.id}>
         <button
           type="button"
           className={cn(
-            "flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left font-mono text-xs leading-5 transition-colors hover:bg-muted/60",
+            "group flex w-full items-center gap-2 rounded-sm px-2 py-1 text-left font-mono text-xs leading-5 transition-colors hover:bg-muted/60",
             isActive && "bg-primary/10 text-primary",
           )}
           style={{ paddingLeft: `${depth * 16 + 8}px` }}
@@ -87,9 +91,30 @@ export default function SourceMapFileTree({
           ) : (
             <File className="h-4 w-4 text-muted-foreground" />
           )}
-          <span className="truncate" title={node.path}>
+          <span className="flex-1 truncate" title={node.path}>
             {node.name}
           </span>
+          {canDelete ? (
+            <span
+              role="button"
+              tabIndex={-1}
+              aria-label={`Delete ${node.name}`}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-sm text-muted-foreground opacity-0 transition-all hover:bg-muted/60 hover:text-foreground group-hover:opacity-100"
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete?.(node);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onDelete?.(node);
+                }
+              }}
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          ) : null}
         </button>
         {isDirectory &&
           isExpanded &&
