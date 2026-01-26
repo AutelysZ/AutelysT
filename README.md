@@ -30,6 +30,7 @@
 ### 🔐 Cryptographic Tools (AI-Implemented)
 
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
+- **Password Hash** - Generate, verify, and parse bcrypt, scrypt, and Argon2 hashes with full parameter control
 - **Keypair Generator** - Generate RSA/EC, OKP, and post-quantum (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) keypairs with PEM/JWK export
 - **Key Exchange** - Derive shared secrets with ECDH, X25519/X448, or ML-KEM/hybrid KEM plus optional KDF
 - **Key Derivation** - Derive keys using HKDF or PBKDF2 with configurable hash and salt

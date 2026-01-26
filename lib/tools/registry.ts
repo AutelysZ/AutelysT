@@ -319,6 +319,35 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "password-hash",
+    name: "Password Hash",
+    description:
+      "Generate, verify, and parse bcrypt, scrypt, and Argon2 hashes with full parameter control.",
+    category: "Crypto",
+    route: "/tools/password-hash",
+    keywords: [
+      "password hash",
+      "bcrypt",
+      "scrypt",
+      "argon2",
+      "verify",
+      "parse",
+    ],
+    seo: {
+      title: "Password Hash Generator & Verifier - AutelysT",
+      description:
+        "Generate, verify, and parse bcrypt, scrypt, and Argon2 hashes with full parameter control.",
+      keywords: [
+        "password hash",
+        "bcrypt",
+        "scrypt",
+        "argon2",
+        "verify password",
+        "hash parser",
+      ],
+    },
+  },
+  {
     id: "keypair-generator",
     name: "Keypair Generator",
     description:
