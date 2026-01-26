@@ -4,8 +4,7 @@ View and download original source files from uploaded source maps with a tree ex
 
 ## Features
 
-- Upload one or more source map files
-- Upload files that contain inline source maps
+- Upload one or more source map files (including files with inline maps)
 - Browse sources via a tree view
 - Read-only Monaco editor preview
 - Download individual source files or export all sources as a ZIP
@@ -17,10 +16,9 @@ View and download original source files from uploaded source maps with a tree ex
 
 ## URL State
 
-- Active map and active source are synced to the URL
-- Uploaded source contents are excluded from URL sync
+- No URL synchronization
 
 ## History
 
-- Uploading maps creates history entries
-- Selecting a different source updates history params without creating new entries
+- A single history entry stores uploaded bundles and selection state
+- History panel is hidden for this tool

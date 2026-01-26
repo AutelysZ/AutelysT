@@ -1,8 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { DEFAULT_URL_SYNC_DEBOUNCE_MS } from "@/lib/url-state/use-url-synced-state";
 import { useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper";
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS } from "@/lib/url-state/use-url-synced-state";
 import SourceMapViewerForm from "./source-map-viewer-form";
 import type {
   SourceFile,
@@ -11,134 +11,144 @@ import type {
 } from "./source-map-viewer-types";
 
 type SourceMapViewerInnerProps = {
-  state: {
-    activeMapId: string;
-    activeSourceId: string;
-  };
   bundles: SourceMapBundle[];
   activeSelection: {
     bundle: SourceMapBundle | null;
     file: SourceFile | null;
   };
+  activeMapId: string;
+  activeSourceId: string;
+  setBundles: React.Dispatch<React.SetStateAction<SourceMapBundle[]>>;
+  setActiveMapId: React.Dispatch<React.SetStateAction<string>>;
+  setActiveSourceId: React.Dispatch<React.SetStateAction<string>>;
   treeNodes: SourceTreeNode[];
   parseErrors: string[];
   downloadError: string | null;
-  oversizeKeys: string[];
-  hasUrlParams: boolean;
-  hydrationSource: "default" | "url" | "history";
   onFilesUpload: (files: File[]) => void;
   onClear: () => void;
   onSelectFile: (mapId: string, fileId: string) => void;
+  onDeleteNode: (node: SourceTreeNode) => void;
   onDownloadFile: () => void;
   onDownloadAll: () => void;
 };
 
 export default function SourceMapViewerInner({
-  state,
   bundles,
   activeSelection,
+  activeMapId,
+  activeSourceId,
+  setBundles,
+  setActiveMapId,
+  setActiveSourceId,
   treeNodes,
   parseErrors,
   downloadError,
-  oversizeKeys,
-  hasUrlParams,
-  hydrationSource,
   onFilesUpload,
   onClear,
   onSelectFile,
+  onDeleteNode,
   onDownloadFile,
   onDownloadAll,
 }: SourceMapViewerInnerProps) {
-  const { addHistoryEntry, updateHistoryParams } = useToolHistoryContext();
-  const lastInputRef = React.useRef("");
-  const hasHydratedInputRef = React.useRef(false);
-  const hasHandledUrlRef = React.useRef(false);
+  const { entries, loading, addHistoryEntry, updateLatestEntry, clearHistory } =
+    useToolHistoryContext();
   const paramsRef = React.useRef({
-    activeMapId: state.activeMapId,
-    activeSourceId: state.activeSourceId,
+    activeMapId,
+    activeSourceId,
   });
   const hasInitializedParamsRef = React.useRef(false);
-
-  const serializedMaps = React.useMemo(() => {
-    if (bundles.length === 0) return "";
-    return JSON.stringify(bundles);
-  }, [bundles]);
+  const hasHistoryRef = React.useRef(false);
+  const hasHydratedFromHistoryRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (hasHydratedInputRef.current) return;
-    if (hydrationSource === "default") return;
-    lastInputRef.current = serializedMaps;
-    hasHydratedInputRef.current = true;
-  }, [hydrationSource, serializedMaps]);
+    if (loading) return;
+    if (entries.length > 0) {
+      hasHistoryRef.current = true;
+    }
+  }, [entries.length, loading]);
 
   React.useEffect(() => {
-    if (!serializedMaps || serializedMaps === lastInputRef.current) return;
-
-    const previewText =
-      activeSelection.file?.path ??
-      activeSelection.bundle?.name ??
-      "source maps";
-
-    const timer = setTimeout(() => {
-      lastInputRef.current = serializedMaps;
-      addHistoryEntry(
-        { maps: serializedMaps },
-        {
-          activeMapId: state.activeMapId,
-          activeSourceId: state.activeSourceId,
-        },
-        "left",
-        previewText.slice(0, 120),
-      );
-    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [
-    serializedMaps,
-    activeSelection.file?.path,
-    activeSelection.bundle?.name,
-    state.activeMapId,
-    state.activeSourceId,
-    addHistoryEntry,
-  ]);
-
-  React.useEffect(() => {
-    if (hasUrlParams && !hasHandledUrlRef.current) {
-      hasHandledUrlRef.current = true;
-      if (serializedMaps) {
-        addHistoryEntry(
-          { maps: serializedMaps },
-          {
-            activeMapId: state.activeMapId,
-            activeSourceId: state.activeSourceId,
-          },
-          "left",
-          activeSelection.file?.path ??
-            activeSelection.bundle?.name ??
-            "source maps",
-        );
-      } else {
-        updateHistoryParams({
-          activeMapId: state.activeMapId,
-          activeSourceId: state.activeSourceId,
-        });
+    if (loading || hasHydratedFromHistoryRef.current) return;
+    hasHydratedFromHistoryRef.current = true;
+    const latest = entries[0];
+    if (!latest) return;
+    const { inputs, params } = latest;
+    if (inputs.maps) {
+      try {
+        const parsed = JSON.parse(String(inputs.maps)) as SourceMapBundle[];
+        setBundles(parsed);
+        if (params.activeMapId) setActiveMapId(String(params.activeMapId));
+        if (params.activeSourceId)
+          setActiveSourceId(String(params.activeSourceId));
+      } catch (error) {
+        console.error("Failed to restore source maps from history.", error);
       }
     }
   }, [
-    hasUrlParams,
-    serializedMaps,
-    state.activeMapId,
-    state.activeSourceId,
-    activeSelection.file?.path,
-    activeSelection.bundle?.name,
-    addHistoryEntry,
-    updateHistoryParams,
+    entries,
+    loading,
+    setActiveMapId,
+    setActiveSourceId,
+    setBundles,
   ]);
 
   React.useEffect(() => {
+    if (loading) return;
+    if (entries.length <= 1) return;
+    const latest = entries[0];
+    void clearHistory("tool").then(() => {
+      void addHistoryEntry(
+        latest.inputs,
+        latest.params,
+        latest.inputSide,
+        latest.preview,
+        latest.files,
+      );
+    });
+  }, [addHistoryEntry, clearHistory, entries, loading]);
+
+  const updateHistoryEntry = React.useCallback(async () => {
+    const previewText =
+      activeSelection.file?.path ??
+      activeSelection.bundle?.name ??
+      (bundles.length ? `${bundles.length} maps` : "Source maps");
+    const inputs = { maps: JSON.stringify(bundles) };
+    const params = {
+      activeMapId,
+      activeSourceId,
+    };
+    if (!hasHistoryRef.current) {
+      const entry = await addHistoryEntry(inputs, params, "left", previewText);
+      if (entry) hasHistoryRef.current = true;
+      return;
+    }
+    await updateLatestEntry({
+      inputs,
+      params,
+      preview: previewText,
+      hasInput: true,
+    });
+  }, [
+    activeMapId,
+    activeSelection.bundle?.name,
+    activeSelection.file?.path,
+    activeSourceId,
+    addHistoryEntry,
+    bundles,
+    updateLatestEntry,
+  ]);
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      void updateHistoryEntry();
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [updateHistoryEntry, bundles]);
+
+  React.useEffect(() => {
     const nextParams = {
-      activeMapId: state.activeMapId,
-      activeSourceId: state.activeSourceId,
+      activeMapId,
+      activeSourceId,
     };
     if (!hasInitializedParamsRef.current) {
       hasInitializedParamsRef.current = true;
@@ -152,8 +162,8 @@ export default function SourceMapViewerInner({
       return;
     }
     paramsRef.current = nextParams;
-    updateHistoryParams(nextParams);
-  }, [state.activeMapId, state.activeSourceId, updateHistoryParams]);
+    void updateHistoryEntry();
+  }, [activeMapId, activeSourceId, updateHistoryEntry]);
 
   return (
     <SourceMapViewerForm
@@ -163,10 +173,10 @@ export default function SourceMapViewerInner({
       activeFile={activeSelection.file}
       parseErrors={parseErrors}
       downloadError={downloadError}
-      oversizeKeys={oversizeKeys}
       onFilesUpload={onFilesUpload}
       onClear={onClear}
       onSelectFile={onSelectFile}
+      onDeleteNode={onDeleteNode}
       onDownloadFile={onDownloadFile}
       onDownloadAll={onDownloadAll}
     />

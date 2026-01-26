@@ -22,6 +22,7 @@ export type SourceTreeNode = {
   name: string;
   path: string;
   type: "directory" | "file";
+  kind?: "map-root" | "source-dir" | "source-file";
   children?: SourceTreeNode[];
   fileId?: string;
   mapId?: string;

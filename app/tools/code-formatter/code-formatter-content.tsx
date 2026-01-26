@@ -399,9 +399,33 @@ export default function CodeFormatterContent() {
     (nextPath: string) => {
       if (!activeFile) return;
       const normalized = normalizeFilePath(nextPath);
+      const existingPaths = new Set(
+        files
+          .filter((file) => file.id !== activeFile.id)
+          .map((file) => normalizeFilePath(file.path)),
+      );
+      let uniquePath = normalized;
+      if (existingPaths.has(uniquePath)) {
+        const lastSlash = normalized.lastIndexOf("/");
+        const dir = lastSlash >= 0 ? normalized.slice(0, lastSlash + 1) : "";
+        const filename = lastSlash >= 0
+          ? normalized.slice(lastSlash + 1)
+          : normalized;
+        const dotIndex = filename.lastIndexOf(".");
+        const hasExt = dotIndex > 0;
+        const baseName = hasExt ? filename.slice(0, dotIndex) : filename;
+        const extension = hasExt ? filename.slice(dotIndex) : "";
+        let suffix = 2;
+        while (existingPaths.has(uniquePath)) {
+          uniquePath = normalizeFilePath(
+            `${dir}${baseName} (${suffix})${extension}`,
+          );
+          suffix += 1;
+        }
+      }
       const nextFiles = files.map((file) =>
         file.id === activeFile.id
-          ? { ...file, path: normalized }
+          ? { ...file, path: uniquePath }
           : file,
       );
       updateFiles(nextFiles);

@@ -465,10 +465,7 @@ export default function CodeFormatterForm({
 
           <div className="flex h-full min-h-0 flex-col bg-muted/10">
             <div className="border-b border-border/60 bg-background/80 px-3 py-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Extension
-                </div>
+              <div className="flex flex-wrap items-center gap-2">
                 <div className="flex flex-wrap items-center gap-2">
                   <SearchableSelect
                     value={selectedLanguage}
@@ -479,6 +476,8 @@ export default function CodeFormatterForm({
                     triggerClassName="h-8 w-[180px]"
                     className="w-[240px]"
                   />
+                </div>
+                <div className="ml-auto flex flex-wrap items-center gap-2">
                   <Button
                     type="button"
                     variant="default"

@@ -135,65 +135,123 @@ function splitPathSegments(path: string): string[] {
 }
 
 export function buildSourceTree(bundles: SourceMapBundle[]): SourceTreeNode[] {
-  return bundles.map((bundle) => {
-    const rootNode: SourceTreeNode = {
+  const root: SourceTreeNode = {
+    id: "root",
+    name: "root",
+    path: "",
+    type: "directory",
+    children: [],
+  };
+
+  for (const bundle of bundles) {
+    const mapPath = normalizeSourcePath(bundle.name);
+    const segments = splitPathSegments(mapPath);
+    const mapFileName = segments.pop() ?? mapPath;
+    let cursor = root;
+    let currentPath = "";
+
+    for (const segment of segments) {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      cursor.children = cursor.children ?? [];
+      let next = cursor.children.find(
+        (child) => child.type === "directory" && child.name === segment,
+      );
+      if (!next) {
+        next = {
+          id: `dir:map:${currentPath}`,
+          name: segment,
+          path: currentPath,
+          type: "directory",
+          children: [],
+        };
+        cursor.children.push(next);
+      }
+      cursor = next;
+    }
+
+    const mapNode: SourceTreeNode = {
       id: `map:${bundle.id}`,
-      name: bundle.name,
-      path: bundle.name,
+      name: mapFileName,
+      path: mapPath,
       type: "directory",
+      kind: "map-root",
       children: [],
     };
 
     for (const file of bundle.sources) {
-      const segments = splitPathSegments(file.path);
-      let cursor = rootNode;
-      let currentPath = "";
+      const sourceSegments = splitPathSegments(file.path);
+      let sourceCursor = mapNode;
+      let sourcePath = "";
 
-      segments.forEach((segment, index) => {
-        currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      sourceSegments.forEach((segment, index) => {
+        sourcePath = sourcePath ? `${sourcePath}/${segment}` : segment;
 
-        if (index === segments.length - 1) {
-          cursor.children = cursor.children ?? [];
-          cursor.children.push({
+        if (index === sourceSegments.length - 1) {
+          sourceCursor.children = sourceCursor.children ?? [];
+          sourceCursor.children.push({
             id: `file:${file.id}`,
             name: segment,
-            path: currentPath,
+            path: sourcePath,
             type: "file",
+            kind: "source-file",
             fileId: file.id,
             mapId: bundle.id,
           });
           return;
         }
 
-        cursor.children = cursor.children ?? [];
-        let next = cursor.children.find(
+        sourceCursor.children = sourceCursor.children ?? [];
+        let next = sourceCursor.children.find(
           (child) => child.type === "directory" && child.name === segment,
         );
         if (!next) {
           next = {
-            id: `dir:${bundle.id}:${currentPath}`,
+            id: `dir:${bundle.id}:${sourcePath}`,
             name: segment,
-            path: currentPath,
+            path: sourcePath,
             type: "directory",
+            kind: "source-dir",
             children: [],
           };
-          cursor.children.push(next);
+          sourceCursor.children.push(next);
         }
-        cursor = next;
+        sourceCursor = next;
       });
     }
 
-    return rootNode;
-  });
+    cursor.children = cursor.children ?? [];
+    cursor.children.push(mapNode);
+  }
+
+  return root.children ?? [];
+}
+
+function sanitizeZipSegment(segment: string): string {
+  const cleaned = segment
+    .replace(/^\.+$/g, "_")
+    .replace(/[\u0000-\u001f\u007f]+/g, "")
+    .replace(/[\\:*?"<>|]+/g, "_")
+    .trim();
+  return cleaned || "_";
 }
 
 function sanitizeZipPath(path: string): string {
-  let normalized = normalizeSourcePath(path)
+  const normalized = normalizeSourcePath(path)
     .replace(/:\/+/, "/")
     .replace(/^[\/]+/, "");
-  normalized = normalized.replace(/:\\?/g, "_");
-  normalized = normalized.replace(/\?\?|\*|"|<|>|\|/g, "_");
-  return normalized || "source";
+  const segments = normalized.split("/").filter(Boolean);
+  const safeSegments: string[] = [];
+
+  for (const segment of segments) {
+    if (segment === ".") continue;
+    if (segment === "..") {
+      safeSegments.pop();
+      continue;
+    }
+    safeSegments.push(sanitizeZipSegment(segment));
+  }
+
+  return safeSegments.join("/") || "source";
 }
 
 export function downloadSourceFile(filename: string, content: string) {
@@ -208,9 +266,16 @@ export async function downloadSourceMapZip(
   const { default: JSZip } = await import("jszip");
   const zip = new JSZip();
   let addedCount = 0;
+  const usedFolderNames = new Map<string, number>();
 
   for (const bundle of bundles) {
-    const folderName = sanitizeZipPath(bundle.name);
+    const baseFolderName = sanitizeZipPath(bundle.name) || "source-map";
+    const existingCount = usedFolderNames.get(baseFolderName) ?? 0;
+    usedFolderNames.set(baseFolderName, existingCount + 1);
+    const folderName =
+      existingCount === 0
+        ? baseFolderName
+        : `${baseFolderName}__${existingCount + 1}`;
     const folder = zip.folder(folderName) ?? zip;
 
     for (const source of bundle.sources) {

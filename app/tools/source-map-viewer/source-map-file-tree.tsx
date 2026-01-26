@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronRight,
   File,
+  FileJson,
   Folder,
   FolderOpen,
   X,
@@ -17,6 +18,7 @@ type SourceMapFileTreeProps = {
   activeFileId: string;
   onSelect: (node: SourceTreeNode) => void;
   onDelete?: (node: SourceTreeNode) => void;
+  canDeleteNode?: (node: SourceTreeNode) => boolean;
 };
 
 function collectDirectoryIds(nodes: SourceTreeNode[], set: Set<string>) {
@@ -33,6 +35,7 @@ export default function SourceMapFileTree({
   activeFileId,
   onSelect,
   onDelete,
+  canDeleteNode,
 }: SourceMapFileTreeProps) {
   const [expandedIds, setExpandedIds] = React.useState<Set<string>>(new Set());
 
@@ -58,7 +61,9 @@ export default function SourceMapFileTree({
     const isDirectory = node.type === "directory";
     const isExpanded = isDirectory && expandedIds.has(node.id);
     const isActive = !!node.fileId && node.fileId === activeFileId;
-    const canDelete = Boolean(onDelete) && node.id !== "root";
+    const canDelete = Boolean(onDelete) &&
+      (canDeleteNode ? canDeleteNode(node) : node.id !== "root");
+    const isMapRoot = node.kind === "map-root";
 
     return (
       <div key={node.id}>
@@ -83,7 +88,9 @@ export default function SourceMapFileTree({
             <span className="w-4" />
           )}
           {isDirectory ? (
-            isExpanded ? (
+            isMapRoot ? (
+              <FileJson className="h-4 w-4 text-amber-500" />
+            ) : isExpanded ? (
               <FolderOpen className="h-4 w-4 text-sky-500" />
             ) : (
               <Folder className="h-4 w-4 text-sky-500" />
@@ -91,7 +98,7 @@ export default function SourceMapFileTree({
           ) : (
             <File className="h-4 w-4 text-muted-foreground" />
           )}
-          <span className="flex-1 truncate" title={node.path}>
+          <span className="flex-1 whitespace-nowrap" title={node.path}>
             {node.name}
           </span>
           {canDelete ? (
@@ -133,6 +140,8 @@ export default function SourceMapFileTree({
   }
 
   return (
-    <div className="space-y-1">{nodes.map((node) => renderNode(node, 0))}</div>
+    <div className="space-y-1 min-w-max">
+      {nodes.map((node) => renderNode(node, 0))}
+    </div>
   );
 }

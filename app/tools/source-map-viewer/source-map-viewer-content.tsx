@@ -1,23 +1,19 @@
 "use client";
 
 import * as React from "react";
-import { z } from "zod";
 import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
-import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state";
-import type { HistoryEntry } from "@/lib/history/db";
 import SourceMapViewerInner from "./source-map-viewer-inner";
-import type { SourceFile, SourceMapBundle } from "./source-map-viewer-types";
+import type {
+  SourceFile,
+  SourceMapBundle,
+  SourceTreeNode,
+} from "./source-map-viewer-types";
 import {
   buildSourceTree,
   downloadSourceFile,
   downloadSourceMapZip,
   parseSourceMapsFromFiles,
 } from "./source-map-viewer-utils";
-
-const paramsSchema = z.object({
-  activeMapId: z.string().default(""),
-  activeSourceId: z.string().default(""),
-});
 
 type ActiveSelection = {
   bundle: SourceMapBundle | null;
@@ -46,29 +42,24 @@ function resolveActiveSelection(
 }
 
 export default function SourceMapViewerContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource } =
-    useUrlSyncedState("source-map-viewer", {
-      schema: paramsSchema,
-      defaults: paramsSchema.parse({}),
-    });
-
   const [bundles, setBundles] = React.useState<SourceMapBundle[]>([]);
+  const [activeMapId, setActiveMapId] = React.useState("");
+  const [activeSourceId, setActiveSourceId] = React.useState("");
   const [parseErrors, setParseErrors] = React.useState<string[]>([]);
   const [downloadError, setDownloadError] = React.useState<string | null>(null);
 
   const activeSelection = React.useMemo(
-    () =>
-      resolveActiveSelection(bundles, state.activeMapId, state.activeSourceId),
-    [bundles, state.activeMapId, state.activeSourceId],
+    () => resolveActiveSelection(bundles, activeMapId, activeSourceId),
+    [bundles, activeMapId, activeSourceId],
   );
 
   const treeNodes = React.useMemo(() => buildSourceTree(bundles), [bundles]);
 
   React.useEffect(() => {
     if (bundles.length === 0) {
-      if (state.activeMapId || state.activeSourceId) {
-        setParam("activeMapId", "");
-        setParam("activeSourceId", "");
+      if (activeMapId || activeSourceId) {
+        setActiveMapId("");
+        setActiveSourceId("");
       }
       return;
     }
@@ -76,16 +67,15 @@ export default function SourceMapViewerContent() {
     if (!activeSelection.bundle || !activeSelection.file) {
       const fallbackBundle = bundles[0];
       const fallbackFile = fallbackBundle.sources[0];
-      setParam("activeMapId", fallbackBundle.id);
-      setParam("activeSourceId", fallbackFile.id);
+      setActiveMapId(fallbackBundle.id);
+      setActiveSourceId(fallbackFile.id);
     }
   }, [
     bundles,
     activeSelection.bundle,
     activeSelection.file,
-    setParam,
-    state.activeMapId,
-    state.activeSourceId,
+    activeMapId,
+    activeSourceId,
   ]);
 
   const handleFilesUpload = React.useCallback(async (files: File[]) => {
@@ -124,16 +114,16 @@ export default function SourceMapViewerContent() {
     setBundles([]);
     setParseErrors([]);
     setDownloadError(null);
-    setParam("activeMapId", "");
-    setParam("activeSourceId", "");
-  }, [setParam]);
+    setActiveMapId("");
+    setActiveSourceId("");
+  }, []);
 
   const handleSelectFile = React.useCallback(
     (mapId: string, fileId: string) => {
-      setParam("activeMapId", mapId);
-      setParam("activeSourceId", fileId);
+      setActiveMapId(mapId);
+      setActiveSourceId(fileId);
     },
-    [setParam],
+    [],
   );
 
   const handleDownloadFile = React.useCallback(() => {
@@ -160,26 +150,17 @@ export default function SourceMapViewerContent() {
     }
   }, [bundles]);
 
-  const handleLoadHistory = React.useCallback(
-    (entry: HistoryEntry) => {
-      const { inputs, params } = entry;
-      if (inputs.maps) {
-        try {
-          const parsed = JSON.parse(inputs.maps) as SourceMapBundle[];
-          setBundles(parsed);
-          setParseErrors([]);
-        } catch (error) {
-          console.error("Failed to restore source maps", error);
-          setParseErrors(["Failed to restore source maps from history."]);
-        }
+  const handleDeleteNode = React.useCallback(
+    (node: SourceTreeNode) => {
+      if (!node.id.startsWith("map:")) return;
+      const mapId = node.id.replace("map:", "");
+      setBundles((prev) => prev.filter((bundle) => bundle.id !== mapId));
+      if (activeMapId === mapId) {
+        setActiveMapId("");
+        setActiveSourceId("");
       }
-
-      if (params.activeMapId)
-        setParam("activeMapId", String(params.activeMapId));
-      if (params.activeSourceId)
-        setParam("activeSourceId", String(params.activeSourceId));
     },
-    [setParam],
+    [activeMapId],
   );
 
   return (
@@ -187,21 +168,23 @@ export default function SourceMapViewerContent() {
       toolId="source-map-viewer"
       title="Source Map Viewer"
       description="View and download original source files from uploaded source maps."
-      onLoadHistory={handleLoadHistory}
+      showHistory={false}
     >
       <SourceMapViewerInner
-        state={state}
         bundles={bundles}
         activeSelection={activeSelection}
         treeNodes={treeNodes}
         parseErrors={parseErrors}
         downloadError={downloadError}
-        oversizeKeys={oversizeKeys}
-        hasUrlParams={hasUrlParams}
-        hydrationSource={hydrationSource}
+        activeMapId={activeMapId}
+        activeSourceId={activeSourceId}
+        setBundles={setBundles}
+        setActiveMapId={setActiveMapId}
+        setActiveSourceId={setActiveSourceId}
         onFilesUpload={handleFilesUpload}
         onClear={handleClear}
         onSelectFile={handleSelectFile}
+        onDeleteNode={handleDeleteNode}
         onDownloadFile={handleDownloadFile}
         onDownloadAll={handleDownloadAll}
       />
