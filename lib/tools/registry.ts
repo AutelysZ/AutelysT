@@ -1167,6 +1167,38 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "set-cookie",
+    name: "Set-Cookie",
+    description:
+      "Build and parse Set-Cookie headers with a dual-panel editor and JSON conversion.",
+    category: "Web",
+    route: "/tools/set-cookie",
+    keywords: [
+      "set-cookie",
+      "cookie",
+      "http header",
+      "parser",
+      "builder",
+      "samesite",
+      "httponly",
+      "secure",
+    ],
+    seo: {
+      title: "Set-Cookie Builder & Parser - AutelysT",
+      description:
+        "Parse and build Set-Cookie headers with a dual-panel editor and JSON conversion.",
+      keywords: [
+        "set-cookie",
+        "cookie header",
+        "cookie parser",
+        "set-cookie builder",
+        "samesite",
+        "httponly",
+        "secure",
+      ],
+    },
+  },
+  {
     id: "mime",
     name: "MIME Lookup",
     description:

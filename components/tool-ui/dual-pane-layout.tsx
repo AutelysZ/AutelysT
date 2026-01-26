@@ -16,6 +16,9 @@ interface PaneProps {
   placeholder?: string;
   disabled?: boolean;
   readOnly?: boolean;
+  headerExtra?: React.ReactNode;
+  customContent?: React.ReactNode;
+  contentClassName?: string;
   onFileUpload?: (file: File) => void;
   onCopy?: () => Promise<void> | void;
   overlay?: React.ReactNode;
@@ -40,6 +43,9 @@ function Pane({
   placeholder,
   disabled,
   readOnly,
+  headerExtra,
+  customContent,
+  contentClassName,
   onFileUpload,
   onCopy,
   overlay,
@@ -96,6 +102,7 @@ function Pane({
           {label}
         </span>
         <div className="flex items-center gap-1">
+          {headerExtra}
           {onFileUpload && (
             <>
               <input
@@ -214,19 +221,33 @@ function Pane({
           onDragLeave={() => setIsDragOver(false)}
           onDrop={handleDrop}
         >
-          <Textarea
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            disabled={disabled}
-            readOnly={readOnly}
-            className={cn(
-              "h-full min-h-[200px] max-h-[400px] resize-none overflow-auto font-mono text-sm break-all",
-              error && "border-destructive",
-              isActive && "ring-1 ring-primary",
-            )}
-            style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
-          />
+          {customContent ? (
+            <div
+              className={cn(
+                "h-full min-h-[200px] max-h-[400px] overflow-auto rounded-md border border-transparent",
+                error && "border-destructive",
+                isActive && "ring-1 ring-primary",
+                contentClassName,
+              )}
+            >
+              {customContent}
+            </div>
+          ) : (
+            <Textarea
+              value={value}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              disabled={disabled}
+              readOnly={readOnly}
+              className={cn(
+                "h-full min-h-[200px] max-h-[400px] resize-none overflow-auto font-mono text-sm break-all",
+                error && "border-destructive",
+                isActive && "ring-1 ring-primary",
+                contentClassName,
+              )}
+              style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
+            />
+          )}
           {overlay && (
             <div className="absolute inset-0 z-10">{overlay}</div>
           )}
@@ -257,6 +278,12 @@ interface DualPaneLayoutProps {
   rightPlaceholder?: string;
   leftReadOnly?: boolean;
   rightReadOnly?: boolean;
+  leftHeaderExtra?: React.ReactNode;
+  rightHeaderExtra?: React.ReactNode;
+  leftCustomContent?: React.ReactNode;
+  rightCustomContent?: React.ReactNode;
+  leftContentClassName?: string;
+  rightContentClassName?: string;
   leftOverlay?: React.ReactNode;
   rightOverlay?: React.ReactNode;
   leftOnCopy?: () => Promise<void> | void;
@@ -280,6 +307,8 @@ interface DualPaneLayoutProps {
   onClearLeftFile?: () => void;
   onClearRightFile?: () => void;
   children?: React.ReactNode;
+  layoutClassName?: string;
+  panesClassName?: string;
 }
 
 export function DualPaneLayout({
@@ -298,6 +327,12 @@ export function DualPaneLayout({
   rightPlaceholder,
   leftReadOnly,
   rightReadOnly,
+  leftHeaderExtra,
+  rightHeaderExtra,
+  leftCustomContent,
+  rightCustomContent,
+  leftContentClassName,
+  rightContentClassName,
   leftOverlay,
   rightOverlay,
   leftOnCopy,
@@ -311,14 +346,21 @@ export function DualPaneLayout({
   onClearLeftFile,
   onClearRightFile,
   children,
+  layoutClassName,
+  panesClassName,
 }: DualPaneLayoutProps) {
   return (
-    <div className="flex h-full flex-col gap-4">
+    <div className={cn("flex h-full flex-col gap-4", layoutClassName)}>
       {/* Parameters */}
       {children && <div className="shrink-0">{children}</div>}
 
       {/* Panes */}
-      <div className="flex min-h-0 flex-1 flex-col gap-4 md:flex-row">
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col gap-4 md:flex-row",
+          panesClassName,
+        )}
+      >
         <Pane
           label={leftLabel}
           value={leftValue}
@@ -328,6 +370,9 @@ export function DualPaneLayout({
           warning={leftWarning}
           placeholder={leftPlaceholder}
           readOnly={leftReadOnly}
+          headerExtra={leftHeaderExtra}
+          customContent={leftCustomContent}
+          contentClassName={leftContentClassName}
           onFileUpload={leftFileUpload}
           onCopy={leftOnCopy}
           overlay={leftOverlay}
@@ -349,6 +394,9 @@ export function DualPaneLayout({
           warning={rightWarning}
           placeholder={rightPlaceholder}
           readOnly={rightReadOnly}
+          headerExtra={rightHeaderExtra}
+          customContent={rightCustomContent}
+          contentClassName={rightContentClassName}
           onFileUpload={rightFileUpload}
           onCopy={rightOnCopy}
           overlay={rightOverlay}
