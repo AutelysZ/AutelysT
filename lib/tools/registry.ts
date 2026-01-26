@@ -1349,6 +1349,39 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "user-agent-parser",
+    name: "User Agent Parser",
+    description:
+      "Parse and analyze user agent strings to detect browser, OS, device type, engine, and bots.",
+    category: "Web",
+    route: "/tools/user-agent-parser",
+    keywords: [
+      "user agent",
+      "user agent parser",
+      "browser detection",
+      "device detection",
+      "os detection",
+      "ua parser",
+      "bot detection",
+      "mobile detection",
+    ],
+    seo: {
+      title: "User Agent Parser - AutelysT",
+      description:
+        "Online user agent parser to detect browser, operating system, device type, rendering engine, and bot identification.",
+      keywords: [
+        "user agent parser",
+        "ua parser",
+        "browser detection",
+        "device detection",
+        "os detection",
+        "bot detection",
+        "mobile detection",
+        "user agent analyzer",
+      ],
+    },
+  },
+  {
     id: "protobuf",
     name: "Protobuf",
     description:

@@ -11,7 +11,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "7z-wasm": "^1.2.0",
     "@bokuweb/zstd-wasm": "^0.0.27",
     "@edge-runtime/vm": "latest",
     "@hookform/resolvers": "^3.10.0",
@@ -62,6 +61,7 @@
     "@vitest/browser-preview": "latest",
     "@vitest/browser-webdriverio": "latest",
     "@vitest/ui": "latest",
+    "7z-wasm": "^1.2.0",
     "asn1js": "^3.0.7",
     "autoprefixer": "^10.4.20",
     "bson": "7.0.0",

@@ -79,9 +79,9 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 
 ## 🚀 Quick Start (AI-Powered Development Environment)
 
-```bash
+\`\`\`bash
 pnpm install && pnpm dev
-```
+\`\`\`
 
 Open [http://localhost:3000](http://localhost:3000) to experience the AI-crafted toolkit
 

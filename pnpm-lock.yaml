@@ -226,7 +226,7 @@ importers:
         version: 0.7.29
       happy-dom:
         specifier: latest
-        version: 20.3.7
+        version: 20.3.9
       hash-wasm:
         specifier: ^4.11.0
         version: 4.12.0
@@ -464,7 +464,7 @@ importers:
         version: 5.9.3
       vitest:
         specifier: ^4.0.17
-        version: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+        version: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
 
 packages:
 
@@ -579,9 +579,8 @@ packages:
     peerDependencies:
       '@csstools/css-tokenizer': ^3.0.4
 
-  '@csstools/css-syntax-patches-for-csstree@1.0.25':
-    resolution: {integrity: sha512-g0Kw9W3vjx5BEBAF8c5Fm2NcB/Fs8jJXh85aXqwEXiL+tqtOut07TWgyaGzAAfTM+gKckrrncyeGEZPcaRgm2Q==}
-    engines: {node: '>=18'}
+  '@csstools/css-syntax-patches-for-csstree@1.0.26':
+    resolution: {integrity: sha512-6boXK0KkzT5u5xOgF6TKB+CLq9SOpEGmkZw0g5n9/7yg85wab3UzSxB8TxhLJ31L4SGJ6BCFRw/iftTha1CJXA==}
 
   '@csstools/css-tokenizer@3.0.4':
     resolution: {integrity: sha512-Vd/9EVDiu6PPJt9yAh6roZP6El1xHrdvIVGjyBsHR0RYwNHgL7FJPyIIW4fANJNG6FtyZfvlRPpFI4ZM/lubvw==}
@@ -3057,8 +3056,8 @@ packages:
   grapheme-splitter@1.0.4:
     resolution: {integrity: sha512-bzh50DW9kTPM00T8y4o8vQg89Di9oLJVLW/KaOGIXJWP/iqCN6WKYkbNOF04vFLJhwcpYUh9ydh/+5vpOqV4YQ==}
 
-  happy-dom@20.3.7:
-    resolution: {integrity: sha512-sb5IzoRl1WJKsUSRe+IloJf3z1iDq5PQ7Yk/ULMsZ5IAQEs9ZL7RsFfiKBXU7nK9QmO+iz0e59EH8r8jexTZ/g==}
+  happy-dom@20.3.9:
+    resolution: {integrity: sha512-OIoj0PcK2JaxQuANHxWkxFRSNXAuSgO1vCzCT66KItE0W/ieZLG+/iW8OetlxB+F9EaPB7DoFYKAubFG1f4Mvw==}
     engines: {node: '>=20.0.0'}
 
   has-flag@4.0.0:
@@ -3389,8 +3388,8 @@ packages:
   lru-cache@10.4.3:
     resolution: {integrity: sha512-JNAzZcXrCt42VGLuYz0zfAzDfAvJWW6AfYlDBQyDV5DClI2m5sAmK+OIO7s59XfsRsWHp02jAJrRadPRGTt6SQ==}
 
-  lru-cache@11.2.4:
-    resolution: {integrity: sha512-B5Y16Jr9LB9dHVkh6ZevG+vAbOsNOYCX+sXvFWFu7B3Iz5mijW3zdbMyhsh8ANd2mSWBYdJgnqi+mL7/LrOPYg==}
+  lru-cache@11.2.5:
+    resolution: {integrity: sha512-vFrFJkWtJvJnD5hg+hJvVE8Lh/TcMzKnTgCWmtBipwI5yLX/iX+5UB2tfuyODF5E7k9xEzMdYgGqaSb1c0c5Yw==}
     engines: {node: 20 || >=22}
 
   lru-cache@7.18.3:
@@ -4633,7 +4632,7 @@ snapshots:
       '@csstools/css-color-parser': 3.1.0(@csstools/css-parser-algorithms@3.0.5(@csstools/css-tokenizer@3.0.4))(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-parser-algorithms': 3.0.5(@csstools/css-tokenizer@3.0.4)
       '@csstools/css-tokenizer': 3.0.4
-      lru-cache: 11.2.4
+      lru-cache: 11.2.5
 
   '@asamuzakjp/dom-selector@6.7.6':
     dependencies:
@@ -4641,7 +4640,7 @@ snapshots:
       bidi-js: 1.0.3
       css-tree: 3.1.0
       is-potential-custom-element-name: 1.0.1
-      lru-cache: 11.2.4
+      lru-cache: 11.2.5
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
@@ -4712,7 +4711,7 @@ snapshots:
     dependencies:
       '@csstools/css-tokenizer': 3.0.4
 
-  '@csstools/css-syntax-patches-for-csstree@1.0.25': {}
+  '@csstools/css-syntax-patches-for-csstree@1.0.26': {}
 
   '@csstools/css-tokenizer@3.0.4': {}
 
@@ -6152,7 +6151,7 @@ snapshots:
       '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))
       playwright: 1.58.0
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -6164,7 +6163,7 @@ snapshots:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.1(@testing-library/dom@10.4.1)
       '@vitest/browser': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(vitest@4.0.18)
-      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -6174,7 +6173,7 @@ snapshots:
   '@vitest/browser-webdriverio@4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(vitest@4.0.18)(webdriverio@9.23.2(puppeteer-core@24.36.0))':
     dependencies:
       '@vitest/browser': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(vitest@4.0.18)
-      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
       webdriverio: 9.23.2(puppeteer-core@24.36.0)
     transitivePeerDependencies:
       - bufferutil
@@ -6191,7 +6190,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
       ws: 8.19.0
     transitivePeerDependencies:
       - bufferutil
@@ -6242,7 +6241,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
+      vitest: 4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2)
 
   '@vitest/utils@4.0.18':
     dependencies:
@@ -6715,9 +6714,9 @@ snapshots:
   cssstyle@5.3.7:
     dependencies:
       '@asamuzakjp/css-color': 4.1.1
-      '@csstools/css-syntax-patches-for-csstree': 1.0.25
+      '@csstools/css-syntax-patches-for-csstree': 1.0.26
       css-tree: 3.1.0
-      lru-cache: 11.2.4
+      lru-cache: 11.2.5
 
   csstype@3.2.3: {}
 
@@ -7136,7 +7135,7 @@ snapshots:
 
   grapheme-splitter@1.0.4: {}
 
-  happy-dom@20.3.7:
+  happy-dom@20.3.9:
     dependencies:
       '@types/node': 22.19.7
       '@types/whatwg-mimetype': 3.0.2
@@ -7490,7 +7489,7 @@ snapshots:
 
   lru-cache@10.4.3: {}
 
-  lru-cache@11.2.4: {}
+  lru-cache@11.2.5: {}
 
   lru-cache@7.18.3: {}
 
@@ -8557,7 +8556,7 @@ snapshots:
       lightningcss: 1.30.2
       yaml: 2.8.2
 
-  vitest@4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.7)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2):
+  vitest@4.0.18(@edge-runtime/vm@5.0.0)(@opentelemetry/api@1.9.0)(@types/node@22.19.7)(@vitest/browser-playwright@4.0.18)(@vitest/browser-preview@4.0.18)(@vitest/browser-webdriverio@4.0.18)(@vitest/ui@4.0.18)(happy-dom@20.3.9)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1))(lightningcss@1.30.2)(yaml@2.8.2):
     dependencies:
       '@vitest/expect': 4.0.18
       '@vitest/mocker': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))
@@ -8587,7 +8586,7 @@ snapshots:
       '@vitest/browser-preview': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(vitest@4.0.18)
       '@vitest/browser-webdriverio': 4.0.18(vite@7.3.1(@types/node@22.19.7)(jiti@2.6.1)(lightningcss@1.30.2)(yaml@2.8.2))(vitest@4.0.18)(webdriverio@9.23.2(puppeteer-core@24.36.0))
       '@vitest/ui': 4.0.18(vitest@4.0.18)
-      happy-dom: 20.3.7
+      happy-dom: 20.3.9
       jsdom: 27.4.0(@noble/hashes@2.0.1)(canvas@3.2.1)
     transitivePeerDependencies:
       - jiti
