@@ -45,7 +45,13 @@ export type ConversionResult = {
   base64Detection?: Base64Detection;
 };
 
-const UNICODE_CHARSETS = ["UTF-8", "UTF-16BE", "UTF-16LE", "UTF-32BE", "UTF-32LE"];
+const UNICODE_CHARSETS = [
+  "UTF-8",
+  "UTF-16BE",
+  "UTF-16LE",
+  "UTF-32BE",
+  "UTF-32LE",
+];
 
 const BOM_SIGNATURES: Array<{ charset: string; bytes: number[] }> = [
   { charset: "UTF-8", bytes: [0xef, 0xbb, 0xbf] },
@@ -109,7 +115,9 @@ export function isSupportedCharset(value: string) {
 
 export function isUnicodeCharset(value: string) {
   const normalized = normalizeKey(value);
-  return UNICODE_CHARSETS.some((charset) => normalizeKey(charset) === normalized);
+  return UNICODE_CHARSETS.some(
+    (charset) => normalizeKey(charset) === normalized,
+  );
 }
 
 function normalizeCharsetForIconv(value: string) {
@@ -119,7 +127,9 @@ function normalizeCharsetForIconv(value: string) {
   if (normalized === "utf16be") return "utf-16be";
   if (normalized === "utf32le") return "utf-32le";
   if (normalized === "utf32be") return "utf-32be";
-  return normalizeCharsetValue(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalizeCharsetValue(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
 }
 
 export function detectBom(bytes: Uint8Array): BomDetection | null {
@@ -141,7 +151,11 @@ export function detectBom(bytes: Uint8Array): BomDetection | null {
 
 export function stripBom(bytes: Uint8Array) {
   const bom = detectBom(bytes);
-  if (!bom) return { bytes, bom: null } as { bytes: Uint8Array; bom: BomDetection | null };
+  if (!bom)
+    return { bytes, bom: null } as {
+      bytes: Uint8Array;
+      bom: BomDetection | null;
+    };
   return { bytes: bytes.slice(bom.length), bom } as {
     bytes: Uint8Array;
     bom: BomDetection | null;
@@ -179,7 +193,10 @@ export function decodeHexInput(input: string): Uint8Array {
       lastIndex = match.index + match[0].length;
     }
 
-    if (lastIndex < trimmed.length && trimmed.slice(lastIndex).trim().length > 0) {
+    if (
+      lastIndex < trimmed.length &&
+      trimmed.slice(lastIndex).trim().length > 0
+    ) {
       throw new Error("Invalid hex input");
     }
 
@@ -208,7 +225,10 @@ export function encodeHexOutput(
   upperCase: boolean,
 ) {
   const toHex = (byte: number) =>
-    byte.toString(16).padStart(2, "0")[upperCase ? "toUpperCase" : "toLowerCase"]();
+    byte
+      .toString(16)
+      .padStart(2, "0")
+      [upperCase ? "toUpperCase" : "toLowerCase"]();
 
   if (format === "hex-escape") {
     return Array.from(bytes)
@@ -313,10 +333,16 @@ export function encodeTextToBytes(text: string, charset: string) {
   }
 }
 
-export function getOutputBytesWithBom(bytes: Uint8Array, charset: string, includeBom: boolean) {
+export function getOutputBytesWithBom(
+  bytes: Uint8Array,
+  charset: string,
+  includeBom: boolean,
+) {
   if (!includeBom || !isUnicodeCharset(charset)) return bytes;
   const normalized = normalizeKey(charset);
-  const signature = BOM_SIGNATURES.find((item) => normalizeKey(item.charset) === normalized);
+  const signature = BOM_SIGNATURES.find(
+    (item) => normalizeKey(item.charset) === normalized,
+  );
   if (!signature) return bytes;
   const bomBytes = new Uint8Array(signature.bytes);
   const output = new Uint8Array(bomBytes.length + bytes.length);
@@ -344,7 +370,11 @@ export function encodeOutput(
   }
 
   if (encoding === "hex") {
-    return encodeHexOutput(bytes, options.outputHexType, options.outputHexUpperCase);
+    return encodeHexOutput(
+      bytes,
+      options.outputHexType,
+      options.outputHexUpperCase,
+    );
   }
 
   return decodeBytesToText(bytes, options.outputCharset);
@@ -401,14 +431,17 @@ export function detectCharsets(bytes: Uint8Array) {
   for (const result of results) {
     const charset = normalizeCharsetValue(result.name);
     if (!isSupportedCharset(charset)) continue;
-    const confidence = result.confidence > 1 ? result.confidence / 100 : result.confidence;
+    const confidence =
+      result.confidence > 1 ? result.confidence / 100 : result.confidence;
     const current = seen.get(charset);
     if (!current || confidence > current.confidence) {
       seen.set(charset, { charset, confidence, source: "chardet" });
     }
   }
 
-  const detected = Array.from(seen.values()).sort((a, b) => b.confidence - a.confidence);
+  const detected = Array.from(seen.values()).sort(
+    (a, b) => b.confidence - a.confidence,
+  );
   if (bom) {
     const bomCharset = normalizeCharsetValue(bom.charset);
     const filtered = detected.filter(

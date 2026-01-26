@@ -8,11 +8,17 @@ import PasswordHashInner from "./password-hash-inner";
 import { paramsSchema, type PasswordHashState } from "./password-hash-types";
 
 export default function PasswordHashContent() {
-  const { state, setParam, oversizeKeys, hasUrlParams, hydrationSource, resetToDefaults } =
-    useUrlSyncedState("password-hash", {
-      schema: paramsSchema,
-      defaults: paramsSchema.parse({}),
-    });
+  const {
+    state,
+    setParam,
+    oversizeKeys,
+    hasUrlParams,
+    hydrationSource,
+    resetToDefaults,
+  } = useUrlSyncedState("password-hash", {
+    schema: paramsSchema,
+    defaults: paramsSchema.parse({}),
+  });
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {

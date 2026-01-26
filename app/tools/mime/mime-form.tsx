@@ -99,11 +99,14 @@ export default function MimeForm({
     [onFileUpload],
   );
 
-  const handleDragOver = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-    setIsDragging(true);
-  }, []);
+  const handleDragOver = React.useCallback(
+    (event: React.DragEvent<HTMLDivElement>) => {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "copy";
+      setIsDragging(true);
+    },
+    [],
+  );
 
   const handleDragLeave = React.useCallback(() => {
     setIsDragging(false);
@@ -220,14 +223,26 @@ export default function MimeForm({
                 </p>
               </div>
               <div>
-                <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
-                <Button type="button" variant="secondary" size="sm" onClick={handleUploadClick}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleUploadClick}
+                >
                   Choose file
                 </Button>
               </div>
             </div>
             {isDragging && (
-              <div className="mt-2 text-xs text-primary">Drop file to upload</div>
+              <div className="mt-2 text-xs text-primary">
+                Drop file to upload
+              </div>
             )}
             {detectError && (
               <div className="mt-2 text-xs text-destructive">{detectError}</div>
@@ -243,7 +258,9 @@ export default function MimeForm({
                   <div>{formatBytes(fileDetection.fileSize)}</div>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground">Detected MIME</div>
+                  <div className="font-medium text-foreground">
+                    Detected MIME
+                  </div>
                   <div>
                     {isDetecting
                       ? "Detecting..."
@@ -253,7 +270,9 @@ export default function MimeForm({
                   </div>
                 </div>
                 <div>
-                  <div className="font-medium text-foreground">Browser MIME</div>
+                  <div className="font-medium text-foreground">
+                    Browser MIME
+                  </div>
                   <div>{fileDetection.browserMime || "Unavailable"}</div>
                 </div>
               </div>

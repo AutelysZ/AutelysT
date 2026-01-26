@@ -84,13 +84,7 @@ export default function SourceMapViewerInner({
         console.error("Failed to restore source maps from history.", error);
       }
     }
-  }, [
-    entries,
-    loading,
-    setActiveMapId,
-    setActiveSourceId,
-    setBundles,
-  ]);
+  }, [entries, loading, setActiveMapId, setActiveSourceId, setBundles]);
 
   React.useEffect(() => {
     if (loading) return;

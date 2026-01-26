@@ -73,7 +73,10 @@ export function parsePhoneNumberJson(text: string): {
   try {
     const parsed = JSON.parse(text) as PhoneNumberJson;
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return { data: getEmptyPhoneNumberJson(), error: "JSON must be an object." };
+      return {
+        data: getEmptyPhoneNumberJson(),
+        error: "JSON must be an object.",
+      };
     }
     return { data: normalizePhoneNumberJson(parsed), error: null };
   } catch (error) {
@@ -109,7 +112,10 @@ export function parsePhoneNumberString(
     console.error(error);
     return {
       json: "",
-      error: error instanceof Error ? error.message : "Failed to parse phone number.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to parse phone number.",
     };
   }
 }
@@ -165,7 +171,10 @@ export function buildPhoneNumberFromJson(
     console.error(error);
     return {
       number: "",
-      error: error instanceof Error ? error.message : "Failed to build phone number.",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to build phone number.",
     };
   }
 }
@@ -254,7 +263,8 @@ function stripEmptyValues(value: PhoneNumberJson): PhoneNumberJson {
   if (value.defaultCountry) next.defaultCountry = value.defaultCountry;
   if (value.number) next.number = value.number;
   if (value.country) next.country = value.country;
-  if (value.countryCallingCode) next.countryCallingCode = value.countryCallingCode;
+  if (value.countryCallingCode)
+    next.countryCallingCode = value.countryCallingCode;
   if (value.nationalNumber) next.nationalNumber = value.nationalNumber;
   if (value.extension) next.extension = value.extension;
   if (value.carrierCode) next.carrierCode = value.carrierCode;
@@ -263,7 +273,12 @@ function stripEmptyValues(value: PhoneNumberJson): PhoneNumberJson {
   if (value.isValid !== undefined) next.isValid = value.isValid;
 
   const formats = value.formats ? { ...value.formats } : {};
-  if (formats.e164 || formats.international || formats.national || formats.rfc3966) {
+  if (
+    formats.e164 ||
+    formats.international ||
+    formats.national ||
+    formats.rfc3966
+  ) {
     next.formats = formats;
   }
 

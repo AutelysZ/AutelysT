@@ -54,7 +54,7 @@ export function getExtensionFromFilename(value: string) {
 
 export function getMimeTypeFromFilename(value: string) {
   const ext = getExtensionFromFilename(value);
-  const mime = ext ? extensionToMime.get(ext) ?? "" : "";
+  const mime = ext ? (extensionToMime.get(ext) ?? "") : "";
   return { mime, ext };
 }
 

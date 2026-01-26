@@ -11,7 +11,8 @@ export type BcryptParsed = {
   hash: string;
 };
 
-const bcryptRegex = /^\$(2[abxy])\$(\d{2})\$([./A-Za-z0-9]{22})([./A-Za-z0-9]{31})$/;
+const bcryptRegex =
+  /^\$(2[abxy])\$(\d{2})\$([./A-Za-z0-9]{22})([./A-Za-z0-9]{31})$/;
 
 export function hashBcrypt(password: string, rounds: number): string {
   const safeRounds = Math.min(31, Math.max(4, Math.floor(rounds) || 10));

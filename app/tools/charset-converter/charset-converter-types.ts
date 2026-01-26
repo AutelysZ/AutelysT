@@ -23,19 +23,28 @@ export const paramsSchema = z.object({
 
 export type ParamsState = z.infer<typeof paramsSchema>;
 
-export const INPUT_ENCODING_OPTIONS: Array<{ value: InputEncodingType; label: string }> = [
+export const INPUT_ENCODING_OPTIONS: Array<{
+  value: InputEncodingType;
+  label: string;
+}> = [
   { value: "raw", label: "Raw" },
   { value: "base64", label: "Base64" },
   { value: "hex", label: "Hex" },
 ];
 
-export const OUTPUT_ENCODING_OPTIONS: Array<{ value: OutputEncodingType; label: string }> = [
+export const OUTPUT_ENCODING_OPTIONS: Array<{
+  value: OutputEncodingType;
+  label: string;
+}> = [
   { value: "raw", label: "Raw" },
   { value: "base64", label: "Base64" },
   { value: "hex", label: "Hex" },
 ];
 
-export const OUTPUT_HEX_OPTIONS: Array<{ value: HexOutputType; label: string }> = [
+export const OUTPUT_HEX_OPTIONS: Array<{
+  value: HexOutputType;
+  label: string;
+}> = [
   { value: "hex", label: "Hex" },
   { value: "hex-escape", label: "Hex Escape" },
   { value: "url", label: "URL" },

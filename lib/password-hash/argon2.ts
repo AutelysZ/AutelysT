@@ -22,7 +22,8 @@ export type Argon2Parsed = {
   hash?: string;
 };
 
-const argon2Regex = /^\$(argon2id|argon2i|argon2d)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)$/i;
+const argon2Regex =
+  /^\$(argon2id|argon2i|argon2d)\$v=(\d+)\$m=(\d+),t=(\d+),p=(\d+)\$([^$]+)\$([^$]+)$/i;
 const ARGON2_SCRIPT_URL =
   "https://unpkg.com/argon2-browser@1.18.0/dist/argon2-bundled.min.js";
 
@@ -154,7 +155,9 @@ export function parseArgon2Hash(hash: string): Argon2Parsed | null {
   };
 }
 
-function getArgonTypeKey(value: Argon2Variant): keyof Argon2Module["ArgonType"] {
+function getArgonTypeKey(
+  value: Argon2Variant,
+): keyof Argon2Module["ArgonType"] {
   switch (value) {
     case "argon2i":
       return "Argon2i";

@@ -69,7 +69,8 @@ export default function CharsetConverterForm({
   onClear,
 }: CharsetConverterFormProps) {
   const outputSupportsBom = isUnicodeCharset(state.outputCharset);
-  const isUtf8InputCharset = normalizeCharsetValue(state.inputCharset) === "UTF-8";
+  const isUtf8InputCharset =
+    normalizeCharsetValue(state.inputCharset) === "UTF-8";
   const disallowTextInput =
     state.inputEncoding === "raw" && !hasFileInput && !isUtf8InputCharset;
   const bomLabel = bomInfo
@@ -159,7 +160,10 @@ export default function CharsetConverterForm({
               <Tabs
                 value={state.inputEncoding}
                 onValueChange={(value) =>
-                  setParam("inputEncoding", value as ParamsState["inputEncoding"])
+                  setParam(
+                    "inputEncoding",
+                    value as ParamsState["inputEncoding"],
+                  )
                 }
               >
                 <TabsList className="grid h-8 w-full grid-cols-3">
@@ -182,9 +186,8 @@ export default function CharsetConverterForm({
 
             {state.inputEncoding === "base64" && base64Detection && (
               <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                Detected:{" "}
-                {base64Detection.isUrlSafe ? "URL-safe" : "Standard"} /{" "}
-                {base64Detection.hasPadding ? "Padding" : "No padding"}
+                Detected: {base64Detection.isUrlSafe ? "URL-safe" : "Standard"}{" "}
+                / {base64Detection.hasPadding ? "Padding" : "No padding"}
               </div>
             )}
           </CardContent>

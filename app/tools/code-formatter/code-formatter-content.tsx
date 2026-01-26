@@ -72,11 +72,9 @@ const prettierPlugins: Plugin[] = [
   prettierPluginYaml as Plugin,
 ];
 
-const shellWasmUrl =
-  "https://cdn.jsdelivr.net/npm/sh-syntax@0.5.8/main.wasm";
-let shellProcessorPromise:
-  | Promise<ReturnType<typeof getProcessor>>
-  | null = null;
+const shellWasmUrl = "https://cdn.jsdelivr.net/npm/sh-syntax@0.5.8/main.wasm";
+let shellProcessorPromise: Promise<ReturnType<typeof getProcessor>> | null =
+  null;
 
 function getShellProcessor() {
   if (!shellProcessorPromise) {
@@ -190,7 +188,8 @@ export default function CodeFormatterContent() {
   const treeNodes = React.useMemo(() => buildFileTree(files), [files]);
 
   const activeFile = React.useMemo(
-    () => files.find((file) => file.id === state.activeFileId) ?? files[0] ?? null,
+    () =>
+      files.find((file) => file.id === state.activeFileId) ?? files[0] ?? null,
     [files, state.activeFileId],
   );
 
@@ -198,8 +197,11 @@ export default function CodeFormatterContent() {
     const entries = Object.entries(formatErrorsById);
     if (!entries.length) return [];
     return entries
-      .filter(([, message]) =>
-        !message.toLowerCase().includes("no parser could be inferred for file"),
+      .filter(
+        ([, message]) =>
+          !message
+            .toLowerCase()
+            .includes("no parser could be inferred for file"),
       )
       .map(([fileId, message]) => {
         const file = files.find((item) => item.id === fileId);
@@ -230,7 +232,6 @@ export default function CodeFormatterContent() {
       setParam("activeFileId", newFile.id);
     }
   }, [files.length, setParam, updateFiles]);
-
 
   React.useEffect(() => {
     if (files.length === 0) return;
@@ -353,9 +354,7 @@ export default function CodeFormatterContent() {
     (value: string) => {
       if (!activeFile) return;
       const nextFiles = files.map((file) =>
-        file.id === activeFile.id
-          ? { ...file, content: value }
-          : file,
+        file.id === activeFile.id ? { ...file, content: value } : file,
       );
       setFormatErrorsById((prev) => {
         if (!prev[activeFile.id]) return prev;
@@ -378,7 +377,10 @@ export default function CodeFormatterContent() {
           return !(normalized === node.path || normalized.startsWith(prefix));
         });
         updateFiles(nextFiles);
-        if (activeFile && !nextFiles.some((file) => file.id === activeFile.id)) {
+        if (
+          activeFile &&
+          !nextFiles.some((file) => file.id === activeFile.id)
+        ) {
           setParam("activeFileId", nextFiles[0]?.id ?? "");
         }
         return;
@@ -406,9 +408,8 @@ export default function CodeFormatterContent() {
       if (existingPaths.has(uniquePath)) {
         const lastSlash = normalized.lastIndexOf("/");
         const dir = lastSlash >= 0 ? normalized.slice(0, lastSlash + 1) : "";
-        const filename = lastSlash >= 0
-          ? normalized.slice(lastSlash + 1)
-          : normalized;
+        const filename =
+          lastSlash >= 0 ? normalized.slice(lastSlash + 1) : normalized;
         const dotIndex = filename.lastIndexOf(".");
         const hasExt = dotIndex > 0;
         const baseName = hasExt ? filename.slice(0, dotIndex) : filename;
@@ -422,9 +423,7 @@ export default function CodeFormatterContent() {
         }
       }
       const nextFiles = files.map((file) =>
-        file.id === activeFile.id
-          ? { ...file, path: uniquePath }
-          : file,
+        file.id === activeFile.id ? { ...file, path: uniquePath } : file,
       );
       updateFiles(nextFiles);
     },
@@ -524,16 +523,25 @@ export default function CodeFormatterContent() {
         setParam("singleQuote", Boolean(params.singleQuote));
       }
       if (params.trailingComma) {
-        setParam("trailingComma", String(params.trailingComma) as ParamsState["trailingComma"]);
+        setParam(
+          "trailingComma",
+          String(params.trailingComma) as ParamsState["trailingComma"],
+        );
       }
       if (params.bracketSpacing !== undefined) {
         setParam("bracketSpacing", Boolean(params.bracketSpacing));
       }
       if (params.arrowParens) {
-        setParam("arrowParens", String(params.arrowParens) as ParamsState["arrowParens"]);
+        setParam(
+          "arrowParens",
+          String(params.arrowParens) as ParamsState["arrowParens"],
+        );
       }
       if (params.endOfLine) {
-        setParam("endOfLine", String(params.endOfLine) as ParamsState["endOfLine"]);
+        setParam(
+          "endOfLine",
+          String(params.endOfLine) as ParamsState["endOfLine"],
+        );
       }
     },
     [setParam],

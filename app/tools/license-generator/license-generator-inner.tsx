@@ -5,7 +5,10 @@ import { DEFAULT_URL_SYNC_DEBOUNCE_MS } from "@/lib/url-state/use-url-synced-sta
 import { useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper";
 import { downloadFile } from "@/lib/archiver/codec";
 import LicenseGeneratorForm from "./license-generator-form";
-import type { LicenseGeneratorState, LicenseOption } from "./license-generator-types";
+import type {
+  LicenseGeneratorState,
+  LicenseOption,
+} from "./license-generator-types";
 
 type LicenseGeneratorInnerProps = {
   state: LicenseGeneratorState;
@@ -80,12 +83,7 @@ export default function LicenseGeneratorInner({
     if (inputSnapshot === lastInputRef.current) return;
     const timer = setTimeout(() => {
       lastInputRef.current = inputSnapshot;
-      addHistoryEntry(
-        inputs,
-        params,
-        "left",
-        licenseName || licenseId,
-      );
+      addHistoryEntry(inputs, params, "left", licenseName || licenseId);
     }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [addHistoryEntry, inputSnapshot, inputs, licenseId, licenseName, params]);
@@ -94,12 +92,7 @@ export default function LicenseGeneratorInner({
     if (hasUrlParams && !hasHandledUrlRef.current) {
       hasHandledUrlRef.current = true;
       if (inputSnapshot) {
-        addHistoryEntry(
-          inputs,
-          params,
-          "left",
-          licenseName || licenseId,
-        );
+        addHistoryEntry(inputs, params, "left", licenseName || licenseId);
       } else {
         updateHistoryParams(params);
       }

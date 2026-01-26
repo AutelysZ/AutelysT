@@ -221,8 +221,10 @@ export default function CharsetConverterInner({
       paramsRef.current.inputCharset === nextParams.inputCharset &&
       paramsRef.current.outputCharset === nextParams.outputCharset &&
       paramsRef.current.outputEncoding === nextParams.outputEncoding &&
-      paramsRef.current.outputBase64Padding === nextParams.outputBase64Padding &&
-      paramsRef.current.outputBase64UrlSafe === nextParams.outputBase64UrlSafe &&
+      paramsRef.current.outputBase64Padding ===
+        nextParams.outputBase64Padding &&
+      paramsRef.current.outputBase64UrlSafe ===
+        nextParams.outputBase64UrlSafe &&
       paramsRef.current.outputHexType === nextParams.outputHexType &&
       paramsRef.current.outputHexUpperCase === nextParams.outputHexUpperCase &&
       paramsRef.current.outputBom === nextParams.outputBom &&

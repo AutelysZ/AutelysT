@@ -29,10 +29,7 @@ export function parseSetCookieHeader(text: string): {
   error: string | null;
 } {
   try {
-    const lines = text
-      .split(/\r?\n/)
-      .map(normalizeHeaderLine)
-      .filter(Boolean);
+    const lines = text.split(/\r?\n/).map(normalizeHeaderLine).filter(Boolean);
 
     const cookies: CookieJson[] = [];
     for (const line of lines) {
@@ -176,8 +173,7 @@ export function buildSetCookieHeader(text: string): {
         domain: cookie.domain || undefined,
         path: cookie.path || undefined,
         expires: toDate(cookie.expires),
-        maxAge:
-          typeof cookie.maxAge === "number" ? cookie.maxAge : undefined,
+        maxAge: typeof cookie.maxAge === "number" ? cookie.maxAge : undefined,
         httpOnly: cookie.httpOnly,
         secure: cookie.secure,
         sameSite: cookie.sameSite,
@@ -205,8 +201,7 @@ export function buildSetCookieHeader(text: string): {
   } catch (error) {
     return {
       header: "",
-      error:
-        error instanceof Error ? error.message : "Failed to build header.",
+      error: error instanceof Error ? error.message : "Failed to build header.",
     };
   }
 }

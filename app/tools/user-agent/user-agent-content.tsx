@@ -5,10 +5,7 @@ import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state";
 import type { HistoryEntry } from "@/lib/history/db";
 import UserAgentInner from "./user-agent-inner";
-import {
-  buildUserAgentString,
-  parseUserAgentString,
-} from "./user-agent-utils";
+import { buildUserAgentString, parseUserAgentString } from "./user-agent-utils";
 import { paramsSchema, type UserAgentState } from "./user-agent-types";
 
 const defaultUserAgent =
@@ -108,7 +105,13 @@ export default function UserAgentContent() {
     } else {
       parseRight(state.rightText);
     }
-  }, [parseLeft, parseRight, state.activeSide, state.leftText, state.rightText]);
+  }, [
+    parseLeft,
+    parseRight,
+    state.activeSide,
+    state.leftText,
+    state.rightText,
+  ]);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {

@@ -31,9 +31,10 @@ function secondsToDuration(seconds?: number) {
 function durationToSeconds(value: string): number | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
-  const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec(
-    trimmed,
-  );
+  const match =
+    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/i.exec(
+      trimmed,
+    );
   if (!match) return null;
   const days = match[1] ? Number(match[1]) : 0;
   const hours = match[2] ? Number(match[2]) : 0;
@@ -112,7 +113,11 @@ export default function SetCookieForm({
   );
 
   const handleCookieChange = React.useCallback(
-    <K extends keyof CookieJson>(index: number, key: K, value: CookieJson[K]) => {
+    <K extends keyof CookieJson>(
+      index: number,
+      key: K,
+      value: CookieJson[K],
+    ) => {
       updateCookies(
         buildCookieChange(parsedJson.cookies, index, {
           [key]: value,
@@ -179,9 +184,7 @@ export default function SetCookieForm({
             className="rounded-md border border-border/60 bg-background p-3"
           >
             <div className="mb-2 flex items-center justify-between">
-              <div className="text-sm font-medium">
-                Cookie {index + 1}
-              </div>
+              <div className="text-sm font-medium">Cookie {index + 1}</div>
               <Button
                 type="button"
                 variant="ghost"
@@ -227,7 +230,11 @@ export default function SetCookieForm({
                     <Input
                       value={cookie.domain ?? ""}
                       onChange={(event) =>
-                        handleCookieChange(index, "domain", event.target.value || undefined)
+                        handleCookieChange(
+                          index,
+                          "domain",
+                          event.target.value || undefined,
+                        )
                       }
                       placeholder="example.com"
                       className="h-8 text-sm"
@@ -240,7 +247,11 @@ export default function SetCookieForm({
                     <Input
                       value={cookie.path ?? ""}
                       onChange={(event) =>
-                        handleCookieChange(index, "path", event.target.value || undefined)
+                        handleCookieChange(
+                          index,
+                          "path",
+                          event.target.value || undefined,
+                        )
                       }
                       placeholder="/"
                       className="h-8 text-sm"
@@ -253,7 +264,11 @@ export default function SetCookieForm({
                     <Input
                       value={cookie.expires ?? ""}
                       onChange={(event) =>
-                        handleCookieChange(index, "expires", event.target.value || undefined)
+                        handleCookieChange(
+                          index,
+                          "expires",
+                          event.target.value || undefined,
+                        )
                       }
                       placeholder="2026-01-26T00:00:00Z"
                       className="h-8 text-sm"
@@ -412,7 +427,11 @@ export default function SetCookieForm({
                         <Checkbox
                           checked={cookie.httpOnly === true}
                           onCheckedChange={(checked) =>
-                            handleCookieChange(index, "httpOnly", checked === true)
+                            handleCookieChange(
+                              index,
+                              "httpOnly",
+                              checked === true,
+                            )
                           }
                         />
                         HttpOnly
@@ -421,7 +440,11 @@ export default function SetCookieForm({
                         <Checkbox
                           checked={cookie.secure === true}
                           onCheckedChange={(checked) =>
-                            handleCookieChange(index, "secure", checked === true)
+                            handleCookieChange(
+                              index,
+                              "secure",
+                              checked === true,
+                            )
                           }
                         />
                         Secure
@@ -430,7 +453,11 @@ export default function SetCookieForm({
                         <Checkbox
                           checked={cookie.partitioned === true}
                           onCheckedChange={(checked) =>
-                            handleCookieChange(index, "partitioned", checked === true)
+                            handleCookieChange(
+                              index,
+                              "partitioned",
+                              checked === true,
+                            )
                           }
                         />
                         Partitioned

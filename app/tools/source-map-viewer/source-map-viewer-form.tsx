@@ -73,9 +73,7 @@ export default function SourceMapViewerForm({
         });
         if (!file) return [];
         if (!prefix) return [file];
-        return [
-          new File([file], `${prefix}${file.name}`, { type: file.type }),
-        ];
+        return [new File([file], `${prefix}${file.name}`, { type: file.type })];
       }
       if (!entry.isDirectory) return [];
       const reader = (entry as FileSystemDirectoryEntry).createReader();
@@ -225,133 +223,133 @@ export default function SourceMapViewerForm({
         <div className="flex h-full min-h-0 flex-col">
           <div className="grid flex-1 min-h-0 gap-0 lg:grid-cols-[280px_minmax(0,1fr)]">
             <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-muted/20">
-            <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
-              <div className="text-xs font-medium text-muted-foreground">
-                Maps
+              <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  Maps
+                </div>
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => fileInputRef.current?.click()}
+                        aria-label="Upload maps"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Upload</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={onDownloadAll}
+                        disabled={totalSources === 0}
+                        aria-label="Download ZIP"
+                      >
+                        <FileDown className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Download ZIP</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                        onClick={onClear}
+                        disabled={totalSources === 0}
+                        aria-label="Clear"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Clear</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={() => fileInputRef.current?.click()}
-                      aria-label="Upload maps"
-                    >
-                      <Upload className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Upload</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={onDownloadAll}
-                      disabled={totalSources === 0}
-                      aria-label="Download ZIP"
-                    >
-                      <FileDown className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Download ZIP</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                      onClick={onClear}
-                      disabled={totalSources === 0}
-                      aria-label="Clear"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">Clear</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-            <ScrollArea className="flex-1 min-h-0">
-              <div className="px-2 py-3">
-                <SourceMapFileTree
-                  nodes={treeNodes}
-                  activeFileId={activeFile?.id ?? ""}
-                  onSelect={handleSelectNode}
-                  onDelete={onDeleteNode}
-                  canDeleteNode={(node) => node.id.startsWith("map:")}
-                />
-              </div>
-            </ScrollArea>
+              <ScrollArea className="flex-1 min-h-0">
+                <div className="px-2 py-3">
+                  <SourceMapFileTree
+                    nodes={treeNodes}
+                    activeFileId={activeFile?.id ?? ""}
+                    onSelect={handleSelectNode}
+                    onDelete={onDeleteNode}
+                    canDeleteNode={(node) => node.id.startsWith("map:")}
+                  />
+                </div>
+              </ScrollArea>
             </div>
 
             <div className="flex h-full min-h-0 flex-col bg-muted/10">
-            <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
-              <div className="text-xs font-medium text-muted-foreground">
-                Preview
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                    onClick={onDownloadFile}
-                    disabled={!activeFile || activeFile.content === null}
-                    aria-label="Download file"
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">Download file</TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="relative flex-1 overflow-hidden">
-              {activeFile ? (
-                <Editor
-                  height="100%"
-                  language={editorLanguage}
-                  theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
-                  value={editorContent}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                    wordWrap: "on",
-                    tabSize: 4,
-                    detectIndentation: false,
-                    automaticLayout: true,
-                    padding: { top: 8, bottom: 8 },
-                    scrollbar: {
-                      vertical: "auto",
-                      horizontal: "auto",
-                      verticalScrollbarSize: 8,
-                      horizontalScrollbarSize: 8,
-                    },
-                  }}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                  Upload a source map to view files.
+              <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  Preview
                 </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={onDownloadFile}
+                      disabled={!activeFile || activeFile.content === null}
+                      aria-label="Download file"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">Download file</TooltipContent>
+                </Tooltip>
+              </div>
+              <div className="relative flex-1 overflow-hidden">
+                {activeFile ? (
+                  <Editor
+                    height="100%"
+                    language={editorLanguage}
+                    theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
+                    value={editorContent}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      lineNumbers: "on",
+                      scrollBeyondLastLine: false,
+                      wordWrap: "on",
+                      tabSize: 4,
+                      detectIndentation: false,
+                      automaticLayout: true,
+                      padding: { top: 8, bottom: 8 },
+                      scrollbar: {
+                        vertical: "auto",
+                        horizontal: "auto",
+                        verticalScrollbarSize: 8,
+                        horizontalScrollbarSize: 8,
+                      },
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    Upload a source map to view files.
+                  </div>
+                )}
+              </div>
+              {activeFile && activeFile.content === null && (
+                <p className="px-3 py-2 text-xs text-muted-foreground">
+                  This source map does not embed source content for the selected
+                  file.
+                </p>
               )}
-            </div>
-            {activeFile && activeFile.content === null && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">
-                This source map does not embed source content for the selected
-                file.
-              </p>
-            )}
             </div>
           </div>
           {(parseErrors.length > 0 || downloadError) && (

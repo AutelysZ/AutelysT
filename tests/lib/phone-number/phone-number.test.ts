@@ -9,7 +9,10 @@ describe("phone-number", () => {
   it("parses a valid phone number", () => {
     const result = parsePhoneNumberString("+12025550123", "US");
     expect(result.error).toBeNull();
-    const json = JSON.parse(result.json) as { number?: string; country?: string };
+    const json = JSON.parse(result.json) as {
+      number?: string;
+      country?: string;
+    };
     expect(json.number).toBe("+12025550123");
     expect(json.country).toBe("US");
   });

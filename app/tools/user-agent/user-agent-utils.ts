@@ -18,7 +18,9 @@ export function formatUserAgentJson(data: UserAgentJson): string {
   return JSON.stringify(stripEmptyValues(data), null, 2);
 }
 
-export function parseUserAgentJson(value: string):
+export function parseUserAgentJson(
+  value: string,
+):
   | { data: UserAgentJson; error: null }
   | { data: UserAgentJson; error: string } {
   if (!value.trim()) {
@@ -42,9 +44,9 @@ export function parseUserAgentJson(value: string):
   }
 }
 
-export function parseUserAgentString(value: string):
-  | { json: string; error: null }
-  | { json: string; error: string } {
+export function parseUserAgentString(
+  value: string,
+): { json: string; error: null } | { json: string; error: string } {
   const cleaned = normalizeUserAgentHeader(value);
   if (!cleaned) {
     return { json: "", error: "User-Agent string is empty." };
@@ -86,9 +88,9 @@ export function parseUserAgentString(value: string):
   }
 }
 
-export function buildUserAgentString(value: string):
-  | { ua: string; error: null }
-  | { ua: string; error: string } {
+export function buildUserAgentString(
+  value: string,
+): { ua: string; error: null } | { ua: string; error: string } {
   const parsed = parseUserAgentJson(value);
   if (parsed.error) {
     return { ua: "", error: parsed.error };
@@ -198,15 +200,15 @@ function buildUaFromJson(value: UserAgentJson): string {
 function hasAgentParts(value: UserAgentJson): boolean {
   return Boolean(
     value.browser?.name ||
-      value.browser?.version ||
-      value.engine?.name ||
-      value.engine?.version ||
-      value.os?.name ||
-      value.os?.version ||
-      value.device?.vendor ||
-      value.device?.model ||
-      value.device?.type ||
-      value.cpu?.architecture,
+    value.browser?.version ||
+    value.engine?.name ||
+    value.engine?.version ||
+    value.os?.name ||
+    value.os?.version ||
+    value.device?.vendor ||
+    value.device?.model ||
+    value.device?.type ||
+    value.cpu?.architecture,
   );
 }
 

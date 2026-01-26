@@ -213,9 +213,7 @@ export default function PhoneNumberForm({
           <tbody>
             <tr>
               <td className={labelCellClass}>Type</td>
-              <td className="py-1 text-xs">
-                {parsedJson.data.type || "-"}
-              </td>
+              <td className="py-1 text-xs">{parsedJson.data.type || "-"}</td>
             </tr>
             <tr>
               <td className={labelCellClass}>Is Possible</td>
@@ -312,7 +310,11 @@ export default function PhoneNumberForm({
             >
               <TabsList className="h-7">
                 {Object.entries(formatLabels).map(([value, label]) => (
-                  <TabsTrigger key={value} value={value} className="px-2 text-xs">
+                  <TabsTrigger
+                    key={value}
+                    value={value}
+                    className="px-2 text-xs"
+                  >
                     {label}
                   </TabsTrigger>
                 ))}

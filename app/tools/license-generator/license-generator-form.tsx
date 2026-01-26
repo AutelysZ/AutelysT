@@ -10,7 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import type { LicenseGeneratorState, LicenseOption } from "./license-generator-types";
+import type {
+  LicenseGeneratorState,
+  LicenseOption,
+} from "./license-generator-types";
 
 const STEP_LABELS = ["Start", "License", "Details", "Generate"];
 
@@ -343,7 +346,9 @@ export default function LicenseGeneratorForm({
               <Label className="text-xs">Copyright holder *</Label>
               <Input
                 value={state.holder}
-                onChange={(event) => onFieldChange("holder", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("holder", event.target.value)
+                }
                 placeholder="Your name or organization"
               />
             </div>
@@ -351,7 +356,9 @@ export default function LicenseGeneratorForm({
               <Label className="text-xs">Project name</Label>
               <Input
                 value={state.project}
-                onChange={(event) => onFieldChange("project", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("project", event.target.value)
+                }
                 placeholder="Optional"
               />
             </div>
@@ -367,7 +374,9 @@ export default function LicenseGeneratorForm({
               <Label className="text-xs">Website</Label>
               <Input
                 value={state.website}
-                onChange={(event) => onFieldChange("website", event.target.value)}
+                onChange={(event) =>
+                  onFieldChange("website", event.target.value)
+                }
                 placeholder="Optional"
               />
             </div>
@@ -393,7 +402,11 @@ export default function LicenseGeneratorForm({
                 onClick={handleCopy}
                 disabled={!licenseText}
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
                 {copied ? "Copied" : "Copy"}
               </Button>
               <Button

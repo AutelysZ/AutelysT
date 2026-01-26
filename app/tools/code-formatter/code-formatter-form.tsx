@@ -188,9 +188,7 @@ export default function CodeFormatterForm({
         });
         if (!file) return [];
         if (!prefix) return [file];
-        return [
-          new File([file], `${prefix}${file.name}`, { type: file.type }),
-        ];
+        return [new File([file], `${prefix}${file.name}`, { type: file.type })];
       }
       if (!entry.isDirectory) return [];
       const reader = (entry as FileSystemDirectoryEntry).createReader();
@@ -285,17 +283,13 @@ export default function CodeFormatterForm({
   const selectedLanguage = React.useMemo(() => {
     if (!activeFile) return "js";
     const extension = activeFile.path.split(".").pop()?.toLowerCase();
-    const match = LANGUAGE_OPTIONS.find(
-      (option) => option.value === extension,
-    );
+    const match = LANGUAGE_OPTIONS.find((option) => option.value === extension);
     return match?.value ?? "txt";
   }, [activeFile]);
 
   const handleLanguageChange = React.useCallback(
     (extension: string) => {
-      const option = LANGUAGE_OPTIONS.find(
-        (item) => item.value === extension,
-      );
+      const option = LANGUAGE_OPTIONS.find((item) => item.value === extension);
       if (!option) return;
       onRenameActiveFile(`untitled.${option.value}`);
     },
@@ -343,463 +337,486 @@ export default function CodeFormatterForm({
           } as React.InputHTMLAttributes<HTMLInputElement>)}
         />
 
-      <div
-        className="relative h-[calc(100vh-9rem)] min-h-[360px] rounded-lg border bg-background"
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={(event) => {
-          event.preventDefault();
-        }}
-        onDrop={handleDropFiles}
-      >
         <div
-          className={
-            showFileTree
-              ? "grid h-full min-h-0 gap-0 lg:grid-cols-[280px_minmax(0,1fr)]"
-              : "grid h-full min-h-0 gap-0"
-          }
+          className="relative h-[calc(100vh-9rem)] min-h-[360px] rounded-lg border bg-background"
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={(event) => {
+            event.preventDefault();
+          }}
+          onDrop={handleDropFiles}
         >
-          {isDragging ? (
-            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
-              Drop files to add them
-            </div>
-          ) : null}
-          {showFileTree ? (
-            <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-muted/20">
-              <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
-                <div className="text-xs font-medium text-muted-foreground">
-                  Files
-                </div>
-                <div className="flex items-center gap-1">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => fileInputRef.current?.click()}
-                        aria-label="Upload files"
-                      >
-                        <Upload className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Upload files</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => folderInputRef.current?.click()}
-                        aria-label="Upload folder"
-                      >
-                        <FolderUp className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Upload folder</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={() => setIsDialogOpen(true)}
-                        aria-label="New file"
-                      >
-                        <FilePlus className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">New file</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={onDownloadAll}
-                        disabled={files.length === 0}
-                        aria-label="Download ZIP"
-                      >
-                        <FileDown className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Download ZIP</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                        onClick={onClear}
-                        disabled={files.length === 0}
-                        aria-label="Clear files"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Clear files</TooltipContent>
-                  </Tooltip>
-                </div>
+          <div
+            className={
+              showFileTree
+                ? "grid h-full min-h-0 gap-0 lg:grid-cols-[280px_minmax(0,1fr)]"
+                : "grid h-full min-h-0 gap-0"
+            }
+          >
+            {isDragging ? (
+              <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/70 text-sm text-muted-foreground backdrop-blur-sm">
+                Drop files to add them
               </div>
-              <ScrollArea className="flex-1 min-h-0">
-                <div className="px-2 py-3">
-                  <SourceMapFileTree
-                    nodes={treeNodes}
-                    activeFileId={activeFile?.id ?? ""}
-                    onSelect={handleSelectNode}
-                    onDelete={onDeleteNode}
-                  />
-                </div>
-              </ScrollArea>
-            </div>
-          ) : null}
-
-          <div className="flex h-full min-h-0 flex-col bg-muted/10">
-            <div className="border-b border-border/60 bg-background/80 px-3 py-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <SearchableSelect
-                    value={selectedLanguage}
-                    onValueChange={handleLanguageChange}
-                    options={LANGUAGE_OPTIONS}
-                    placeholder="Select extension..."
-                    searchPlaceholder="Search extensions..."
-                    triggerClassName="h-8 w-[180px]"
-                    className="w-[240px]"
-                  />
-                </div>
-                <div className="ml-auto flex flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    className="h-8 gap-1"
-                    onClick={onFormatActive}
-                    disabled={!activeFile || isFormatting}
-                  >
-                    <Sparkles className="h-4 w-4" />
-                    Format
-                  </Button>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={onFormatAll}
-                        disabled={files.length === 0 || isFormatting}
-                        aria-label="Format all"
-                      >
-                        <Sparkles className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Format all</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        onClick={onDownloadFile}
-                        disabled={!activeFile}
-                        aria-label="Download"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">Download</TooltipContent>
-                  </Tooltip>
-                  <Popover>
+            ) : null}
+            {showFileTree ? (
+              <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-muted/20">
+                <div className="flex items-center justify-between border-b border-border/60 bg-background/80 px-3 py-2">
+                  <div className="text-xs font-medium text-muted-foreground">
+                    Files
+                  </div>
+                  <div className="flex items-center gap-1">
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <PopoverTrigger asChild>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            aria-label="Options"
-                          >
-                            <SlidersHorizontal className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => fileInputRef.current?.click()}
+                          aria-label="Upload files"
+                        >
+                          <Upload className="h-4 w-4" />
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="bottom">Options</TooltipContent>
+                      <TooltipContent side="bottom">
+                        Upload files
+                      </TooltipContent>
                     </Tooltip>
-                    <PopoverContent align="end" className="w-[min(92vw,420px)]">
-                      <div className="space-y-3">
-                        <div className="text-sm font-medium">Format Options</div>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label className="text-xs">Print Width</Label>
-                            <Input
-                              type="number"
-                              value={state.printWidth}
-                              min={40}
-                              max={400}
-                              onChange={(event) => {
-                                const value = event.target.valueAsNumber;
-                                if (Number.isNaN(value)) return;
-                                setParam("printWidth", value);
-                              }}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">Tab Width</Label>
-                            <Input
-                              type="number"
-                              value={state.tabWidth}
-                              min={1}
-                              max={8}
-                              onChange={(event) => {
-                                const value = event.target.valueAsNumber;
-                                if (Number.isNaN(value)) return;
-                                setParam("tabWidth", value);
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="useTabs"
-                              checked={state.useTabs}
-                              onCheckedChange={(checked) =>
-                                setParam("useTabs", checked === true, true)
-                              }
-                            />
-                            <Label htmlFor="useTabs" className="text-xs">
-                              Use tabs
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="semi"
-                              checked={state.semi}
-                              onCheckedChange={(checked) =>
-                                setParam("semi", checked === true, true)
-                              }
-                            />
-                            <Label htmlFor="semi" className="text-xs">
-                              Semicolons
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="singleQuote"
-                              checked={state.singleQuote}
-                              onCheckedChange={(checked) =>
-                                setParam("singleQuote", checked === true, true)
-                              }
-                            />
-                            <Label htmlFor="singleQuote" className="text-xs">
-                              Single quotes
-                            </Label>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              id="bracketSpacing"
-                              checked={state.bracketSpacing}
-                              onCheckedChange={(checked) =>
-                                setParam("bracketSpacing", checked === true, true)
-                              }
-                            />
-                            <Label htmlFor="bracketSpacing" className="text-xs">
-                              Bracket spacing
-                            </Label>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">Trailing Comma</Label>
-                            <Select
-                              value={state.trailingComma}
-                              onValueChange={(value) =>
-                                setParam(
-                                  "trailingComma",
-                                  value as ParamsState["trailingComma"],
-                                  true,
-                                )
-                              }
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => folderInputRef.current?.click()}
+                          aria-label="Upload folder"
+                        >
+                          <FolderUp className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        Upload folder
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => setIsDialogOpen(true)}
+                          aria-label="New file"
+                        >
+                          <FilePlus className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">New file</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={onDownloadAll}
+                          disabled={files.length === 0}
+                          aria-label="Download ZIP"
+                        >
+                          <FileDown className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        Download ZIP
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          onClick={onClear}
+                          disabled={files.length === 0}
+                          aria-label="Clear files"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">Clear files</TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="px-2 py-3">
+                    <SourceMapFileTree
+                      nodes={treeNodes}
+                      activeFileId={activeFile?.id ?? ""}
+                      onSelect={handleSelectNode}
+                      onDelete={onDeleteNode}
+                    />
+                  </div>
+                </ScrollArea>
+              </div>
+            ) : null}
+
+            <div className="flex h-full min-h-0 flex-col bg-muted/10">
+              <div className="border-b border-border/60 bg-background/80 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <SearchableSelect
+                      value={selectedLanguage}
+                      onValueChange={handleLanguageChange}
+                      options={LANGUAGE_OPTIONS}
+                      placeholder="Select extension..."
+                      searchPlaceholder="Search extensions..."
+                      triggerClassName="h-8 w-[180px]"
+                      className="w-[240px]"
+                    />
+                  </div>
+                  <div className="ml-auto flex flex-wrap items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-8 gap-1"
+                      onClick={onFormatActive}
+                      disabled={!activeFile || isFormatting}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Format
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={onFormatAll}
+                          disabled={files.length === 0 || isFormatting}
+                          aria-label="Format all"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">Format all</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={onDownloadFile}
+                          disabled={!activeFile}
+                          aria-label="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">Download</TooltipContent>
+                    </Tooltip>
+                    <Popover>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0"
+                              aria-label="Options"
                             >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {TRAILING_COMMA_OPTIONS.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              <SlidersHorizontal className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">Options</TooltipContent>
+                      </Tooltip>
+                      <PopoverContent
+                        align="end"
+                        className="w-[min(92vw,420px)]"
+                      >
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium">
+                            Format Options
                           </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">Arrow Parens</Label>
-                            <Select
-                              value={state.arrowParens}
-                              onValueChange={(value) =>
-                                setParam(
-                                  "arrowParens",
-                                  value as ParamsState["arrowParens"],
-                                  true,
-                                )
-                              }
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {ARROW_PARENS_OPTIONS.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label className="text-xs">End of Line</Label>
-                            <Select
-                              value={state.endOfLine}
-                              onValueChange={(value) =>
-                                setParam(
-                                  "endOfLine",
-                                  value as ParamsState["endOfLine"],
-                                  true,
-                                )
-                              }
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {END_OF_LINE_OPTIONS.map((option) => (
-                                  <SelectItem key={option} value={option}>
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <div className="space-y-2">
+                              <Label className="text-xs">Print Width</Label>
+                              <Input
+                                type="number"
+                                value={state.printWidth}
+                                min={40}
+                                max={400}
+                                onChange={(event) => {
+                                  const value = event.target.valueAsNumber;
+                                  if (Number.isNaN(value)) return;
+                                  setParam("printWidth", value);
+                                }}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Tab Width</Label>
+                              <Input
+                                type="number"
+                                value={state.tabWidth}
+                                min={1}
+                                max={8}
+                                onChange={(event) => {
+                                  const value = event.target.valueAsNumber;
+                                  if (Number.isNaN(value)) return;
+                                  setParam("tabWidth", value);
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="useTabs"
+                                checked={state.useTabs}
+                                onCheckedChange={(checked) =>
+                                  setParam("useTabs", checked === true, true)
+                                }
+                              />
+                              <Label htmlFor="useTabs" className="text-xs">
+                                Use tabs
+                              </Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="semi"
+                                checked={state.semi}
+                                onCheckedChange={(checked) =>
+                                  setParam("semi", checked === true, true)
+                                }
+                              />
+                              <Label htmlFor="semi" className="text-xs">
+                                Semicolons
+                              </Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="singleQuote"
+                                checked={state.singleQuote}
+                                onCheckedChange={(checked) =>
+                                  setParam(
+                                    "singleQuote",
+                                    checked === true,
+                                    true,
+                                  )
+                                }
+                              />
+                              <Label htmlFor="singleQuote" className="text-xs">
+                                Single quotes
+                              </Label>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                id="bracketSpacing"
+                                checked={state.bracketSpacing}
+                                onCheckedChange={(checked) =>
+                                  setParam(
+                                    "bracketSpacing",
+                                    checked === true,
+                                    true,
+                                  )
+                                }
+                              />
+                              <Label
+                                htmlFor="bracketSpacing"
+                                className="text-xs"
+                              >
+                                Bracket spacing
+                              </Label>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Trailing Comma</Label>
+                              <Select
+                                value={state.trailingComma}
+                                onValueChange={(value) =>
+                                  setParam(
+                                    "trailingComma",
+                                    value as ParamsState["trailingComma"],
+                                    true,
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {TRAILING_COMMA_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">Arrow Parens</Label>
+                              <Select
+                                value={state.arrowParens}
+                                onValueChange={(value) =>
+                                  setParam(
+                                    "arrowParens",
+                                    value as ParamsState["arrowParens"],
+                                    true,
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ARROW_PARENS_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label className="text-xs">End of Line</Label>
+                              <Select
+                                value={state.endOfLine}
+                                onValueChange={(value) =>
+                                  setParam(
+                                    "endOfLine",
+                                    value as ParamsState["endOfLine"],
+                                    true,
+                                  )
+                                }
+                              >
+                                <SelectTrigger className="w-full">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {END_OF_LINE_OPTIONS.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="relative flex-1 overflow-hidden">
-              {activeFile ? (
-                <Editor
-                  height="100%"
-                  language={editorLanguage}
-                  path={activeFile.path}
-                  theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
-                  value={activeFile.content}
-                  beforeMount={handleBeforeMount}
-                  onChange={(value) => onEditorChange(value ?? "")}
-                  options={{
-                    readOnly: false,
-                    minimap: { enabled: false },
-                    fontSize: 13,
-                    lineNumbers: "on",
-                    scrollBeyondLastLine: false,
-                    wordWrap: "on",
-                    tabSize: state.tabWidth,
-                    insertSpaces: !state.useTabs,
-                    detectIndentation: false,
-                    automaticLayout: true,
-                    padding: { top: 8, bottom: 8 },
-                    scrollbar: {
-                      vertical: "auto",
-                      horizontal: "auto",
-                      verticalScrollbarSize: 8,
-                      horizontalScrollbarSize: 8,
-                    },
-                  }}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
-                  Upload a file to start formatting.
-                </div>
-              )}
-            </div>
-            {activeFileError && (
-              <div className="px-3 py-2 text-xs text-destructive">
-                {activeFileError}
-              </div>
-            )}
-            {(parseError || downloadError || formatErrors.length > 0) && (
-              <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
-                {parseError && (
-                  <div className="text-destructive">{parseError}</div>
-                )}
-                {downloadError && (
-                  <div className="text-destructive">{downloadError}</div>
-                )}
-                {formatErrors.length > 0 && (
-                  <div className="space-y-1 text-destructive">
-                    {formatErrors.map((error) => (
-                      <div key={error}>{error}</div>
-                    ))}
+              <div className="relative flex-1 overflow-hidden">
+                {activeFile ? (
+                  <Editor
+                    height="100%"
+                    language={editorLanguage}
+                    path={activeFile.path}
+                    theme={resolvedTheme === "dark" ? "vs-dark" : "light"}
+                    value={activeFile.content}
+                    beforeMount={handleBeforeMount}
+                    onChange={(value) => onEditorChange(value ?? "")}
+                    options={{
+                      readOnly: false,
+                      minimap: { enabled: false },
+                      fontSize: 13,
+                      lineNumbers: "on",
+                      scrollBeyondLastLine: false,
+                      wordWrap: "on",
+                      tabSize: state.tabWidth,
+                      insertSpaces: !state.useTabs,
+                      detectIndentation: false,
+                      automaticLayout: true,
+                      padding: { top: 8, bottom: 8 },
+                      scrollbar: {
+                        vertical: "auto",
+                        horizontal: "auto",
+                        verticalScrollbarSize: 8,
+                        horizontalScrollbarSize: 8,
+                      },
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                    Upload a file to start formatting.
                   </div>
                 )}
               </div>
-            )}
+              {activeFileError && (
+                <div className="px-3 py-2 text-xs text-destructive">
+                  {activeFileError}
+                </div>
+              )}
+              {(parseError || downloadError || formatErrors.length > 0) && (
+                <div className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
+                  {parseError && (
+                    <div className="text-destructive">{parseError}</div>
+                  )}
+                  {downloadError && (
+                    <div className="text-destructive">{downloadError}</div>
+                  )}
+                  {formatErrors.length > 0 && (
+                    <div className="space-y-1 text-destructive">
+                      {formatErrors.map((error) => (
+                        <div key={error}>{error}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create File</DialogTitle>
-            <DialogDescription>
-              Add a new file to the workspace with an optional initial content.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label className="text-xs">Path</Label>
-              <Input
-                value={newFilePath}
-                onChange={(event) => setNewFilePath(event.target.value)}
-                placeholder="src/index.ts"
-              />
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create File</DialogTitle>
+              <DialogDescription>
+                Add a new file to the workspace with an optional initial
+                content.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-2">
+                <Label className="text-xs">Path</Label>
+                <Input
+                  value={newFilePath}
+                  onChange={(event) => setNewFilePath(event.target.value)}
+                  placeholder="src/index.ts"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Initial Content</Label>
+                <Textarea
+                  value={newFileContent}
+                  onChange={(event) => setNewFileContent(event.target.value)}
+                  placeholder="Optional content..."
+                  className="min-h-[120px]"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Initial Content</Label>
-              <Textarea
-                value={newFileContent}
-                onChange={(event) => setNewFileContent(event.target.value)}
-                placeholder="Optional content..."
-                className="min-h-[120px]"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleCreateConfirm}>
-              Create
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" onClick={handleCreateConfirm}>
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );

@@ -12,9 +12,7 @@ import {
   FileCode,
   Trash2,
 } from "lucide-react";
-import {
-  DEFAULT_URL_SYNC_DEBOUNCE_MS,
-} from "@/lib/url-state/use-url-synced-state";
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS } from "@/lib/url-state/use-url-synced-state";
 import { useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -272,11 +270,12 @@ export default function BencodeInner({
 
   const handleDownloadOutput = React.useCallback(() => {
     if (binaryMeta && outputBytesRef.current) {
-      const blob = new Blob([
-        outputBytesRef.current as Uint8Array<ArrayBuffer>,
-      ], {
-        type: "application/octet-stream",
-      });
+      const blob = new Blob(
+        [outputBytesRef.current as Uint8Array<ArrayBuffer>],
+        {
+          type: "application/octet-stream",
+        },
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
@@ -587,9 +586,7 @@ export default function BencodeInner({
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                {error}
-              </AlertDescription>
+              <AlertDescription className="text-xs">{error}</AlertDescription>
             </Alert>
           )}
         </div>

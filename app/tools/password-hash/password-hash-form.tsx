@@ -165,7 +165,9 @@ export default function PasswordHashForm({
                 min={4}
                 max={31}
                 value={state.bcryptRounds}
-                onChange={(e) => setParam("bcryptRounds", Number(e.target.value))}
+                onChange={(e) =>
+                  setParam("bcryptRounds", Number(e.target.value))
+                }
               />
             </div>
             <Button
@@ -191,7 +193,9 @@ export default function PasswordHashForm({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy(state.bcryptParseHash, "bcryptHash")}
+                  onClick={() =>
+                    handleCopy(state.bcryptParseHash, "bcryptHash")
+                  }
                   className="h-7 w-7 p-0"
                 >
                   {copiedField === "bcryptHash" ? (
@@ -214,7 +218,9 @@ export default function PasswordHashForm({
                 <table className="w-full text-xs">
                   <tbody>
                     <tr>
-                      <td className="py-1 pr-3 text-muted-foreground">Version</td>
+                      <td className="py-1 pr-3 text-muted-foreground">
+                        Version
+                      </td>
                       <td className="py-1">{parsedBcrypt.version}</td>
                     </tr>
                     <tr>
@@ -248,7 +254,9 @@ export default function PasswordHashForm({
                   setParam("bcryptVerifyPassword", e.target.value)
                 }
                 onBlur={onBcryptVerify}
-                onKeyDown={(event) => handleVerifyKeyDown(event, onBcryptVerify)}
+                onKeyDown={(event) =>
+                  handleVerifyKeyDown(event, onBcryptVerify)
+                }
                 placeholder="Password to verify"
               />
               {bcryptVerifyResult && (
@@ -284,7 +292,9 @@ export default function PasswordHashForm({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-xs text-muted-foreground">Salt (text)</Label>
+              <Label className="text-xs text-muted-foreground">
+                Salt (text)
+              </Label>
               <Input
                 value={state.scryptSalt}
                 onChange={(e) => setParam("scryptSalt", e.target.value)}
@@ -336,7 +346,9 @@ export default function PasswordHashForm({
                 <Input
                   type="number"
                   value={state.scryptDkLen}
-                  onChange={(e) => setParam("scryptDkLen", Number(e.target.value))}
+                  onChange={(e) =>
+                    setParam("scryptDkLen", Number(e.target.value))
+                  }
                 />
               </div>
             </div>
@@ -363,7 +375,9 @@ export default function PasswordHashForm({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy(state.scryptParseHash, "scryptHash")}
+                  onClick={() =>
+                    handleCopy(state.scryptParseHash, "scryptHash")
+                  }
                   className="h-7 w-7 p-0"
                 >
                   {copiedField === "scryptHash" ? (
@@ -420,9 +434,13 @@ export default function PasswordHashForm({
               <Input
                 type="text"
                 value={state.scryptVerifyPassword}
-                onChange={(e) => setParam("scryptVerifyPassword", e.target.value)}
+                onChange={(e) =>
+                  setParam("scryptVerifyPassword", e.target.value)
+                }
                 onBlur={onScryptVerify}
-                onKeyDown={(event) => handleVerifyKeyDown(event, onScryptVerify)}
+                onKeyDown={(event) =>
+                  handleVerifyKeyDown(event, onScryptVerify)
+                }
                 placeholder="Password to verify"
               />
               {scryptVerifyResult && (
@@ -458,7 +476,9 @@ export default function PasswordHashForm({
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label className="text-xs text-muted-foreground">Salt (text)</Label>
+              <Label className="text-xs text-muted-foreground">
+                Salt (text)
+              </Label>
               <Input
                 value={state.argon2Salt}
                 onChange={(e) => setParam("argon2Salt", e.target.value)}
@@ -486,7 +506,9 @@ export default function PasswordHashForm({
                     <Button
                       key={variant}
                       type="button"
-                      variant={state.argon2Type === variant ? "secondary" : "outline"}
+                      variant={
+                        state.argon2Type === variant ? "secondary" : "outline"
+                      }
                       size="sm"
                       className="h-7 px-2 text-xs"
                       onClick={() => setParam("argon2Type", variant, true)}
@@ -501,7 +523,9 @@ export default function PasswordHashForm({
                 <Input
                   type="number"
                   value={state.argon2Time}
-                  onChange={(e) => setParam("argon2Time", Number(e.target.value))}
+                  onChange={(e) =>
+                    setParam("argon2Time", Number(e.target.value))
+                  }
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -535,7 +559,9 @@ export default function PasswordHashForm({
                 <Input
                   type="number"
                   value={state.argon2HashLen}
-                  onChange={(e) => setParam("argon2HashLen", Number(e.target.value))}
+                  onChange={(e) =>
+                    setParam("argon2HashLen", Number(e.target.value))
+                  }
                 />
               </div>
             </div>
@@ -562,7 +588,9 @@ export default function PasswordHashForm({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleCopy(state.argon2ParseHash, "argon2Hash")}
+                  onClick={() =>
+                    handleCopy(state.argon2ParseHash, "argon2Hash")
+                  }
                   className="h-7 w-7 p-0"
                 >
                   {copiedField === "argon2Hash" ? (
@@ -589,11 +617,15 @@ export default function PasswordHashForm({
                       <td className="py-1">{parsedArgon2.type}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 pr-3 text-muted-foreground">Version</td>
+                      <td className="py-1 pr-3 text-muted-foreground">
+                        Version
+                      </td>
                       <td className="py-1">{parsedArgon2.version ?? "-"}</td>
                     </tr>
                     <tr>
-                      <td className="py-1 pr-3 text-muted-foreground">Memory</td>
+                      <td className="py-1 pr-3 text-muted-foreground">
+                        Memory
+                      </td>
                       <td className="py-1">{parsedArgon2.memory ?? "-"}</td>
                     </tr>
                     <tr>
@@ -635,9 +667,13 @@ export default function PasswordHashForm({
               <Input
                 type="text"
                 value={state.argon2VerifyPassword}
-                onChange={(e) => setParam("argon2VerifyPassword", e.target.value)}
+                onChange={(e) =>
+                  setParam("argon2VerifyPassword", e.target.value)
+                }
                 onBlur={onArgon2Verify}
-                onKeyDown={(event) => handleVerifyKeyDown(event, onArgon2Verify)}
+                onKeyDown={(event) =>
+                  handleVerifyKeyDown(event, onArgon2Verify)
+                }
                 placeholder="Password to verify"
               />
               {argon2VerifyResult && (

@@ -60,13 +60,8 @@ export default function CodeFormatterInner({
   onDownloadAll,
   onClear,
 }: CodeFormatterInnerProps) {
-  const {
-    entries,
-    loading,
-    addHistoryEntry,
-    updateLatestEntry,
-    clearHistory,
-  } = useToolHistoryContext();
+  const { entries, loading, addHistoryEntry, updateLatestEntry, clearHistory } =
+    useToolHistoryContext();
   const paramsRef = React.useRef({
     activeFileId: state.activeFileId,
     printWidth: state.printWidth,
@@ -156,7 +151,8 @@ export default function CodeFormatterInner({
   }, [addHistoryEntry, clearHistory, entries, loading]);
 
   const updateHistoryEntry = React.useCallback(async () => {
-    const label = activeFile?.path || (files.length ? `${files.length} files` : "Empty");
+    const label =
+      activeFile?.path || (files.length ? `${files.length} files` : "Empty");
     const inputs = { files: state.files };
     const params = {
       activeFileId: state.activeFileId,

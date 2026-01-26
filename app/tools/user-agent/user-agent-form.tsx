@@ -6,10 +6,7 @@ import { DualPaneLayout } from "@/components/tool-ui/dual-pane-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { UserAgentState, UserAgentJson } from "./user-agent-types";
-import {
-  formatUserAgentJson,
-  parseUserAgentJson,
-} from "./user-agent-utils";
+import { formatUserAgentJson, parseUserAgentJson } from "./user-agent-utils";
 
 const labelCellClass = "w-40 pr-3 py-1 align-top text-xs text-muted-foreground";
 
@@ -32,7 +29,10 @@ function buildUpdate(
   key: string,
   value: string,
 ): UserAgentJson {
-  const sectionValue = (data[section] ?? {}) as Record<string, string | undefined>;
+  const sectionValue = (data[section] ?? {}) as Record<
+    string,
+    string | undefined
+  >;
   return {
     ...data,
     [section]: {
@@ -137,7 +137,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.browser?.name ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "browser", "name", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "browser",
+                        "name",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="Chrome"
                   className="h-8 text-sm"
@@ -150,7 +157,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.browser?.version ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "browser", "version", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "browser",
+                        "version",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="120.0.0.0"
                   className="h-8 text-sm"
@@ -163,7 +177,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.browser?.major ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "browser", "major", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "browser",
+                        "major",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="120"
                   className="h-8 text-sm"
@@ -186,7 +207,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.engine?.name ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "engine", "name", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "engine",
+                        "name",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="AppleWebKit"
                   className="h-8 text-sm"
@@ -199,7 +227,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.engine?.version ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "engine", "version", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "engine",
+                        "version",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="537.36"
                   className="h-8 text-sm"
@@ -222,7 +257,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.os?.name ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "os", "name", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "os",
+                        "name",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="Windows"
                   className="h-8 text-sm"
@@ -235,7 +277,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.os?.version ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "os", "version", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "os",
+                        "version",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="10.0"
                   className="h-8 text-sm"
@@ -258,7 +307,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.device?.vendor ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "device", "vendor", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "device",
+                        "vendor",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="Apple"
                   className="h-8 text-sm"
@@ -271,7 +327,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.device?.model ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "device", "model", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "device",
+                        "model",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="iPhone"
                   className="h-8 text-sm"
@@ -284,7 +347,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.device?.type ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "device", "type", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "device",
+                        "type",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="mobile"
                   className="h-8 text-sm"
@@ -307,7 +377,14 @@ export default function UserAgentForm({
                 <Input
                   value={parsedJson.data.cpu?.architecture ?? ""}
                   onChange={(e) =>
-                    updateJson(buildUpdate(parsedJson.data, "cpu", "architecture", e.target.value))
+                    updateJson(
+                      buildUpdate(
+                        parsedJson.data,
+                        "cpu",
+                        "architecture",
+                        e.target.value,
+                      ),
+                    )
                   }
                   placeholder="x64"
                   className="h-8 text-sm"

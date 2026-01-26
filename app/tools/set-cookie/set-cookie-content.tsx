@@ -6,10 +6,7 @@ import { ToolPageWrapper } from "@/components/tool-ui/tool-page-wrapper";
 import { useUrlSyncedState } from "@/lib/url-state/use-url-synced-state";
 import type { HistoryEntry } from "@/lib/history/db";
 import SetCookieInner from "./set-cookie-inner";
-import {
-  buildSetCookieHeader,
-  parseSetCookieHeader,
-} from "./set-cookie-utils";
+import { buildSetCookieHeader, parseSetCookieHeader } from "./set-cookie-utils";
 import { paramsSchema, type SetCookieState } from "./set-cookie-types";
 
 const defaultHeader = `Set-Cookie: session=abc123; Path=/; HttpOnly; Secure; SameSite=Lax`;
@@ -87,7 +84,13 @@ export default function SetCookieContent() {
     } else {
       parseRight(state.rightText);
     }
-  }, [parseLeft, parseRight, state.activeSide, state.leftText, state.rightText]);
+  }, [
+    parseLeft,
+    parseRight,
+    state.activeSide,
+    state.leftText,
+    state.rightText,
+  ]);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
@@ -96,9 +99,17 @@ export default function SetCookieContent() {
       if (inputs.rightText !== undefined)
         setParam("rightText", inputs.rightText);
       if (params.activeSide)
-        setParam("activeSide", params.activeSide as SetCookieState["activeSide"], true);
+        setParam(
+          "activeSide",
+          params.activeSide as SetCookieState["activeSide"],
+          true,
+        );
       if (params.rightView)
-        setParam("rightView", params.rightView as SetCookieState["rightView"], true);
+        setParam(
+          "rightView",
+          params.rightView as SetCookieState["rightView"],
+          true,
+        );
     },
     [setParam],
   );

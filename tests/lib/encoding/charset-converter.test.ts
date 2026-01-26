@@ -70,7 +70,11 @@ describe("charset-converter", () => {
   });
 
   it("builds download payload for raw output", () => {
-    const payload = getDownloadPayload("Hello", new TextEncoder().encode("Hello"), "raw");
+    const payload = getDownloadPayload(
+      "Hello",
+      new TextEncoder().encode("Hello"),
+      "raw",
+    );
     expect(payload.mimeType).toBe("application/octet-stream");
   });
 });

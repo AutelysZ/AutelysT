@@ -38,7 +38,10 @@ export default function PhoneNumberContent() {
 
   const parseLeft = React.useCallback(
     (value: string) => {
-      const result = parsePhoneNumberString(value, state.defaultCountry || undefined);
+      const result = parsePhoneNumberString(
+        value,
+        state.defaultCountry || undefined,
+      );
       setLeftError(result.error);
       if (!result.error) {
         setRightError(null);
@@ -145,7 +148,9 @@ export default function PhoneNumberContent() {
         onLeftChange={handleLeftChange}
         onRightChange={handleRightChange}
         onRightViewChange={(view) => setParam("rightView", view, true)}
-        onDefaultCountryChange={(value) => setParam("defaultCountry", value, true)}
+        onDefaultCountryChange={(value) =>
+          setParam("defaultCountry", value, true)
+        }
         onOutputFormatChange={(value) => setParam("outputFormat", value, true)}
       />
     </ToolPageWrapper>

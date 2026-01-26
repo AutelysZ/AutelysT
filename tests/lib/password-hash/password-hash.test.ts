@@ -5,8 +5,7 @@ import { parseArgon2Hash } from "../../../lib/password-hash/argon2";
 
 describe("password-hash parsers", () => {
   it("parses bcrypt hash", () => {
-    const hash =
-      "$2b$10$CwTycUXWue0Thq9StjUM0uJ8N6YuXw7JvFezG6kZZgwyU0YJIUKyG";
+    const hash = "$2b$10$CwTycUXWue0Thq9StjUM0uJ8N6YuXw7JvFezG6kZZgwyU0YJIUKyG";
     const parsed = parseBcryptHash(hash);
     expect(parsed?.version).toBe("2b");
     expect(parsed?.cost).toBe(10);
@@ -21,8 +20,7 @@ describe("password-hash parsers", () => {
   });
 
   it("parses argon2 hash", () => {
-    const hash =
-      "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YWJjZGVm";
+    const hash = "$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$YWJjZGVm";
     const parsed = parseArgon2Hash(hash);
     expect(parsed?.type).toBe("argon2id");
     expect(parsed?.memory).toBe(65536);

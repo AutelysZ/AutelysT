@@ -69,27 +69,31 @@ export default function LicenseGeneratorContent() {
         immediate = false,
       ) => setParam(key, value, immediate);
 
-      if (inputs.year !== undefined)
-        applyParam("year", String(inputs.year));
+      if (inputs.year !== undefined) applyParam("year", String(inputs.year));
       if (inputs.holder !== undefined)
         applyParam("holder", String(inputs.holder));
       if (inputs.project !== undefined)
         applyParam("project", String(inputs.project));
-      if (inputs.email !== undefined)
-        applyParam("email", String(inputs.email));
+      if (inputs.email !== undefined) applyParam("email", String(inputs.email));
       if (inputs.website !== undefined)
         applyParam("website", String(inputs.website));
 
       if (params.step !== undefined)
         applyParam("step", Number(params.step), true);
       if (params.mode)
-        applyParam("mode", String(params.mode) as LicenseGeneratorState["mode"], true);
+        applyParam(
+          "mode",
+          String(params.mode) as LicenseGeneratorState["mode"],
+          true,
+        );
       if (params.licenseId)
         applyParam("licenseId", String(params.licenseId), true);
       if (params.allowProprietary)
         applyParam(
           "allowProprietary",
-          String(params.allowProprietary) as LicenseGeneratorState["allowProprietary"],
+          String(
+            params.allowProprietary,
+          ) as LicenseGeneratorState["allowProprietary"],
           true,
         );
       if (params.patentGrant)
@@ -101,19 +105,25 @@ export default function LicenseGeneratorContent() {
       if (params.permissiveMinimal)
         applyParam(
           "permissiveMinimal",
-          String(params.permissiveMinimal) as LicenseGeneratorState["permissiveMinimal"],
+          String(
+            params.permissiveMinimal,
+          ) as LicenseGeneratorState["permissiveMinimal"],
           true,
         );
       if (params.networkCopyleft)
         applyParam(
           "networkCopyleft",
-          String(params.networkCopyleft) as LicenseGeneratorState["networkCopyleft"],
+          String(
+            params.networkCopyleft,
+          ) as LicenseGeneratorState["networkCopyleft"],
           true,
         );
       if (params.libraryLinking)
         applyParam(
           "libraryLinking",
-          String(params.libraryLinking) as LicenseGeneratorState["libraryLinking"],
+          String(
+            params.libraryLinking,
+          ) as LicenseGeneratorState["libraryLinking"],
           true,
         );
       if (params.fileCopyleft)

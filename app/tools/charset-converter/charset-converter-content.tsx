@@ -51,9 +51,7 @@ export default function CharsetConverterContent() {
   const [detectedCharsets, setDetectedCharsets] = React.useState<
     DetectedCharset[]
   >([]);
-  const [inputSource, setInputSource] = React.useState<"text" | "file">(
-    "text",
-  );
+  const [inputSource, setInputSource] = React.useState<"text" | "file">("text");
   const [fileName, setFileName] = React.useState<string | null>(null);
   const [fileVersion, setFileVersion] = React.useState(0);
   const fileBytesRef = React.useRef<Uint8Array | null>(null);
@@ -93,7 +91,10 @@ export default function CharsetConverterContent() {
         }
 
         if (bytes.length <= 2048) {
-          const encoded = encodeBase64(bytes, { padding: true, urlSafe: false });
+          const encoded = encodeBase64(bytes, {
+            padding: true,
+            urlSafe: false,
+          });
           setParam("fileData", encoded);
           setParam("fileName", file.name);
           fileDataRef.current = encoded;
@@ -156,7 +157,9 @@ export default function CharsetConverterContent() {
         const blob = new Blob([outputBytes as Uint8Array<ArrayBuffer>], {
           type: mimeType,
         });
-        await navigator.clipboard.write([new ClipboardItem({ [mimeType]: blob })]);
+        await navigator.clipboard.write([
+          new ClipboardItem({ [mimeType]: blob }),
+        ]);
         return;
       }
 
@@ -247,7 +250,9 @@ export default function CharsetConverterContent() {
       setLeftError(null);
     } catch (error) {
       console.error("Conversion failed", error);
-      setLeftError(error instanceof Error ? error.message : "Conversion failed");
+      setLeftError(
+        error instanceof Error ? error.message : "Conversion failed",
+      );
       setOutputText("");
       setOutputBytes(new Uint8Array());
       setBase64Detection(null);
@@ -384,7 +389,13 @@ export default function CharsetConverterContent() {
     if (normalizeCharsetValue(state.inputCharset) !== "UTF-8") {
       setParam("inputCharset", "UTF-8");
     }
-  }, [inputSource, state.autoDetect, state.inputCharset, state.inputText, setParam]);
+  }, [
+    inputSource,
+    state.autoDetect,
+    state.inputCharset,
+    state.inputText,
+    setParam,
+  ]);
 
   const handleLoadHistory = React.useCallback(
     (entry: HistoryEntry) => {
@@ -399,7 +410,10 @@ export default function CharsetConverterContent() {
         setParam("fileData", String(params.fileData));
       }
       if (params.inputEncoding) {
-        setParam("inputEncoding", params.inputEncoding as ParamsState["inputEncoding"]);
+        setParam(
+          "inputEncoding",
+          params.inputEncoding as ParamsState["inputEncoding"],
+        );
       }
       if (params.inputCharset) {
         setParam("inputCharset", String(params.inputCharset));
@@ -408,7 +422,10 @@ export default function CharsetConverterContent() {
         setParam("outputCharset", String(params.outputCharset));
       }
       if (params.outputEncoding) {
-        setParam("outputEncoding", params.outputEncoding as ParamsState["outputEncoding"]);
+        setParam(
+          "outputEncoding",
+          params.outputEncoding as ParamsState["outputEncoding"],
+        );
       }
       if (params.outputBase64Padding !== undefined) {
         setParam("outputBase64Padding", Boolean(params.outputBase64Padding));
@@ -417,7 +434,10 @@ export default function CharsetConverterContent() {
         setParam("outputBase64UrlSafe", Boolean(params.outputBase64UrlSafe));
       }
       if (params.outputHexType) {
-        setParam("outputHexType", params.outputHexType as ParamsState["outputHexType"]);
+        setParam(
+          "outputHexType",
+          params.outputHexType as ParamsState["outputHexType"],
+        );
       }
       if (params.outputHexUpperCase !== undefined) {
         setParam("outputHexUpperCase", Boolean(params.outputHexUpperCase));

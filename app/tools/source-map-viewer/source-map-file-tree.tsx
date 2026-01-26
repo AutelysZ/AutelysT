@@ -61,7 +61,8 @@ export default function SourceMapFileTree({
     const isDirectory = node.type === "directory";
     const isExpanded = isDirectory && expandedIds.has(node.id);
     const isActive = !!node.fileId && node.fileId === activeFileId;
-    const canDelete = Boolean(onDelete) &&
+    const canDelete =
+      Boolean(onDelete) &&
       (canDeleteNode ? canDeleteNode(node) : node.id !== "root");
     const isMapRoot = node.kind === "map-root";
 

@@ -248,9 +248,7 @@ function Pane({
               style={{ wordBreak: "break-all", overflowWrap: "anywhere" }}
             />
           )}
-          {overlay && (
-            <div className="absolute inset-0 z-10">{overlay}</div>
-          )}
+          {overlay && <div className="absolute inset-0 z-10">{overlay}</div>}
         </div>
       )}
 

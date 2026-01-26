@@ -76,7 +76,11 @@ export function applyLicenseTemplate(
   const email = data.email;
   const website = data.website;
 
-  output = replaceIfPresent(output, /<year>|\[year\]|\(year\)|<yyyy>|\[yyyy\]/gi, year);
+  output = replaceIfPresent(
+    output,
+    /<year>|\[year\]|\(year\)|<yyyy>|\[yyyy\]/gi,
+    year,
+  );
   output = replaceIfPresent(
     output,
     /<copyright holders?>|\[copyright holders?\]/gi,

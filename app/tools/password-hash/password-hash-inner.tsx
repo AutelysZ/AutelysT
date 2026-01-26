@@ -40,7 +40,8 @@ export default function PasswordHashInner({
   hydrationSource: "default" | "url" | "history";
   resetToDefaults: () => void;
 }) {
-  const { upsertInputEntry, upsertParams, clearHistory } = useToolHistoryContext();
+  const { upsertInputEntry, upsertParams, clearHistory } =
+    useToolHistoryContext();
   const lastSignatureRef = React.useRef("");
   const hasHydratedRef = React.useRef(false);
   const hasHandledUrlRef = React.useRef(false);
@@ -119,7 +120,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setBcryptError(
-        error instanceof Error ? error.message : "Failed to generate bcrypt hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to generate bcrypt hash.",
       );
     }
   }, [setParam, state.bcryptPassword, state.bcryptRounds]);
@@ -139,7 +142,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setBcryptError(
-        error instanceof Error ? error.message : "Failed to verify bcrypt hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to verify bcrypt hash.",
       );
       setBcryptVerifyResult(null);
     }
@@ -161,7 +166,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setScryptError(
-        error instanceof Error ? error.message : "Failed to generate scrypt hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to generate scrypt hash.",
       );
     } finally {
       setScryptWorking(false);
@@ -193,7 +200,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setScryptError(
-        error instanceof Error ? error.message : "Failed to verify scrypt hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to verify scrypt hash.",
       );
       setScryptVerifyResult(null);
     } finally {
@@ -218,7 +227,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setArgon2Error(
-        error instanceof Error ? error.message : "Failed to generate Argon2 hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to generate Argon2 hash.",
       );
     } finally {
       setArgon2Working(false);
@@ -251,7 +262,9 @@ export default function PasswordHashInner({
     } catch (error) {
       console.error(error);
       setArgon2Error(
-        error instanceof Error ? error.message : "Failed to verify Argon2 hash.",
+        error instanceof Error
+          ? error.message
+          : "Failed to verify Argon2 hash.",
       );
       setArgon2VerifyResult(null);
     } finally {

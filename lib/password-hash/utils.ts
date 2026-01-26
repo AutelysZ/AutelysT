@@ -10,7 +10,8 @@ export function bytesToUtf8(value: Uint8Array): string {
 
 export function randomBytes(length: number): Uint8Array {
   if (length <= 0) return new Uint8Array();
-  const cryptoObj = globalThis.crypto || (globalThis as { msCrypto?: Crypto }).msCrypto;
+  const cryptoObj =
+    globalThis.crypto || (globalThis as { msCrypto?: Crypto }).msCrypto;
   if (!cryptoObj?.getRandomValues) {
     throw new Error("Secure random generator is not available.");
   }
