@@ -24,7 +24,6 @@ import prettierPluginGherkin from "prettier-plugin-gherkin";
 import prettierPluginHugoPost from "prettier-plugin-hugo-post";
 import prettierPluginJinjaTemplate from "prettier-plugin-jinja-template";
 import prettierPluginNginx from "prettier-plugin-nginx";
-import prettierPluginRust from "prettier-plugin-rust";
 import prettierPluginSql from "prettier-plugin-sql";
 import prettierPluginToml from "prettier-plugin-toml";
 import prettierPluginXquery from "prettier-plugin-xquery";
@@ -67,7 +66,6 @@ const prettierPlugins: Plugin[] = [
   prettierPluginHugoPost as Plugin,
   prettierPluginJinjaTemplate as Plugin,
   prettierPluginNginx as Plugin,
-  prettierPluginRust as Plugin,
   prettierPluginSql as Plugin,
   prettierPluginToml as Plugin,
   prettierPluginXquery as Plugin,
