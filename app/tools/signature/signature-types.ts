@@ -1,0 +1,63 @@
+import { z } from "zod";
+import {
+  algorithmValues,
+  hmacHashes,
+  rsaSchemes,
+  rsaHashes,
+  ecdsaCurves,
+  ecdsaHashes,
+  eddsaCurves,
+  pqcDsaVariants,
+  pqcSlhVariants,
+  inputEncodings,
+  signatureEncodings,
+  keyEncodings,
+  pqcKeyEncodings,
+  type AlgorithmValue,
+} from "./crypto";
+
+export const paramsSchema = z.object({
+  algorithm: z.enum(algorithmValues).default("hmac"),
+  message: z.string().default(""),
+  verifyMessage: z.string().default(""),
+  inputEncoding: z.enum(inputEncodings).default("utf8"),
+  verifyInputEncoding: z.enum(inputEncodings).default("utf8"),
+  signature: z.string().default(""),
+  signatureEncoding: z.enum(signatureEncodings).default("base64"),
+  hmacHash: z.enum(hmacHashes).default("SHA-256"),
+  hmacKey: z.string().default(""),
+  hmacKeyEncoding: z.enum(keyEncodings).default("base64"),
+  rsaScheme: z.enum(rsaSchemes).default("RSA-PSS"),
+  rsaHash: z.enum(rsaHashes).default("SHA-256"),
+  rsaSaltLength: z.coerce.number().int().min(0).max(1024).default(0),
+  rsaModulusLength: z.coerce.number().int().min(1024).max(16384).default(2048),
+  rsaPublicExponent: z.string().default("65537"),
+  ecdsaCurve: z.enum(ecdsaCurves).default("P-256"),
+  ecdsaHash: z.enum(ecdsaHashes).default("SHA-256"),
+  eddsaCurve: z.enum(eddsaCurves).default("Ed25519"),
+  pqcDsaVariant: z.enum(pqcDsaVariants).default("ML-DSA-65"),
+  pqcSlhVariant: z.enum(pqcSlhVariants).default("SLH-DSA-SHA2-128f"),
+  pqcKeyEncoding: z.enum(pqcKeyEncodings).default("base64"),
+  rsaPrivateKey: z.string().default(""),
+  rsaPublicKey: z.string().default(""),
+  ecdsaPrivateKey: z.string().default(""),
+  ecdsaPublicKey: z.string().default(""),
+  eddsaPrivateKey: z.string().default(""),
+  eddsaPublicKey: z.string().default(""),
+  schnorrPrivateKey: z.string().default(""),
+  schnorrPublicKey: z.string().default(""),
+  pqcPrivateKey: z.string().default(""),
+  pqcPublicKey: z.string().default(""),
+});
+
+export type SignatureState = z.infer<typeof paramsSchema>;
+
+export const algorithmLabels: Record<AlgorithmValue, string> = {
+  hmac: "HMAC",
+  rsa: "RSA",
+  ecdsa: "ECDSA",
+  eddsa: "EdDSA",
+  schnorr: "Schnorr",
+  "ml-dsa": "ML-DSA",
+  "slh-dsa": "SLH-DSA",
+};

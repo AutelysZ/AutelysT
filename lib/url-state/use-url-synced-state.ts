@@ -380,6 +380,7 @@ export function useUrlSyncedState<T extends ZodRawShape>(
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed
     if (isUpdatingUrlRef.current || searchString === lastUrlRef.current) {
+      lastUrlRef.current = searchString;
       isUpdatingUrlRef.current = false;
       return;
     }
