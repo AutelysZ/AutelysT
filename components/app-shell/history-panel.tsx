@@ -37,7 +37,7 @@ interface HistoryPanelProps {
   onDelete: (id: string) => void;
   onClear: (scope: "tool" | "all") => void;
   toolName: string;
-  variant?: "default" | "password-generator";
+  variant?: "default" | "password-generator" | "secret-generator";
 }
 
 export function HistoryPanel({
@@ -155,7 +155,10 @@ export function HistoryPanel({
           ) : (
             <div className="space-y-2 px-2 pb-4">
               {entries.map((entry) => {
-                if (variant === "password-generator") {
+                if (
+                  variant === "password-generator" ||
+                  variant === "secret-generator"
+                ) {
                   const label = entry.inputs?.label?.trim() || "Untitled";
                   const password = entry.inputs?.password || "";
                   if (!password) {

@@ -319,6 +319,38 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "secret-generator",
+    name: "Secret Generator",
+    description:
+      "Generate cryptographic secrets in Hex, Base64, and other formats with custom length.",
+    category: "Crypto",
+    route: "/tools/secret-generator",
+    keywords: [
+      "secret",
+      "generator",
+      "crypto",
+      "hex",
+      "base64",
+      "random",
+      "bytes",
+    ],
+    seo: {
+      title: "Secret Generator - AutelysT",
+      description:
+        "Online cryptographic secret generator for API keys and tokens with Hex, Base64, and custom byte lengths.",
+      keywords: [
+        "secret generator",
+        "api key",
+        "token",
+        "crypto",
+        "hex",
+        "base64",
+        "secure random",
+        "bytes",
+      ],
+    },
+  },
+  {
     id: "password-hash",
     name: "Password Hash",
     description:
