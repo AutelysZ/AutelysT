@@ -109,6 +109,39 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "gzip",
+    name: "Gzip",
+    description:
+      "Compress and decompress data with gzip, supporting text encodings, Base64/Hex output, and file uploads.",
+    category: "Encoding",
+    route: "/tools/gzip",
+    keywords: [
+      "gzip",
+      "compress",
+      "decompress",
+      "compression",
+      "deflate",
+      "gz",
+      "file",
+    ],
+    seo: {
+      title: "Gzip Compress/Decompress - AutelysT",
+      description:
+        "Online gzip compression and decompression tool with text encoding selection, Base64/Hex output formats, and file uploads.",
+      keywords: [
+        "gzip",
+        "compress",
+        "decompress",
+        "compression",
+        "deflate",
+        "gz",
+        "base64",
+        "hex",
+        "file compression",
+      ],
+    },
+  },
+  {
     id: "aws-encryption-sdk",
     name: "AWS Encryption SDK",
     description:

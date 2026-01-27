@@ -11,7 +11,6 @@
     "start": "next start"
   },
   "dependencies": {
-    "7z-wasm": "^1.2.0",
     "@aws-crypto/client-browser": "^4.2.1",
     "@aws-crypto/material-management": "^4.2.1",
     "@aws-crypto/raw-aes-keyring-browser": "^4.2.1",
@@ -69,6 +68,7 @@
     "@vitest/browser-preview": "latest",
     "@vitest/browser-webdriverio": "latest",
     "@vitest/ui": "latest",
+    "7z-wasm": "^1.2.0",
     "argon2-browser": "^1.18.0",
     "asn1js": "^3.0.7",
     "autoprefixer": "^10.4.20",

@@ -115,13 +115,13 @@ Define a simple message:
 
 Input JSON:
 
-```json
+\`\`\`json
 {
   "username": "alice",
   "age": 25,
   "emails": ["alice@example.com", "alice@work.com"]
 }
-```
+\`\`\`
 
 ### Round-Trip Testing
 
