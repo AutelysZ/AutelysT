@@ -32,13 +32,17 @@ export const awsEncryptionSdkSchema = z.object({
   rsaKeyProviderId: z.string().default("raw-rsa-params"),
   rsaKeyId: z.string().default("rsa-key-1"),
 
-  encryptionContext: z.record(z.string()).default({}),
+  encryptionContext: z.string().default("{}"),
 
   inputData: z.string().default(""),
   inputEncoding: z.enum(["utf8", "base64", "hex", "binary"]).default("utf8"),
 
   encryptedData: z.string().default(""),
-  encryptedEncoding: z.literal("base64").default("base64"),
+  encryptedEncoding: z
+    .enum(["base64", "base64url", "hex", "binary"])
+    .default("base64"),
+
+  decryptedEncoding: z.enum(["utf8", "base64", "hex"]).default("utf8"),
 });
 
 type Props = {
@@ -78,6 +82,18 @@ export default function AwsEncryptionSdkInner({
   const [error, setError] = React.useState<string | null>(null);
   const [isEncrypting, setIsEncrypting] = React.useState(false);
   const [isDecrypting, setIsDecrypting] = React.useState(false);
+  const [decryptedBytes, setDecryptedBytes] = React.useState<Uint8Array | null>(
+    null,
+  );
+
+  // File Refs
+  const inputBytesRef = React.useRef<Uint8Array | null>(null);
+  const [inputFileName, setInputFileName] = React.useState<string | null>(null);
+
+  const encryptedBytesRef = React.useRef<Uint8Array | null>(null);
+  const [encryptedFileName, setEncryptedFileName] = React.useState<
+    string | null
+  >(null);
 
   // --- Handlers ---
 
@@ -85,12 +101,22 @@ export default function AwsEncryptionSdkInner({
     setError(null);
     setIsEncrypting(true);
     try {
-      const encrypted = await encryptData(state);
+      const encrypted = await encryptData(
+        state,
+        inputFileName && inputBytesRef.current
+          ? inputBytesRef.current
+          : undefined,
+      );
       setParam("encryptedData", encrypted);
 
       // Save to history
+      const preview = inputFileName
+        ? `[File: ${inputFileName}]`
+        : state.inputData.slice(0, 50) +
+          (state.inputData.length > 50 ? "..." : "");
+
       await upsertInputEntry(
-        { type: "encrypt", input: state.inputData.slice(0, 50) + "..." },
+        { type: "encrypt", input: preview },
         paramsForHistory,
         "left",
         `${state.keyringType} encrypted`,
@@ -98,9 +124,17 @@ export default function AwsEncryptionSdkInner({
       await upsertParams(paramsForHistory, "deferred");
 
       // Auto-decrypt the just-generated data to verify and show result immediately
-      const { plaintext, context } = await decryptData(state, encrypted);
-      setDecryptedResult(plaintext);
-      setDecryptedContext(context);
+      // We pass the encrypted string we just got. Since we just generated it, it matches state.encryptedEncoding
+      // But decryptData expects Uint8Array if override.
+      // Actually decryptData takes override? yes.
+      // But simpler: just let the effect trigger or call decrypt manually.
+      // However, to be fast and show immediately without effect lag:
+      // We need to decode the result string back to bytes to pass to decryptData as override,
+      // OR just wait for effect. Effect is 500ms debounce.
+      // Let's rely on effect for simplicity, effectively.
+      // But if we want instant feedback:
+      // const bytes = state.encryptedEncoding === 'hex' ? decodeHex(encrypted) : ...
+      // Let's just wait for effect.
     } catch (e: any) {
       setError(e.message || "Encryption failed");
       console.error(e);
@@ -111,9 +145,14 @@ export default function AwsEncryptionSdkInner({
 
   const handleDecrypt = React.useCallback(async () => {
     // Don't error on empty input, just clear result
-    if (!state.encryptedData) {
+    // If file is uploaded, encryptedData might be empty string? No, we should populate it?
+    // Actually for binary file upload of encrypted data, we might NOT populate the text area if it's huge.
+    // But for this tool usually we put it in text area if small enough, or just keep it in ref.
+    // If we have file ref, use it.
+    if (!state.encryptedData && !encryptedFileName) {
       setDecryptedResult("");
       setDecryptedContext({});
+      setDecryptedBytes(null);
       setError(null);
       return;
     }
@@ -121,9 +160,16 @@ export default function AwsEncryptionSdkInner({
     setError(null);
     setIsDecrypting(true);
     try {
-      const { plaintext, context } = await decryptData(state);
+      const { plaintext, plaintextBytes, context } = await decryptData(
+        state,
+        encryptedFileName && encryptedBytesRef.current
+          ? encryptedBytesRef.current
+          : undefined, // Will read from state.encryptedData
+      );
       setDecryptedResult(plaintext);
+      // If result is huge binary, plaintext string might be the "[Invalid UTF-8]" placeholder
       setDecryptedContext(context);
+      setDecryptedBytes(plaintextBytes);
     } catch (e: any) {
       setError(e.message || "Decryption failed");
       // Don't clear result immediately on error to prevent flickering if user is typing
@@ -131,7 +177,7 @@ export default function AwsEncryptionSdkInner({
     } finally {
       setIsDecrypting(false);
     }
-  }, [state]);
+  }, [state, encryptedFileName]);
 
   // Auto-decrypt when encrypted data changes
   React.useEffect(() => {
@@ -144,11 +190,19 @@ export default function AwsEncryptionSdkInner({
     state.aesKey,
     state.rsaPrivateKey,
     state.keyringType,
+    state.encryptedEncoding,
+    state.decryptedEncoding,
+    encryptedFileName, // Also trigger when file changes
     handleDecrypt,
   ]);
 
   const handleClearAll = () => {
     setStateSilently(defaultAwsEncryptionSdkState);
+    inputBytesRef.current = null;
+    setInputFileName(null);
+    encryptedBytesRef.current = null;
+    setEncryptedFileName(null);
+    setDecryptedBytes(null);
   };
 
   const handleGenerateKey = async () => {
@@ -179,16 +233,80 @@ export default function AwsEncryptionSdkInner({
 
     if (type === "aes") {
       setParam("aesKey", text.trim());
-      // Simple heuristic: if looks like base64, set encoding to base64?
-      // For now let user manually select encoding or default to what they had.
     } else if (type === "rsa-private") {
       setParam("rsaPrivateKey", text.trim());
     } else if (type === "rsa-public") {
       setParam("rsaPublicKey", text.trim());
     }
-
-    // Reset input
     event.target.value = "";
+  };
+
+  // --- File Upload Helpers ---
+
+  const handleInputFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const buffer = reader.result;
+      if (!(buffer instanceof ArrayBuffer)) return;
+      inputBytesRef.current = new Uint8Array(buffer);
+      setInputFileName(file.name);
+      setParam("inputEncoding", "binary");
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
+  };
+
+  const handleInputFileClear = () => {
+    inputBytesRef.current = null;
+    setInputFileName(null);
+    if (state.inputEncoding === "binary") {
+      setParam("inputEncoding", "utf8");
+    }
+  };
+
+  const handleEncryptedFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const buffer = reader.result;
+      if (!(buffer instanceof ArrayBuffer)) return;
+      encryptedBytesRef.current = new Uint8Array(buffer);
+      setEncryptedFileName(file.name);
+      setParam("encryptedEncoding", "binary"); // Or whatever the file contains?
+      // Usually binaries are raw bytes, so 'binary' is correct if we had it.
+      // But encryptedEncoding list is: base64, base64url, hex, binary.
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = "";
+  };
+
+  const handleEncryptedFileClear = () => {
+    encryptedBytesRef.current = null;
+    setEncryptedFileName(null);
+    if (state.encryptedEncoding === "binary") {
+      setParam("encryptedEncoding", "base64");
+    }
+  };
+
+  const handleDownloadDecrypted = () => {
+    if (!decryptedBytes) return;
+    const blob = new Blob([decryptedBytes as any], {
+      // Cast to any to avoid TS lib mismatch
+      type: "application/octet-stream",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "decrypted-data.bin"; // Could try to detect extension?
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // --- History Sync ---
@@ -232,6 +350,22 @@ export default function AwsEncryptionSdkInner({
     upsertParams(paramsForHistory, "deferred");
   }, [paramsForHistory, upsertParams]);
 
+  // Ensure encoding consistency (unselect binary if no file)
+  React.useEffect(() => {
+    if (!inputFileName && state.inputEncoding === "binary") {
+      setParam("inputEncoding", "utf8");
+    }
+    if (!encryptedFileName && state.encryptedEncoding === "binary") {
+      setParam("encryptedEncoding", "base64");
+    }
+  }, [
+    inputFileName,
+    state.inputEncoding,
+    encryptedFileName,
+    state.encryptedEncoding,
+    setParam,
+  ]);
+
   return (
     <AwsEncryptionSdkForm
       state={state}
@@ -247,6 +381,15 @@ export default function AwsEncryptionSdkInner({
       error={error}
       decryptedResult={decryptedResult}
       decryptedContext={decryptedContext}
+      // New props
+      handleInputFileUpload={handleInputFileUpload}
+      handleInputFileClear={handleInputFileClear}
+      inputFileName={inputFileName}
+      handleEncryptedFileUpload={handleEncryptedFileUpload}
+      handleEncryptedFileClear={handleEncryptedFileClear}
+      encryptedFileName={encryptedFileName}
+      handleDownloadDecrypted={handleDownloadDecrypted}
+      hasDecryptedBytes={!!decryptedBytes}
     />
   );
 }

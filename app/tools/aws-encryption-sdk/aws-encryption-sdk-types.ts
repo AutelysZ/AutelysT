@@ -12,6 +12,15 @@ export type AwsEncryptionSdkInputEncoding =
   | "base64"
   | "hex"
   | "binary";
+
+export type AwsEncryptionSdkOutputEncoding =
+  | "base64"
+  | "base64url"
+  | "hex"
+  | "binary";
+
+export type AwsEncryptionSdkDecryptedEncoding = "utf8" | "base64" | "hex";
+
 export type AwsEncryptionSdkKeyEncoding = "utf8" | "base64" | "hex";
 
 export interface AwsEncryptionSdkState {
@@ -32,8 +41,8 @@ export interface AwsEncryptionSdkState {
   rsaKeyProviderId: string;
   rsaKeyId: string;
 
-  // Encryption Context
-  encryptionContext: Record<string, string>;
+  // Encryption Context (Raw JSON string)
+  encryptionContext: string;
 
   // Data
   inputData: string;
@@ -41,7 +50,10 @@ export interface AwsEncryptionSdkState {
 
   // Output
   encryptedData: string;
-  encryptedEncoding: "base64"; // Usually Base64 for display
+  encryptedEncoding: AwsEncryptionSdkOutputEncoding;
+
+  // Decryption Options
+  decryptedEncoding: AwsEncryptionSdkDecryptedEncoding;
 }
 
 export const defaultAwsEncryptionSdkState: AwsEncryptionSdkState = {
@@ -56,11 +68,12 @@ export const defaultAwsEncryptionSdkState: AwsEncryptionSdkState = {
   rsaPublicKey: "",
   rsaKeyProviderId: "raw-rsa-params",
   rsaKeyId: "rsa-key-1",
-  encryptionContext: {},
+  encryptionContext: "{}",
   inputData: "",
   inputEncoding: "utf8",
   encryptedData: "",
   encryptedEncoding: "base64",
+  decryptedEncoding: "utf8",
 };
 
 export const keyringLabels: Record<AwsEncryptionSdkKeyringType, string> = {

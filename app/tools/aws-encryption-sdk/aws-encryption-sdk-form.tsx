@@ -3,11 +3,9 @@ import {
   RefreshCcw,
   Trash2,
   Upload,
-  Lock,
-  Unlock,
   Check,
   Copy,
-  Plus,
+  Download,
   X,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,10 +21,10 @@ import {
   type AwsEncryptionSdkAesKeyLength,
   type AwsEncryptionSdkKeyEncoding,
   type AwsEncryptionSdkInputEncoding,
+  type AwsEncryptionSdkOutputEncoding,
+  type AwsEncryptionSdkDecryptedEncoding,
   keyringLabels,
-  encodingLabels,
 } from "./aws-encryption-sdk-types";
-import { generateAesKey, generateRsaKey } from "./crypto";
 
 type AwsEncryptionSdkFormProps = {
   state: AwsEncryptionSdkState;
@@ -48,6 +46,22 @@ type AwsEncryptionSdkFormProps = {
     type: "aes" | "rsa-private" | "rsa-public",
     event: React.ChangeEvent<HTMLInputElement>,
   ) => void;
+
+  // Input File
+  handleInputFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleInputFileClear: () => void;
+  inputFileName: string | null;
+
+  // Encrypted File
+  handleEncryptedFileUpload: (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => void;
+  handleEncryptedFileClear: () => void;
+  encryptedFileName: string | null;
+
+  // Output
+  handleDownloadDecrypted: () => void;
+  hasDecryptedBytes: boolean;
 
   // Status
   isEncrypting: boolean;
@@ -95,8 +109,15 @@ export default function AwsEncryptionSdkForm({
   handleClearAll,
   handleGenerateKey,
   handleKeyFileUpload,
+  handleInputFileUpload,
+  handleInputFileClear,
+  inputFileName,
+  handleEncryptedFileUpload,
+  handleEncryptedFileClear,
+  encryptedFileName,
+  handleDownloadDecrypted,
+  hasDecryptedBytes,
   isEncrypting,
-  isDecrypting,
   error,
   decryptedResult,
   decryptedContext,
@@ -104,27 +125,8 @@ export default function AwsEncryptionSdkForm({
   const aesFileInputRef = React.useRef<HTMLInputElement>(null);
   const rsaPrivateInputRef = React.useRef<HTMLInputElement>(null);
   const rsaPublicInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Context management helpers
-  const addContextItem = () => {
-    const newContext = { ...state.encryptionContext, "": "" };
-    setParam("encryptionContext", newContext);
-  };
-
-  const updateContextKey = (oldKey: string, newKey: string) => {
-    if (oldKey === newKey) return;
-    const { [oldKey]: val, ...rest } = state.encryptionContext;
-    setParam("encryptionContext", { ...rest, [newKey]: val });
-  };
-
-  const updateContextValue = (key: string, value: string) => {
-    setParam("encryptionContext", { ...state.encryptionContext, [key]: value });
-  };
-
-  const removeContextItem = (key: string) => {
-    const { [key]: _, ...rest } = state.encryptionContext;
-    setParam("encryptionContext", rest);
-  };
+  const inputFileInputRef = React.useRef<HTMLInputElement>(null);
+  const encryptedFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [copied, setCopied] = React.useState(false);
   const handleCopyEncrypted = async () => {
@@ -132,6 +134,14 @@ export default function AwsEncryptionSdkForm({
     await navigator.clipboard.writeText(state.encryptedData);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const [copiedDecrypted, setCopiedDecrypted] = React.useState(false);
+  const handleCopyDecrypted = async () => {
+    if (!decryptedResult) return;
+    await navigator.clipboard.writeText(decryptedResult);
+    setCopiedDecrypted(true);
+    setTimeout(() => setCopiedDecrypted(false), 2000);
   };
 
   return (
@@ -168,10 +178,6 @@ export default function AwsEncryptionSdkForm({
       <div className="grid gap-6 lg:grid-cols-2">
         {/* LEFT PANEL: ENCRYPTION */}
         <section className="flex flex-col gap-6">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <Lock className="w-4 h-4" /> Encrypt
-          </h2>
-
           {/* RAW AES CONFIG */}
           {state.keyringType === "raw-aes" && (
             <div className="space-y-4">
@@ -202,7 +208,7 @@ export default function AwsEncryptionSdkForm({
                     onChange={(e) => setParam("aesKey", e.target.value)}
                     placeholder="Enter AES secret key..."
                     className={cn(
-                      "min-h-[80px] font-mono text-xs break-all",
+                      "min-h-[80px] max-h-40 font-mono text-xs break-all",
                       oversizeKeys.includes("aesKey") && "border-destructive",
                     )}
                   />
@@ -244,21 +250,29 @@ export default function AwsEncryptionSdkForm({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <Label className="w-20 text-sm sm:w-28">Key ID</Label>
-                <Input
-                  value={state.aesKeyId}
-                  onChange={(e) => setParam("aesKeyId", e.target.value)}
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Label className="w-20 text-sm sm:w-28">Provider ID</Label>
-                <Input
-                  value={state.aesKeyProviderId}
-                  onChange={(e) => setParam("aesKeyProviderId", e.target.value)}
-                  className="h-8 text-xs font-mono"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Key ID
+                  </Label>
+                  <Input
+                    value={state.aesKeyId}
+                    onChange={(e) => setParam("aesKeyId", e.target.value)}
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Provider ID
+                  </Label>
+                  <Input
+                    value={state.aesKeyProviderId}
+                    onChange={(e) =>
+                      setParam("aesKeyProviderId", e.target.value)
+                    }
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
               </div>
               <input
                 type="file"
@@ -293,80 +307,98 @@ export default function AwsEncryptionSdkForm({
                 </Tabs>
               </div>
               {/* Public Key */}
-              <div className="flex items-start gap-3">
-                <Label className="w-20 text-sm sm:w-28 pt-2">Public Key</Label>
-                <div className="min-w-0 flex-1">
-                  <Textarea
-                    value={state.rsaPublicKey}
-                    onChange={(e) => setParam("rsaPublicKey", e.target.value)}
-                    placeholder="PEM or JWK Public Key..."
-                    className={cn(
-                      "min-h-[100px] font-mono text-xs break-all",
-                      oversizeKeys.includes("rsaPublicKey") &&
-                        "border-destructive",
-                    )}
-                  />
-                  <div className="mt-2 flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => rsaPublicInputRef.current?.click()}
-                      className="h-7 w-7 p-0"
-                    >
-                      <Upload className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleGenerateKey}
-                      className="h-7 w-7 p-0"
-                    >
-                      <RefreshCcw className="h-3 w-3" />
-                    </Button>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {/* Public Key */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Public Key
+                  </Label>
+                  <div className="flex flex-col">
+                    <Textarea
+                      value={state.rsaPublicKey}
+                      onChange={(e) => setParam("rsaPublicKey", e.target.value)}
+                      placeholder="PEM or JWK Public Key..."
+                      className={cn(
+                        "min-h-[120px] max-h-40 font-mono text-xs break-all",
+                        oversizeKeys.includes("rsaPublicKey") &&
+                          "border-destructive",
+                      )}
+                    />
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => rsaPublicInputRef.current?.click()}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Upload className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleGenerateKey}
+                        className="h-7 w-7 p-0"
+                      >
+                        <RefreshCcw className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Private Key */}
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Private Key
+                  </Label>
+                  <div className="flex flex-col">
+                    <Textarea
+                      value={state.rsaPrivateKey}
+                      onChange={(e) =>
+                        setParam("rsaPrivateKey", e.target.value)
+                      }
+                      placeholder="PEM or JWK Private Key..."
+                      className={cn(
+                        "min-h-[120px] max-h-40 font-mono text-xs break-all",
+                        oversizeKeys.includes("rsaPrivateKey") &&
+                          "border-destructive",
+                      )}
+                    />
+                    <div className="mt-2 flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => rsaPrivateInputRef.current?.click()}
+                        className="h-7 w-7 p-0"
+                      >
+                        <Upload className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
-              {/* Private Key */}
-              <div className="flex items-start gap-3">
-                <Label className="w-20 text-sm sm:w-28 pt-2">Private Key</Label>
-                <div className="min-w-0 flex-1">
-                  <Textarea
-                    value={state.rsaPrivateKey}
-                    onChange={(e) => setParam("rsaPrivateKey", e.target.value)}
-                    placeholder="PEM or JWK Private Key..."
-                    className={cn(
-                      "min-h-[100px] font-mono text-xs break-all",
-                      oversizeKeys.includes("rsaPrivateKey") &&
-                        "border-destructive",
-                    )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Key ID
+                  </Label>
+                  <Input
+                    value={state.rsaKeyId}
+                    onChange={(e) => setParam("rsaKeyId", e.target.value)}
+                    className="h-8 text-xs font-mono"
                   />
-                  <div className="mt-2 flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => rsaPrivateInputRef.current?.click()}
-                      className="h-7 w-7 p-0"
-                    >
-                      <Upload className="h-3 w-3" />
-                    </Button>
-                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Label className="w-20 text-sm sm:w-28">Key ID</Label>
-                <Input
-                  value={state.rsaKeyId}
-                  onChange={(e) => setParam("rsaKeyId", e.target.value)}
-                  className="h-8 text-xs font-mono"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <Label className="w-20 text-sm sm:w-28">Provider ID</Label>
-                <Input
-                  value={state.rsaKeyProviderId}
-                  onChange={(e) => setParam("rsaKeyProviderId", e.target.value)}
-                  className="h-8 text-xs font-mono"
-                />
+                <div className="flex flex-col gap-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Provider ID
+                  </Label>
+                  <Input
+                    value={state.rsaKeyProviderId}
+                    onChange={(e) =>
+                      setParam("rsaKeyProviderId", e.target.value)
+                    }
+                    className="h-8 text-xs font-mono"
+                  />
+                </div>
               </div>
               <input
                 type="file"
@@ -385,62 +417,96 @@ export default function AwsEncryptionSdkForm({
 
           {/* ENCRYPTION CONTEXT */}
           <div className="space-y-3 pt-4 border-t">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Encryption Context</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={addContextItem}
-                className="h-6 w-6 p-0"
-              >
-                <Plus className="w-3 h-3" />
-              </Button>
-            </div>
-            {Object.entries(state.encryptionContext).map(
-              ([key, value], idx) => (
-                <div key={idx} className="flex gap-2 items-center">
-                  <Input
-                    placeholder="Key"
-                    value={key}
-                    onChange={(e) => updateContextKey(key, e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                  <Input
-                    placeholder="Value"
-                    value={value}
-                    onChange={(e) => updateContextValue(key, e.target.value)}
-                    className="h-8 text-xs"
-                  />
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeContextItem(key)}
-                    className="h-8 w-8 p-0 shrink-0"
-                  >
-                    <X className="w-3 h-3" />
-                  </Button>
-                </div>
-              ),
-            )}
-            {Object.keys(state.encryptionContext).length === 0 && (
-              <p className="text-xs text-muted-foreground italic">
-                No context (AAD) added.
-              </p>
-            )}
+            <Label className="text-sm">Encryption Context (JSON)</Label>
+            <Textarea
+              value={state.encryptionContext}
+              onChange={(e) => setParam("encryptionContext", e.target.value)}
+              placeholder='{"user": "id", "purpose": "test"}'
+              className={cn(
+                "min-h-[80px] max-h-40 font-mono text-xs",
+                oversizeKeys.includes("encryptionContext") &&
+                  "border-destructive",
+              )}
+            />
           </div>
 
           {/* PLAINTEXT INPUT */}
           <div className="space-y-3 pt-4 border-t">
-            <Label className="text-sm">Plaintext Data</Label>
-            <Textarea
-              value={state.inputData}
-              onChange={(e) => setParam("inputData", e.target.value)}
-              placeholder="Enter data to encrypt..."
-              className={cn(
-                "min-h-[120px] font-mono text-sm",
-                oversizeKeys.includes("inputData") && "border-destructive",
-              )}
-            />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm">Plaintext Data</Label>
+                <Tabs
+                  value={state.inputEncoding}
+                  onValueChange={(v) =>
+                    setParam(
+                      "inputEncoding",
+                      v as AwsEncryptionSdkInputEncoding,
+                      true,
+                    )
+                  }
+                >
+                  <InlineTabsList>
+                    {!inputFileName && (
+                      <>
+                        <TabsTrigger value="utf8">UTF-8</TabsTrigger>
+                        <TabsTrigger value="base64">Base64</TabsTrigger>
+                        <TabsTrigger value="hex">Hex</TabsTrigger>
+                      </>
+                    )}
+                    {inputFileName && (
+                      <TabsTrigger value="binary">Binary</TabsTrigger>
+                    )}
+                  </InlineTabsList>
+                </Tabs>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => inputFileInputRef.current?.click()}
+                  title={inputFileName ? "Change File" : "Upload File"}
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+                {inputFileName && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={handleInputFileClear}
+                    title="Clear File"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <input
+                  type="file"
+                  ref={inputFileInputRef}
+                  onChange={handleInputFileUpload}
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            {inputFileName ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm">
+                <span className="shrink-0 text-muted-foreground">File:</span>
+                <span className="font-medium truncate">{inputFileName}</span>
+              </div>
+            ) : (
+              <Textarea
+                value={state.inputData}
+                onChange={(e) => setParam("inputData", e.target.value)}
+                placeholder="Enter data to encrypt..."
+                className={cn(
+                  "min-h-[120px] max-h-40 font-mono text-sm",
+                  oversizeKeys.includes("inputData") && "border-destructive",
+                )}
+                disabled={state.inputEncoding === "binary"}
+              />
+            )}
+
             <Button
               onClick={handleEncrypt}
               disabled={isEncrypting}
@@ -453,38 +519,146 @@ export default function AwsEncryptionSdkForm({
 
         {/* RIGHT PANEL: DECRYPTION */}
         <section className="flex flex-col gap-6 lg:border-l lg:pl-6">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <Unlock className="w-4 h-4" /> Decrypt / Output
-          </h2>
-
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between">
-              <Label className="text-sm">Encrypted Data (Base64)</Label>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCopyEncrypted}
-                className="h-6 gap-1"
-              >
-                {copied ? (
-                  <Check className="w-3 h-3" />
-                ) : (
-                  <Copy className="w-3 h-3" />
+              <div className="flex items-center gap-4">
+                <Label className="text-sm">Encrypted Data</Label>
+                <Tabs
+                  value={state.encryptedEncoding}
+                  onValueChange={(v) =>
+                    setParam(
+                      "encryptedEncoding",
+                      v as AwsEncryptionSdkOutputEncoding,
+                      true,
+                    )
+                  }
+                >
+                  <InlineTabsList>
+                    {!encryptedFileName && (
+                      <>
+                        <TabsTrigger value="base64">Base64</TabsTrigger>
+                        <TabsTrigger value="base64url">URL</TabsTrigger>
+                        <TabsTrigger value="hex">Hex</TabsTrigger>
+                      </>
+                    )}
+                    {encryptedFileName && (
+                      <TabsTrigger value="binary">Binary</TabsTrigger>
+                    )}
+                  </InlineTabsList>
+                </Tabs>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={() => encryptedFileInputRef.current?.click()}
+                  title={encryptedFileName ? "Change File" : "Upload File"}
+                >
+                  <Upload className="h-4 w-4" />
+                </Button>
+                {encryptedFileName && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={handleEncryptedFileClear}
+                    title="Clear File"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 )}
-                {copied ? "Copied" : "Copy"}
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCopyEncrypted}
+                  className="h-7 w-7 p-0"
+                  disabled={state.encryptedEncoding === "binary"}
+                  title="Copy"
+                >
+                  {copied ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+                <input
+                  type="file"
+                  ref={encryptedFileInputRef}
+                  onChange={handleEncryptedFileUpload}
+                  className="hidden"
+                />
+              </div>
             </div>
-            <Textarea
-              value={state.encryptedData}
-              onChange={(e) => setParam("encryptedData", e.target.value)} // Should trigger auto-decrypt via effect in parent
-              placeholder="Encrypted output will appear here..."
-              className="min-h-[200px] font-mono text-xs break-all bg-muted/30"
-            />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+
+            {encryptedFileName ? (
+              <div className="flex items-center gap-2 rounded-md border bg-muted/50 px-3 py-2 text-sm">
+                <span className="shrink-0 text-muted-foreground">File:</span>
+                <span className="font-medium truncate">
+                  {encryptedFileName}
+                </span>
+              </div>
+            ) : (
+              <Textarea
+                value={state.encryptedData}
+                onChange={(e) => setParam("encryptedData", e.target.value)}
+                placeholder="Encrypted output will appear here..."
+                className="min-h-[120px] max-h-40 font-mono text-xs break-all bg-muted/30"
+                disabled={state.encryptedEncoding === "binary"}
+              />
+            )}
+            {error ? <p className="text-xs text-destructive">{error}</p> : null}
           </div>
 
           <div className="flex flex-col gap-3 pt-4 border-t">
-            <Label className="text-sm">Decrypted Result</Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Label className="text-sm">Decrypted Result</Label>
+                <Tabs
+                  value={state.decryptedEncoding}
+                  onValueChange={(v) =>
+                    setParam(
+                      "decryptedEncoding",
+                      v as AwsEncryptionSdkDecryptedEncoding,
+                      true,
+                    )
+                  }
+                >
+                  <InlineTabsList>
+                    <TabsTrigger value="utf8">UTF-8</TabsTrigger>
+                    <TabsTrigger value="base64">Base64</TabsTrigger>
+                    <TabsTrigger value="hex">Hex</TabsTrigger>
+                  </InlineTabsList>
+                </Tabs>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={handleDownloadDecrypted}
+                  disabled={!hasDecryptedBytes}
+                  title="Download Binary"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-7 p-0"
+                  onClick={handleCopyDecrypted}
+                  disabled={!decryptedResult}
+                  title="Copy"
+                >
+                  {copiedDecrypted ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+
             <div className="rounded-md border bg-muted/50 p-3 min-h-[100px] break-all font-mono text-sm whitespace-pre-wrap">
               {decryptedResult || (
                 <span className="text-muted-foreground italic">
@@ -496,9 +670,11 @@ export default function AwsEncryptionSdkForm({
 
           <div className="flex flex-col gap-3 pt-4 border-t">
             <Label className="text-sm">Decrypted Context</Label>
-            <div className="rounded-md border bg-muted/50 p-3 min-h-[60px] font-mono text-xs">
+            <div className="rounded-md border bg-muted/50 p-3 min-h-[60px] font-mono text-xs whitespace-pre-wrap break-all">
               {Object.keys(decryptedContext).length > 0 ? (
-                <pre>{JSON.stringify(decryptedContext, null, 2)}</pre>
+                <pre className="whitespace-pre-wrap break-all font-mono text-xs">
+                  {JSON.stringify(decryptedContext, null, 2)}
+                </pre>
               ) : (
                 <span className="text-muted-foreground italic">
                   Context not found or empty

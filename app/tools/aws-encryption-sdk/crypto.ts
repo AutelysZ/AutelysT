@@ -203,39 +203,113 @@ async function buildKeyring(state: AwsEncryptionSdkState) {
 
 export async function encryptData(
   state: AwsEncryptionSdkState,
+  inputOverride?: Uint8Array,
 ): Promise<string> {
-  if (!state.inputData) return "";
+  // Use override if provided (e.g. from file), otherwise decode from state
+  let plaintext: Uint8Array;
+  if (inputOverride) {
+    plaintext = inputOverride;
+  } else if (!state.inputData) {
+    return "";
+  } else {
+    // Decode input based on state encoding
+    if (state.inputEncoding === "base64") {
+      plaintext = decodeBase64(state.inputData);
+    } else if (state.inputEncoding === "hex") {
+      plaintext = decodeHex(state.inputData);
+    } else {
+      plaintext = new TextEncoder().encode(state.inputData);
+    }
+  }
 
   const keyring = await buildKeyring(state);
 
-  // Decode input data if needed (if we support binary input)
-  // For now assume input is string for encryption
-  const plaintext = new TextEncoder().encode(state.inputData);
-
-  const context = state.encryptionContext;
+  // Parse context
+  let context: Record<string, string> = {};
+  if (state.encryptionContext.trim()) {
+    try {
+      context = JSON.parse(state.encryptionContext);
+    } catch (e) {
+      throw new Error("Invalid JSON in Encryption Context");
+    }
+  }
 
   const { result } = await encrypt(keyring, plaintext, {
     encryptionContext: context,
   });
 
-  // Return Base64 of the encrypted message
-  return encodeBase64(result);
+  // Return formatted string based on encoded settings
+  // The 'encryptedData' field in state is usually Base64 or Hex for display
+  if (state.encryptedEncoding === "hex") {
+    return encodeHex(result);
+  } else if (state.encryptedEncoding === "base64url") {
+    return encodeBase64(result, { urlSafe: true, padding: false });
+  } else {
+    return encodeBase64(result);
+  }
 }
 
 export async function decryptData(
   state: AwsEncryptionSdkState,
-  encryptedDataOverride?: string,
-): Promise<{ plaintext: string; context: Record<string, string> }> {
-  const ciphertextB64 = encryptedDataOverride ?? state.encryptedData;
-  if (!ciphertextB64) return { plaintext: "", context: {} };
+  encryptedDataOverride?: Uint8Array,
+): Promise<{
+  plaintext: string; // Text representation for display
+  plaintextBytes: Uint8Array; // Raw bytes for download
+  context: Record<string, string>;
+}> {
+  let ciphertext: Uint8Array;
+
+  if (encryptedDataOverride) {
+    ciphertext = encryptedDataOverride;
+  } else if (!state.encryptedData) {
+    return {
+      plaintext: "",
+      plaintextBytes: new Uint8Array(0),
+      context: {},
+    };
+  } else {
+    try {
+      if (state.encryptedEncoding === "hex") {
+        ciphertext = decodeHex(state.encryptedData);
+      } else if (state.encryptedEncoding === "base64url") {
+        ciphertext = decodeBase64(state.encryptedData);
+      } else {
+        ciphertext = decodeBase64(state.encryptedData);
+      }
+    } catch (e) {
+      // If auto-decrypting while typing, might fail.
+      throw new Error("Invalid encrypted data format");
+    }
+  }
 
   const keyring = await buildKeyring(state);
-  const ciphertext = decodeBase64(ciphertextB64);
 
   const { plaintext, messageHeader } = await decrypt(keyring, ciphertext);
 
+  let plaintextStr = "";
+  try {
+    if (state.decryptedEncoding === "base64") {
+      plaintextStr = encodeBase64(plaintext);
+    } else if (state.decryptedEncoding === "hex") {
+      plaintextStr = encodeHex(plaintext);
+    } else {
+      // UTF-8 (default)
+      plaintextStr = new TextDecoder("utf-8", { fatal: true }).decode(
+        plaintext,
+      );
+    }
+  } catch (e) {
+    // If utf-8 decode fails, fallback or show warning?
+    // For now we just let it throw or show placeholder if we want.
+    // Spec said "provide clear feedback", we'll let the Error propagate and UI handles it,
+    // or return a safe fallback.
+    // Let's try to interpret as hex if UTF-8 fails?
+    plaintextStr = `[Invalid UTF-8]\nHex: ${encodeHex(plaintext)}`;
+  }
+
   return {
-    plaintext: new TextDecoder().decode(plaintext),
+    plaintext: plaintextStr,
+    plaintextBytes: plaintext,
     context: messageHeader.encryptionContext,
   };
 }
