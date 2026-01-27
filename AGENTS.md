@@ -42,10 +42,13 @@ When adding or updating a tool:
 
 ## URL Sync & State Restore
 
-- Parameters and inputs must reflect in the URL query string.
-- On load and `popstate`, hydrate state from URL.
-- Debounce URL updates for text fields; keep responsive for toggles/radios.
-- If URL has no params, restore from latest history when appropriate.
+- **Hash-Based State**: State is synchronized via URL hash (e.g. for sharing), not query parameters. This keeps URLs clean.
+- **Query Sync**: Disabled by default. Do not sync inputs/params to `?query=...` unless explicitly required.
+- **Hydration Priority**:
+  1. **URL Hash**: If present (e.g. from Share button), hydrate from hash-compressed state, then clear the hash.
+  2. **History**: If no hash, restore from IndexedDB history.
+- **Dynamic Rehydration**: Tools must listen for `hashchange` events (handled by `useUrlSyncedState`) to support updating state by pasting a hash-url.
+- **Debounce**: Debounce updates to history/URL to avoid performance issues.
 
 ## History (IndexedDB)
 
