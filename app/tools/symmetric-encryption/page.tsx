@@ -79,7 +79,13 @@ type KdfHash = (typeof kdfHashes)[number];
 const inputEncodings = ["utf8", "base64", "hex", "binary"] as const;
 type InputEncoding = (typeof inputEncodings)[number];
 
-const outputEncodings = ["base64", "base64url", "hex", "binary"] as const;
+const outputEncodings = [
+  "utf8",
+  "base64",
+  "base64url",
+  "hex",
+  "binary",
+] as const;
 type OutputEncoding = (typeof outputEncodings)[number];
 
 const paramEncodings = ["utf8", "base64", "hex"] as const;
@@ -234,6 +240,23 @@ function encodeOutputBytes(bytes: Uint8Array, encoding: OutputEncoding) {
   if (encoding === "hex") {
     return { text: encodeHex(bytes, { upperCase: false }), binary: null };
   }
+  if (encoding === "utf8") {
+    try {
+      const text = textDecoder.decode(bytes);
+      // Basic check for valid UTF-8 by re-encoding
+      const reEncoded = textEncoder.encode(text);
+      // If re-encoded length is different or bytes don't match, it might contain invalid sequences replaced by replacement char.
+      // However, TextDecoder with default settings replaces errors.
+      // We can search for the replacement character \uFFFD.
+      if (text.includes("\uFFFD")) {
+        // Contains invalid UTF-8 sequences
+        return { text, binary: bytes, isInvalidUtf8: true };
+      }
+      return { text, binary: null };
+    } catch {
+      return { text: "", binary: bytes, isInvalidUtf8: true };
+    }
+  }
   return {
     text: encodeBase64(bytes, { urlSafe: true, padding: false }),
     binary: null,
@@ -379,7 +402,7 @@ async function deriveKeyBytes(options: {
   const baseKey = await crypto.subtle.importKey(
     "raw",
     passphraseBytes,
-    algorithm,
+    { name: algorithm },
     false,
     ["deriveBits"],
   );
@@ -563,6 +586,7 @@ function SymmetricCryptoInner({
   const [binaryMeta, setBinaryMeta] = React.useState<{
     name: string;
     size: number;
+    isInvalidUtf8?: boolean;
   } | null>(null);
   const [copied, setCopied] = React.useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -878,7 +902,7 @@ function SymmetricCryptoInner({
             const aesKey = await crypto.subtle.importKey(
               "raw",
               derivedKey,
-              { name: "AES-GCM", length: keyLength * 8 },
+              { name: "AES-GCM" },
               false,
               [state.mode === "encrypt" ? "encrypt" : "decrypt"],
             );
@@ -1122,12 +1146,12 @@ function SymmetricCryptoInner({
         }
 
         if (runRef.current !== runId) return;
-        const { text, binary } = encodeOutputBytes(
+        const { text, binary, isInvalidUtf8 } = encodeOutputBytes(
           resultBytes,
           state.outputEncoding,
         );
         outputBytesRef.current = binary;
-        if (state.outputEncoding === "binary") {
+        if (state.outputEncoding === "binary" || isInvalidUtf8) {
           const outputName = fileName
             ? state.mode === "encrypt"
               ? `${fileName}.enc`
@@ -1136,9 +1160,25 @@ function SymmetricCryptoInner({
               ? "encrypted.bin"
               : "decrypted.bin";
           setBinaryMeta(
-            binary ? { name: outputName, size: binary.length } : null,
+            binary
+              ? {
+                  name: outputName,
+                  size: binary.length,
+                  isInvalidUtf8,
+                }
+              : null,
           );
-          setOutput("");
+          if (!isInvalidUtf8) {
+            setOutput("");
+          } else {
+            // Show the replacement-character-filled text along with "invalid utf8" warning
+            setOutput(text);
+            outputBytesRef.current = bytesToWordArray(
+              resultBytes,
+            ) as unknown as Uint8Array; // ensure bytes are available for download
+            // Wait, bytesToWordArray returns WordArray, we want Uint8Array for download
+            outputBytesRef.current = resultBytes;
+          }
         } else {
           setBinaryMeta(null);
           setOutput(text);
@@ -1383,19 +1423,36 @@ function SymmetricCryptoInner({
     : null;
   const hasFileInput = Boolean(fileName);
   const showInputEncodingSelect = !hasFileInput || state.mode === "decrypt";
-  const inputEncodingOptions = showInputEncodingSelect
-    ? hasFileInput
-      ? ([
-          { value: "binary", label: encodingLabels.binary },
-          { value: "base64", label: encodingLabels.base64 },
-          { value: "hex", label: encodingLabels.hex },
-        ] as { value: InputEncoding; label: string }[])
-      : ([
-          { value: "utf8", label: encodingLabels.utf8 },
-          { value: "base64", label: encodingLabels.base64 },
-          { value: "hex", label: encodingLabels.hex },
-        ] as { value: InputEncoding; label: string }[])
-    : [];
+  // Always show input encoding options, but restrict choice if file is uploaded and mode is encrypt.
+  // Actually, for file upload + encrypt, we force binary.
+  // For file upload + decrypt, we allow specifying what the file content IS (binary/base64/hex).
+  // But wait, user asked: "for plaintext, allow upload (force as binary encoding, and show filename and close icon overlay cover the input area)"
+  // So for encrypt: File Upload -> Force Binary. Non-File (Text input) -> Allow UTF8/Base64/Hex.
+  // For decrypt: File Upload -> Allow determining encoding?
+  // "for both plaintext data and decrypted result, should support specify encoding (UTF-8, base64, hex)"
+
+  // Revised logic:
+  // Encrypt Mode:
+  // - No File: Input can be UTF8/Base64/Hex
+  // - File: Input forced to Binary
+  // Decrypt Mode:
+  // - No File: Input can be UTF8/Base64/Hex
+  // - File: Input can be Binary/Base64/Hex (File content is treated as...?)
+  // Actually, usually when you upload a file to decrypt, it IS the ciphertext (Binary).
+  // But maybe the file contains Base64 text?
+  // Let's stick to current logic but allow UTF8 for text input.
+
+  const inputEncodingOptions = hasFileInput
+    ? ([
+        { value: "binary", label: encodingLabels.binary },
+        { value: "base64", label: encodingLabels.base64 },
+        { value: "hex", label: encodingLabels.hex },
+      ] as { value: InputEncoding; label: string }[])
+    : ([
+        { value: "utf8", label: encodingLabels.utf8 },
+        { value: "base64", label: encodingLabels.base64 },
+        { value: "hex", label: encodingLabels.hex },
+      ] as { value: InputEncoding; label: string }[]);
 
   return (
     <div className="flex h-full flex-col gap-4">

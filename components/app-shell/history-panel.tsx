@@ -37,7 +37,11 @@ interface HistoryPanelProps {
   onDelete: (id: string) => void;
   onClear: (scope: "tool" | "all") => void;
   toolName: string;
-  variant?: "default" | "password-generator" | "secret-generator";
+  variant?:
+    | "default"
+    | "password-generator"
+    | "secret-generator"
+    | "aws-encryption-sdk";
 }
 
 export function HistoryPanel({

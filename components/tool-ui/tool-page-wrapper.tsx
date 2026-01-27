@@ -58,7 +58,11 @@ interface ToolPageWrapperProps {
   children: React.ReactNode;
   seoContent?: React.ReactNode;
   onLoadHistory?: (entry: HistoryEntry) => void;
-  historyVariant?: "default" | "password-generator" | "secret-generator";
+  historyVariant?:
+    | "default"
+    | "password-generator"
+    | "secret-generator"
+    | "aws-encryption-sdk";
   scrollArea?: boolean;
   showHistory?: boolean;
 }

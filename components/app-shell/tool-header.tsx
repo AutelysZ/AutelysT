@@ -17,7 +17,11 @@ interface ToolHeaderProps {
   onHistorySelect: (entry: HistoryEntry) => void;
   onHistoryDelete: (id: string) => void;
   onHistoryClear: (scope: "tool" | "all") => void;
-  historyVariant?: "default" | "password-generator" | "secret-generator";
+  historyVariant?:
+    | "default"
+    | "password-generator"
+    | "secret-generator"
+    | "aws-encryption-sdk";
   showHistory?: boolean;
 }
 

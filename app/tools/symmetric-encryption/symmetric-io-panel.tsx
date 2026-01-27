@@ -21,7 +21,7 @@ type InputEncodingOption = {
 };
 
 type InputEncoding = "utf8" | "base64" | "hex" | "binary";
-type OutputEncoding = "base64" | "base64url" | "hex" | "binary";
+type OutputEncoding = "utf8" | "base64" | "base64url" | "hex" | "binary";
 
 type SymmetricIoState = {
   input: string;
@@ -39,7 +39,7 @@ type SymmetricIoPanelProps = {
   output: string;
   error: string | null;
   isWorking: boolean;
-  binaryMeta: { name: string; size: number } | null;
+  binaryMeta: { name: string; size: number; isInvalidUtf8?: boolean } | null;
   copied: boolean;
   fileName: string | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
@@ -196,6 +196,12 @@ export function SymmetricIoPanel({
             >
               <InlineTabsList>
                 <TabsTrigger
+                  value="utf8"
+                  className="whitespace-nowrap text-xs flex-none"
+                >
+                  {encodingLabels.utf8}
+                </TabsTrigger>
+                <TabsTrigger
                   value="base64"
                   className="whitespace-nowrap text-xs flex-none"
                 >
@@ -284,6 +290,21 @@ export function SymmetricIoPanel({
                   </Button>
                 </>
               )}
+            </div>
+          )}
+          {binaryMeta?.isInvalidUtf8 && (
+            <div className="absolute bottom-2 right-2 flex items-center gap-2 rounded-md border bg-destructive/10 px-2 py-1 text-xs text-destructive">
+              <AlertCircle className="h-3 w-3" />
+              <span className="font-medium">Invalid UTF-8 Detected</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onDownloadBinaryResult}
+                className="h-6 gap-1 px-1 text-xs hover:bg-destructive/20"
+              >
+                <Download className="h-3 w-3" />
+                Binary
+              </Button>
             </div>
           )}
         </div>

@@ -109,6 +109,39 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "aws-encryption-sdk",
+    name: "AWS Encryption SDK",
+    description:
+      "Encrypt and decrypt data using AWS Encryption SDK with Raw AES and RSA keyrings.",
+    category: "Crypto",
+    route: "/tools/aws-encryption-sdk",
+    keywords: [
+      "aws encryption sdk",
+      "aws crypto",
+      "aes",
+      "rsa",
+      "encrypt",
+      "decrypt",
+      "keyring",
+      "raw aes",
+      "raw rsa",
+    ],
+    seo: {
+      title: "AWS Encryption SDK Tool - AutelysT",
+      description:
+        "Online AWS Encryption SDK tool to encrypt and decrypt data using Raw AES-GCM and RSA keyrings directly in the browser.",
+      keywords: [
+        "aws encryption sdk",
+        "aws crypto",
+        "client side encryption",
+        "raw aes keyring",
+        "raw rsa keyring",
+        "encrypt",
+        "decrypt",
+      ],
+    },
+  },
+  {
     id: "hex",
     name: "Hex (Base16)",
     description:
