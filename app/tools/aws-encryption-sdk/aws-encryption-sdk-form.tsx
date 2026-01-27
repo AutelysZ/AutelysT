@@ -23,6 +23,7 @@ import {
   type AwsEncryptionSdkInputEncoding,
   type AwsEncryptionSdkOutputEncoding,
   type AwsEncryptionSdkDecryptedEncoding,
+  type DecryptedHeader,
   keyringLabels,
 } from "./aws-encryption-sdk-types";
 
@@ -69,6 +70,7 @@ type AwsEncryptionSdkFormProps = {
   error: string | null;
   decryptedResult: string;
   decryptedContext: Record<string, string>;
+  decryptedHeader: DecryptedHeader | null;
 };
 
 function ScrollableTabsList({ children }: { children: React.ReactNode }) {
@@ -121,6 +123,7 @@ export default function AwsEncryptionSdkForm({
   error,
   decryptedResult,
   decryptedContext,
+  decryptedHeader,
 }: AwsEncryptionSdkFormProps) {
   const aesFileInputRef = React.useRef<HTMLInputElement>(null);
   const rsaPrivateInputRef = React.useRef<HTMLInputElement>(null);
@@ -678,6 +681,21 @@ export default function AwsEncryptionSdkForm({
               ) : (
                 <span className="text-muted-foreground italic">
                   Context not found or empty
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-4 border-t">
+            <Label className="text-sm">Message Header</Label>
+            <div className="rounded-md border bg-muted/50 p-3 min-h-[60px] font-mono text-xs whitespace-pre-wrap break-all">
+              {decryptedHeader ? (
+                <pre className="whitespace-pre-wrap break-all font-mono text-xs">
+                  {JSON.stringify(decryptedHeader, null, 2)}
+                </pre>
+              ) : (
+                <span className="text-muted-foreground italic">
+                  Header not found or empty
                 </span>
               )}
             </div>

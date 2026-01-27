@@ -23,6 +23,22 @@ export type AwsEncryptionSdkDecryptedEncoding = "utf8" | "base64" | "hex";
 
 export type AwsEncryptionSdkKeyEncoding = "utf8" | "base64" | "hex";
 
+export interface DecryptedHeader {
+  version: string;
+  type?: string;
+  suiteId: string;
+  messageId: string; // Hex
+  encryptionContext: Record<string, string>;
+  encryptedDataKeys: Array<{
+    providerId: string;
+    providerInfo: string; // Hex
+    encryptedDataKey: string; // Hex
+  }>;
+  contentType: string;
+  headerIvLength?: number;
+  frameLength: number;
+}
+
 export interface AwsEncryptionSdkState {
   // Keyring Configuration
   keyringType: AwsEncryptionSdkKeyringType;

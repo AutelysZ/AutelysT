@@ -10,6 +10,7 @@ import { encodeHex, decodeHex } from "@/lib/encoding/hex";
 import type {
   AwsEncryptionSdkState,
   AwsEncryptionSdkKeyringType,
+  DecryptedHeader,
 } from "./aws-encryption-sdk-types";
 
 // Initialize the client
@@ -256,6 +257,7 @@ export async function decryptData(
   plaintext: string; // Text representation for display
   plaintextBytes: Uint8Array; // Raw bytes for download
   context: Record<string, string>;
+  header: DecryptedHeader | null;
 }> {
   let ciphertext: Uint8Array;
 
@@ -266,6 +268,7 @@ export async function decryptData(
       plaintext: "",
       plaintextBytes: new Uint8Array(0),
       context: {},
+      header: null,
     };
   } else {
     try {
@@ -311,5 +314,29 @@ export async function decryptData(
     plaintext: plaintextStr,
     plaintextBytes: plaintext,
     context: messageHeader.encryptionContext,
+    header: {
+      version: String(messageHeader.version),
+      type: "type" in messageHeader ? String(messageHeader.type) : undefined,
+      suiteId: String(messageHeader.suiteId),
+      messageId: encodeHex(messageHeader.messageId),
+      encryptionContext: messageHeader.encryptionContext,
+      encryptedDataKeys: messageHeader.encryptedDataKeys.map((k) => ({
+        providerId: k.providerId,
+        providerInfo:
+          typeof k.providerInfo === "string"
+            ? k.providerInfo
+            : encodeHex(k.providerInfo),
+        encryptedDataKey:
+          typeof k.encryptedDataKey === "string"
+            ? k.encryptedDataKey
+            : encodeHex(k.encryptedDataKey),
+      })),
+      contentType: String(messageHeader.contentType),
+      headerIvLength:
+        "headerIvLength" in messageHeader
+          ? messageHeader.headerIvLength
+          : undefined,
+      frameLength: messageHeader.frameLength,
+    },
   };
 }

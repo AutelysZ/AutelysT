@@ -5,6 +5,7 @@ import {
   defaultAwsEncryptionSdkState,
   type AwsEncryptionSdkState,
   type AwsEncryptionSdkKeyringType,
+  type DecryptedHeader,
 } from "./aws-encryption-sdk-types";
 import AwsEncryptionSdkForm from "./aws-encryption-sdk-form";
 import {
@@ -79,6 +80,8 @@ export default function AwsEncryptionSdkInner({
   const [decryptedContext, setDecryptedContext] = React.useState<
     Record<string, string>
   >({});
+  const [decryptedHeader, setDecryptedHeader] =
+    React.useState<DecryptedHeader | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [isEncrypting, setIsEncrypting] = React.useState(false);
   const [isDecrypting, setIsDecrypting] = React.useState(false);
@@ -151,7 +154,9 @@ export default function AwsEncryptionSdkInner({
     // If we have file ref, use it.
     if (!state.encryptedData && !encryptedFileName) {
       setDecryptedResult("");
+      setDecryptedResult("");
       setDecryptedContext({});
+      setDecryptedHeader(null);
       setDecryptedBytes(null);
       setError(null);
       return;
@@ -160,7 +165,7 @@ export default function AwsEncryptionSdkInner({
     setError(null);
     setIsDecrypting(true);
     try {
-      const { plaintext, plaintextBytes, context } = await decryptData(
+      const { plaintext, plaintextBytes, context, header } = await decryptData(
         state,
         encryptedFileName && encryptedBytesRef.current
           ? encryptedBytesRef.current
@@ -169,6 +174,7 @@ export default function AwsEncryptionSdkInner({
       setDecryptedResult(plaintext);
       // If result is huge binary, plaintext string might be the "[Invalid UTF-8]" placeholder
       setDecryptedContext(context);
+      setDecryptedHeader(header);
       setDecryptedBytes(plaintextBytes);
     } catch (e: any) {
       setError(e.message || "Decryption failed");
@@ -381,6 +387,7 @@ export default function AwsEncryptionSdkInner({
       error={error}
       decryptedResult={decryptedResult}
       decryptedContext={decryptedContext}
+      decryptedHeader={decryptedHeader}
       // New props
       handleInputFileUpload={handleInputFileUpload}
       handleInputFileClear={handleInputFileClear}
