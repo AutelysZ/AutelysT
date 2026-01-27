@@ -11,6 +11,7 @@ import {
 import { usePathname } from "next/navigation";
 import type { z, ZodObject, ZodRawShape } from "zod";
 import { getDB, type HistoryEntry } from "@/lib/history/db";
+import { decompressState } from "./url-hash-state";
 
 function useSearchParamsString() {
   const getSnapshot = () => {
@@ -156,24 +157,12 @@ export function useUrlSyncedState<T extends ZodRawShape>(
     };
   }, []);
 
+  // Initial hydration handled in the main effect below
+  /* 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (hasInitializedFromUrlRef.current) return;
-    hasInitializedFromUrlRef.current = true;
-
-    const search = normalizedInitialSearch || window.location.search;
-    lastUrlRef.current = search;
-    const parsed = parseUrlParams(search);
-    const params = new URLSearchParams(search);
-    const hasUrlParams = Array.from(params.keys()).some(
-      (key) => key in defaults,
-    );
-    if (hasUrlParams) {
-      setHydrationSource("url");
-    }
-    skipNextUrlUpdateRef.current = true;
-    setStateInternal(parsed);
-  }, [normalizedInitialSearch, parseUrlParams]);
+     // Deleted URL query hydration
+  }, []);
+  */
 
   const shouldSyncParamWithState = useCallback(
     (
@@ -229,153 +218,89 @@ export function useUrlSyncedState<T extends ZodRawShape>(
     return keys;
   }, [state, maxUrlParamLength, shouldSyncParamWithState, getByteLength]);
 
-  const updateUrl = useCallback(
-    (newState: z.infer<ZodObject<T>>) => {
+  const updateUrl = useCallback((newState: z.infer<ZodObject<T>>) => {
+    // Disabled URL syncing by default as per requirement
+    /*
       const params = new URLSearchParams();
-
-      for (const [key, value] of Object.entries(newState)) {
-        const typedKey = key as keyof z.infer<ZodObject<T>>;
-        if (
-          !shouldSyncParamWithState(
-            typedKey,
-            value as z.infer<ZodObject<T>>[keyof z.infer<ZodObject<T>>],
-            newState,
-          )
-        ) {
-          continue;
-        }
-        if (
-          typeof value === "string" &&
-          getByteLength(value) > maxUrlParamLength
-        ) {
-          continue;
-        }
-        if (
-          value !== defaults[typedKey] &&
-          value !== null &&
-          value !== undefined
-        ) {
-          params.set(key, String(value));
-        }
-      }
-
-      const queryString = params.toString();
-      const newUrl = queryString ? `${pathname}?${queryString}` : pathname;
-
-      isUpdatingUrlRef.current = true;
-      lastUrlRef.current = queryString ? `?${queryString}` : "";
+       ...
       window.history.replaceState({}, "", newUrl);
-    },
-    [
-      pathname,
-      defaults,
-      shouldSyncParamWithState,
-      maxUrlParamLength,
-      getByteLength,
-    ],
-  );
+      */
+    // We still track "lastUrl" to avoid state update loops if we were syncing,
+    // but now we just update internal refs if needed or do nothing.
+    // Actually, if we're not syncing to URL, we don't need to do anything here.
+  }, []);
+
+  const hydrateFromHash = useCallback(() => {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return false;
+
+    const decompressed = decompressState(hash);
+    if (decompressed) {
+      try {
+        const parsed = schema.parse(decompressed);
+        setStateInternal(parsed);
+        setHydrationSource("url");
+        // Clear hash from URL
+        window.history.replaceState(null, "", window.location.pathname);
+        return true;
+      } catch (e) {
+        console.error("Failed to parse state from hash", e);
+      }
+    }
+    return false;
+  }, [schema]);
 
   useEffect(() => {
-    if (!restoreFromHistory) {
-      hasRestoredFromHistoryRef.current = true;
-      return;
-    }
-    if (hasRestoredFromHistoryRef.current) return;
+    const onHashChange = () => {
+      hydrateFromHash();
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [hydrateFromHash]);
 
-    // Check if URL has any meaningful params (excluding defaults)
-    const currentParams = new URLSearchParams(window.location.search);
-    const hasUrlParams = Array.from(currentParams.entries()).some(
-      ([key, value]) =>
-        key in defaults &&
-        shouldParseParamFromUrl(key as keyof z.infer<ZodObject<T>>, value),
-    );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (hasInitializedFromUrlRef.current) return;
+    hasInitializedFromUrlRef.current = true;
 
-    if (!hasUrlParams) {
-      hasRestoredFromHistoryRef.current = true;
+    // 1. Try Hash Hydration (Share URL)
+    if (hydrateFromHash()) return;
+
+    // 2. History Hydration
+    if (restoreFromHistory) {
       getLatestHistoryEntry(toolId).then((entry) => {
         if (!isMountedRef.current) return;
+
         if (entry) {
           const restored: Record<string, unknown> = { ...defaults };
 
-          // Restore inputs
-          if (entry.inputs) {
-            for (const [key, value] of Object.entries(entry.inputs)) {
-              if (key in defaults) {
-                restored[key] = value;
-              }
-            }
-          }
-
-          // Restore params
+          // Restore from params first (structured)
           if (entry.params) {
             for (const [key, value] of Object.entries(entry.params)) {
-              if (key in defaults) {
-                restored[key] = value;
-              }
+              if (key in defaults) restored[key] = value;
+            }
+          }
+          // Restore inputs (text updates)
+          if (entry.inputs) {
+            for (const [key, value] of Object.entries(entry.inputs)) {
+              if (key in defaults) restored[key] = value;
+            }
+          }
+          if (entry.params) {
+            for (const [key, value] of Object.entries(entry.params)) {
+              if (key in defaults) restored[key] = value;
             }
           }
 
           try {
             const parsed = schema.parse(restored);
-            if (syncOnHistoryRestore) {
-              setStateInternal(parsed);
-              updateUrl(parsed);
-            } else {
-              skipNextUrlUpdateRef.current = true;
-              setStateInternal(parsed);
-            }
+            setStateInternal(parsed);
             setHydrationSource("history");
-          } catch {
-            // Ignore parse errors
-          }
+          } catch {}
         }
       });
-    } else if (restoreMissingKeys) {
-      hasRestoredFromHistoryRef.current = true;
-      getLatestHistoryEntry(toolId).then((entry) => {
-        if (!isMountedRef.current) return;
-        if (!entry) return;
-
-        const restored: Record<string, unknown> = parseUrlParams(
-          window.location.search,
-        );
-        let hasMissing = false;
-
-        for (const key of Object.keys(defaults)) {
-          if (!restoreMissingKeys(key as keyof z.infer<ZodObject<T>>)) continue;
-          if (!currentParams.has(key)) {
-            hasMissing = true;
-            if (entry.inputs && key in entry.inputs)
-              restored[key] = entry.inputs[key];
-            if (entry.params && key in entry.params)
-              restored[key] = entry.params[key];
-          }
-        }
-
-        if (!hasMissing) return;
-
-        try {
-          const parsed = schema.parse(restored);
-          skipNextUrlUpdateRef.current = true;
-          setStateInternal(parsed);
-        } catch {
-          // Ignore parse errors
-        }
-      });
-    } else {
-      hasRestoredFromHistoryRef.current = true;
     }
-  }, [
-    toolId,
-    defaults,
-    schema,
-    restoreFromHistory,
-    syncOnHistoryRestore,
-    restoreMissingKeys,
-    updateUrl,
-    parseUrlParams,
-    shouldParseParamFromUrl,
-  ]);
+  }, [toolId, schema, defaults, restoreFromHistory, hydrateFromHash]);
 
   useEffect(() => {
     // Skip if we caused this URL change or if URL hasn't actually changed

@@ -61,7 +61,7 @@ export default function PhoneNumberInner({
   React.useEffect(() => {
     const activeText =
       state.activeSide === "left" ? state.leftText : state.rightText;
-    if (!activeText || activeText === lastInputRef.current) return;
+    if (activeText === lastInputRef.current) return;
 
     const timer = setTimeout(() => {
       lastInputRef.current = activeText;

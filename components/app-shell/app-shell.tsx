@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { Sidebar } from "./sidebar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Toaster } from "@/components/ui/sonner";
 import { cn } from "@/lib/utils";
 
 interface AppShellProps {
@@ -59,6 +60,7 @@ export function AppShell({ children }: AppShellProps) {
         </div>
         {children}
       </main>
+      <Toaster />
     </div>
   );
 }

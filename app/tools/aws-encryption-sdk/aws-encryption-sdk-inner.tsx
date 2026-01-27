@@ -1,6 +1,7 @@
 import * as React from "react";
 import { z } from "zod";
 import { useToolHistoryContext } from "@/components/tool-ui/tool-page-wrapper";
+import { DEFAULT_URL_SYNC_DEBOUNCE_MS } from "@/lib/url-state/use-url-synced-state";
 import {
   defaultAwsEncryptionSdkState,
   type AwsEncryptionSdkState,
@@ -71,8 +72,13 @@ export default function AwsEncryptionSdkInner({
   paramsForHistory,
   hasUrlParams,
 }: Props) {
-  const { entries, loading, upsertInputEntry, upsertParams } =
-    useToolHistoryContext();
+  const {
+    entries,
+    loading,
+    upsertInputEntry,
+    upsertParams,
+    updateHistoryParams,
+  } = useToolHistoryContext();
   const historyInitializedRef = React.useRef(false);
 
   // Local state for results
@@ -350,6 +356,14 @@ export default function AwsEncryptionSdkInner({
     setStateSilently,
     upsertParams,
   ]);
+
+  // Sync history params on change for Share button
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      updateHistoryParams(paramsForHistory);
+    }, DEFAULT_URL_SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [paramsForHistory, updateHistoryParams]);
 
   React.useEffect(() => {
     if (!historyInitializedRef.current) return;
