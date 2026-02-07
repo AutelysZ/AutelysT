@@ -60,6 +60,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and S
 - **CSP Builder** - Build and edit Content-Security-Policy headers with directive-aware editing
 - **Code Formatter** - Format code files with Prettier using a file tree and Monaco editor
 - **Source Map Viewer** - Browse source maps with a tree view, Monaco preview, and downloads
+- **cURL / fetch Converter** - Convert cURL commands to fetch and generate cURL from fetch options
 - **Bencode** - Encode and decode Bencode data with JSON/YAML conversion and file input
 - **Set-Cookie Builder & Parser** - Build and parse Set-Cookie headers with JSON conversion
 - **User Agent Parser & Builder** - Parse and build User-Agent strings with JSON/table editing
@@ -68,6 +69,11 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and S
 - **MIME Lookup** - Detect MIME types by filename and list known extensions
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates
 - **CIDR/IP Calculator** - Calculate IPv4/IPv6 subnet ranges, netmasks, and host counts with inclusion checks
+- **Exif Tool** - View, edit, and strip EXIF metadata from images
+- **Favicon Generator** - Generate favicon .ico files and PNG size sets
+- **PDF Tool** - Merge, split, and reorder PDF files
+- **QR Code Generator** - Generate QR codes with custom sizing and colors
+- **Barcode Generator** - Generate CODE128, EAN, UPC, and other barcodes
 
 ### 🔄 Converters (AI-Optimized)
 

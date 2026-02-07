@@ -1358,6 +1358,35 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "curl-fetch-converter",
+    name: "cURL / fetch Converter",
+    description:
+      "Convert cURL commands to fetch and generate cURL from fetch options.",
+    category: "Web",
+    route: "/tools/curl-fetch-converter",
+    keywords: [
+      "curl",
+      "fetch",
+      "http",
+      "converter",
+      "request",
+      "api",
+      "headers",
+    ],
+    seo: {
+      title: "cURL / fetch Converter - AutelysT",
+      description:
+        "Online cURL to fetch converter and fetch-to-cURL generator for HTTP requests.",
+      keywords: [
+        "curl to fetch",
+        "fetch to curl",
+        "http converter",
+        "api request",
+        "curl converter",
+      ],
+    },
+  },
+  {
     id: "cidr-ip-calculator",
     name: "CIDR/IP Calculator",
     description:
@@ -2183,6 +2212,90 @@ export const tools: Tool[] = [
         "icon converter",
         "favicon generator",
       ],
+    },
+  },
+  {
+    id: "favicon-generator",
+    name: "Favicon Generator",
+    description:
+      "Generate favicon .ico files and PNG sets from a single image.",
+    category: "Utility",
+    route: "/tools/favicon-generator",
+    keywords: ["favicon", "ico", "png", "icon", "generator", "web", "browser"],
+    seo: {
+      title: "Favicon Generator - AutelysT",
+      description:
+        "Generate favicon .ico files and PNG size sets from a single image in your browser.",
+      keywords: [
+        "favicon generator",
+        "ico generator",
+        "png favicon",
+        "icon sizes",
+        "browser",
+      ],
+    },
+  },
+  {
+    id: "exif",
+    name: "Exif Tool",
+    description: "View, edit, and strip EXIF metadata from images.",
+    category: "Utility",
+    route: "/tools/exif",
+    keywords: ["exif", "metadata", "image", "jpeg", "strip", "edit"],
+    seo: {
+      title: "Exif Tool - AutelysT",
+      description:
+        "View, edit, and remove EXIF metadata from images directly in your browser.",
+      keywords: [
+        "exif tool",
+        "exif editor",
+        "strip exif",
+        "image metadata",
+        "jpeg",
+      ],
+    },
+  },
+  {
+    id: "pdf-tool",
+    name: "PDF Tool",
+    description: "Merge, split, and reorder PDF files in your browser.",
+    category: "Utility",
+    route: "/tools/pdf-tool",
+    keywords: ["pdf", "merge", "split", "reorder", "pages", "document"],
+    seo: {
+      title: "PDF Tool - AutelysT",
+      description:
+        "Merge, split, and reorder PDF files with client-side processing.",
+      keywords: ["pdf merge", "pdf split", "pdf reorder", "pdf tool", "pages"],
+    },
+  },
+  {
+    id: "qr-code",
+    name: "QR Code Generator",
+    description:
+      "Generate QR codes with custom size, colors, and error correction.",
+    category: "Utility",
+    route: "/tools/qr-code",
+    keywords: ["qr", "qr code", "generator", "url", "scan", "barcode"],
+    seo: {
+      title: "QR Code Generator - AutelysT",
+      description:
+        "Generate QR codes with custom size, colors, and error correction levels.",
+      keywords: ["qr code generator", "qr code", "barcode", "url", "scan"],
+    },
+  },
+  {
+    id: "barcode",
+    name: "Barcode Generator",
+    description: "Generate barcodes in multiple formats with custom styles.",
+    category: "Utility",
+    route: "/tools/barcode",
+    keywords: ["barcode", "code128", "ean13", "upc", "generator", "labels"],
+    seo: {
+      title: "Barcode Generator - AutelysT",
+      description:
+        "Generate barcodes in multiple formats with custom sizing and styling.",
+      keywords: ["barcode generator", "code128", "ean13", "upc", "barcode"],
     },
   },
   {
