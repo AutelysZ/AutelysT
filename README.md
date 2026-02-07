@@ -32,6 +32,7 @@
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
 - **Password Hash** - Generate, verify, and parse bcrypt, scrypt, and Argon2 hashes with full parameter control
 - **Keypair Generator** - Generate RSA/EC, OKP, and post-quantum (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) keypairs with PEM/JWK export
+- **SSH Key Tool** - Generate SSH keypairs, inspect OpenSSH public keys, and export PEM/JWK with fingerprints
 - **Key Exchange** - Derive shared secrets with ECDH, X25519/X448, or ML-KEM/hybrid KEM plus optional KDF
 - **Key Derivation** - Derive keys using HKDF or PBKDF2 with configurable hash and salt
 - **Key Extractor** - Parse and convert cryptographic keys across PEM, JWK, and DER formats
@@ -66,6 +67,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake
 - **File Type Detector** - Detect file MIME types and preview printable files
 - **MIME Lookup** - Detect MIME types by filename and list known extensions
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates
+- **CIDR/IP Calculator** - Calculate IPv4/IPv6 subnet ranges, netmasks, and host counts with inclusion checks
 
 ### 🔄 Converters (AI-Optimized)
 
