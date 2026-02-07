@@ -25,7 +25,7 @@
 
 ### 🔤 Encoding & Conversion Tools
 
-**AI-Crafted Encoding Suite** - Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Escape with 100+ text encodings, file upload/download, and URL-safe modes.
+**AI-Crafted Encoding Suite** - Base85/Base91, Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Escape with 100+ text encodings, file upload/download, and URL-safe modes.
 
 ### 🔐 Cryptographic Tools (AI-Implemented)
 
@@ -47,7 +47,7 @@
 
 ### 🆔 Identifier Tools (AI-Designed)
 
-Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, BSON ObjectID, and Snowflake ID with timestamp extraction.
+Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and Snowflake ID with timestamp extraction.
 
 ### 📊 Data Processing Tools (AI-Built)
 

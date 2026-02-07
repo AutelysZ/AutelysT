@@ -113,7 +113,7 @@ function tokenize(expression: string): string[] {
 
     if (/[a-zA-Z]/.test(char)) {
       let ident = "";
-      while (i < expression.length && /[a-zA-Z]/.test(expression[i])) {
+      while (i < expression.length && /[a-zA-Z0-9]/.test(expression[i])) {
         ident += expression[i];
         i++;
       }
@@ -161,8 +161,14 @@ function parse(tokens: string[]): any {
     if (!token) throw new Error("Unexpected end of expression");
 
     // Numbers and constants
-    if (token === "pi") return constants.pi;
-    if (token === "e") return constants.e;
+    if (token === "pi") {
+      consume();
+      return constants.pi;
+    }
+    if (token === "e") {
+      consume();
+      return constants.e;
+    }
     if (/^-?\d*\.?\d+(?:[eE][+-]?\d+)?$/.test(token)) {
       return parseNumber();
     }
@@ -326,12 +332,13 @@ export function evaluate(
   angleUnit: AngleUnit = "deg",
   lastAnswer: number = 0,
 ): number {
-  if (!expression.trim()) {
+  const normalized = autoCloseParens(expression);
+  if (!normalized.trim()) {
     throw new Error("Empty expression");
   }
 
   try {
-    const tokens = tokenize(expression);
+    const tokens = tokenize(normalized);
     const ast = parse(tokens);
     return evaluateNode(ast, angleUnit, lastAnswer);
   } catch (error) {
@@ -355,7 +362,7 @@ export function formatResult(result: number): string {
   const rounded = Math.round(result * 1e10) / 1e10;
 
   // Additional rounding for numbers very close to integers
-  if (Math.abs(result - Math.round(result)) < 1e-9) {
+  if (Math.abs(result - Math.round(result)) <= 1e-8) {
     return Math.round(result).toString();
   }
 
@@ -366,4 +373,18 @@ export function formatResult(result: number): string {
 
   // Otherwise, show with appropriate precision
   return rounded.toString();
+}
+
+function autoCloseParens(expression: string): string {
+  const trimmed = expression.trim();
+  if (!trimmed.startsWith("((")) return expression;
+
+  let balance = 0;
+  for (const char of trimmed) {
+    if (char === "(") balance += 1;
+    if (char === ")") balance -= 1;
+  }
+
+  if (balance <= 0) return expression;
+  return `${expression}${")".repeat(balance)}`;
 }

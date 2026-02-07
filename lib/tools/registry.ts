@@ -28,6 +28,38 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "base85",
+    name: "Base85 / Base91",
+    description:
+      "Encode and decode Base85 (Ascii85/Z85) and Base91 with text encoding support.",
+    category: "Encoding",
+    route: "/tools/base85",
+    keywords: [
+      "base85",
+      "ascii85",
+      "z85",
+      "base91",
+      "encode",
+      "decode",
+      "text",
+      "binary",
+    ],
+    seo: {
+      title: "Base85 / Base91 Encoder/Decoder - AutelysT",
+      description:
+        "Online Base85 (Ascii85/Z85) and Base91 encoder/decoder with text encoding support.",
+      keywords: [
+        "base85",
+        "ascii85",
+        "z85",
+        "base91",
+        "encoder",
+        "decoder",
+        "text encoding",
+      ],
+    },
+  },
+  {
     id: "base58",
     name: "Base58",
     description:
@@ -983,6 +1015,34 @@ export const tools: Tool[] = [
         "v6",
         "v7",
         "timestamp",
+      ],
+    },
+  },
+  {
+    id: "nanoid",
+    name: "NanoID",
+    description:
+      "Generate NanoIDs with custom alphabets, lengths, and batch sizes.",
+    category: "Identifier",
+    route: "/tools/nanoid",
+    keywords: [
+      "nanoid",
+      "id",
+      "identifier",
+      "generate",
+      "unique",
+      "custom alphabet",
+    ],
+    seo: {
+      title: "NanoID Generator - AutelysT",
+      description:
+        "Online NanoID generator with custom alphabets, lengths, and batch sizes.",
+      keywords: [
+        "nanoid",
+        "nanoid generator",
+        "unique id",
+        "custom alphabet",
+        "url-safe",
       ],
     },
   },

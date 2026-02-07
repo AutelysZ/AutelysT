@@ -371,8 +371,8 @@ function formatIpv6(value: bigint): string {
   let currentStart = -1;
   let currentLength = 0;
 
-  for (let i = 0; i <= hextets.length; i += 1) {
-    if (i < hextets.length && hextets[i] === 0) {
+  for (let i = 0; i < hextets.length; i += 1) {
+    if (hextets[i] === 0) {
       if (currentStart === -1) currentStart = i;
       currentLength += 1;
     } else {
@@ -385,21 +385,27 @@ function formatIpv6(value: bigint): string {
     }
   }
 
+  if (currentLength >= 2 && currentLength > bestLength) {
+    bestStart = currentStart;
+    bestLength = currentLength;
+  }
+
   const parts: string[] = [];
   for (let i = 0; i < hextets.length; i += 1) {
     if (bestLength >= 2 && i === bestStart) {
       parts.push("");
       i += bestLength - 1;
-      if (i === hextets.length - 1) {
-        parts.push("");
-      }
       continue;
     }
     parts.push(hextets[i].toString(16));
   }
 
-  const result = parts.join(":");
-  if (result.startsWith(":")) return `:${result}`;
-  if (result.endsWith(":")) return `${result}:`;
+  if (bestLength === 8) return "::";
+
+  let result = parts.join(":");
+  if (bestLength >= 2) {
+    if (result.startsWith(":")) result = `:${result}`;
+    if (result.endsWith(":")) result = `${result}:`;
+  }
   return result;
 }
