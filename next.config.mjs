@@ -11,6 +11,7 @@ const nextConfig = {
     resolveAlias: {
       // Stub out Node.js modules for 7z-wasm in browser
       module: "./lib/stubs/empty-module.js",
+      fs: "./lib/stubs/empty-fs.js",
     },
   },
   webpack: (config, { isServer }) => {
