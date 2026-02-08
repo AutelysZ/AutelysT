@@ -1694,6 +1694,38 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "geo-coordinate",
+    name: "Geographic Coordinate Converter",
+    description:
+      "Parse map URLs and coordinates, convert between formats, and open locations in popular map apps.",
+    category: "Web",
+    route: "/tools/geo-coordinate",
+    keywords: [
+      "coordinates",
+      "latitude",
+      "longitude",
+      "maps url",
+      "geo uri",
+      "dms",
+      "ddm",
+      "decimal degrees",
+    ],
+    seo: {
+      title: "Geographic Coordinate Converter - AutelysT",
+      description:
+        "Parse map URLs and coordinates, convert between formats, and generate links for common map platforms.",
+      keywords: [
+        "coordinate converter",
+        "lat lng",
+        "maps url",
+        "geo uri",
+        "dms",
+        "ddm",
+        "decimal degrees",
+      ],
+    },
+  },
+  {
     id: "protobuf",
     name: "Protobuf",
     description:

@@ -233,6 +233,9 @@ importers:
       cookie:
         specifier: ^1.1.1
         version: 1.1.1
+      coordinate-parser:
+        specifier: ^1.0.7
+        version: 1.0.7
       crypto-js:
         specifier: ^4.2.0
         version: 4.2.0
@@ -3129,6 +3132,9 @@ packages:
   cookie@1.1.1:
     resolution: {integrity: sha512-ei8Aos7ja0weRpFzJnEA9UHJ/7XQmqglbRwnf2ATjcB9Wq874VKH9kfjjirM6UhU2/E5fFYadylyhFldcqSidQ==}
     engines: {node: '>=18'}
+
+  coordinate-parser@1.0.7:
+    resolution: {integrity: sha512-pkcjigkAEjU5JsTYnuXLkRgR6T5fF/7GXR4p9vWJesy8fKwsheN8zC5d3sSvdMmWihHB4u48xWZ5mUCcgBIEpw==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -8283,6 +8289,8 @@ snapshots:
   convert-source-map@2.0.0: {}
 
   cookie@1.1.1: {}
+
+  coordinate-parser@1.0.7: {}
 
   core-util-is@1.0.3: {}
 

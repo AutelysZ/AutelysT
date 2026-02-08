@@ -86,6 +86,7 @@
     "content-security-policy-parser": "^0.6.0",
     "convert-source-map": "^2.0.0",
     "cookie": "^1.1.1",
+    "coordinate-parser": "^1.0.7",
     "crypto-js": "^4.2.0",
     "csp-header": "^6.3.0",
     "curlconverter": "^4.12.0",

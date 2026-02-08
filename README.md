@@ -74,6 +74,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and S
 - **PDF Tool** - Merge, split, and reorder PDF files
 - **QR Code Generator** - Generate QR codes with custom sizing and colors
 - **Barcode Generator** - Generate CODE128, EAN, UPC, and other barcodes
+- **Geographic Coordinate Converter** - Parse map URLs, convert coordinate formats, and generate platform links
 
 ### 🔄 Converters (AI-Optimized)
 
