@@ -241,6 +241,39 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "unicode-normalizer",
+    name: "Unicode Normalizer",
+    description:
+      "Normalize Unicode text with NFC/NFD/NFKC/NFKD, inspect code points, and detect confusable characters.",
+    category: "Encoding",
+    route: "/tools/unicode-normalizer",
+    keywords: [
+      "unicode",
+      "normalize",
+      "nfc",
+      "nfd",
+      "nfkc",
+      "nfkd",
+      "confusable",
+      "codepoint",
+    ],
+    seo: {
+      title: "Unicode Normalizer - AutelysT",
+      description:
+        "Normalize Unicode strings with NFC/NFD/NFKC/NFKD forms, inspect code points, and detect confusable characters.",
+      keywords: [
+        "unicode normalizer",
+        "unicode normalization",
+        "nfc",
+        "nfd",
+        "nfkc",
+        "nfkd",
+        "confusable characters",
+        "code points",
+      ],
+    },
+  },
+  {
     id: "url-escape",
     name: "URL Escape",
     description:
@@ -412,6 +445,41 @@ export const tools: Tool[] = [
         "base64",
         "secure random",
         "bytes",
+      ],
+    },
+  },
+  {
+    id: "totp-hotp",
+    name: "TOTP / HOTP",
+    description:
+      "Generate and verify TOTP/HOTP codes, build otpauth URIs, and create QR setup payloads.",
+    category: "Crypto",
+    route: "/tools/totp-hotp",
+    keywords: [
+      "totp",
+      "hotp",
+      "otp",
+      "2fa",
+      "mfa",
+      "otpauth",
+      "authenticator",
+      "qr",
+      "rfc6238",
+      "rfc4226",
+    ],
+    seo: {
+      title: "TOTP / HOTP Generator & Verifier - AutelysT",
+      description:
+        "Generate and verify TOTP/HOTP tokens with SHA1/SHA256/SHA512, otpauth URI builder, and QR code output.",
+      keywords: [
+        "totp",
+        "hotp",
+        "otp generator",
+        "otp verifier",
+        "otpauth uri",
+        "2fa",
+        "mfa",
+        "authenticator app",
       ],
     },
   },
@@ -1043,6 +1111,34 @@ export const tools: Tool[] = [
         "unique id",
         "custom alphabet",
         "url-safe",
+      ],
+    },
+  },
+  {
+    id: "cuid2",
+    name: "CUID2",
+    description:
+      "Generate and validate CUID2 identifiers with configurable length and fingerprint options.",
+    category: "Identifier",
+    route: "/tools/cuid2",
+    keywords: [
+      "cuid2",
+      "identifier",
+      "id",
+      "generate",
+      "validate",
+      "collision resistant",
+    ],
+    seo: {
+      title: "CUID2 Generator & Validator - AutelysT",
+      description:
+        "Generate and validate CUID2 IDs with custom length and fingerprint controls.",
+      keywords: [
+        "cuid2",
+        "cuid2 generator",
+        "cuid2 validator",
+        "identifier",
+        "unique id",
       ],
     },
   },
@@ -1726,6 +1822,36 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "har-analyzer",
+    name: "HAR Analyzer",
+    description:
+      "Analyze HAR files to surface request counts, status breakdowns, traffic hosts, and latency hotspots.",
+    category: "Web",
+    route: "/tools/har-analyzer",
+    keywords: [
+      "har",
+      "http archive",
+      "network",
+      "performance",
+      "requests",
+      "latency",
+      "waterfall",
+      "browser devtools",
+    ],
+    seo: {
+      title: "HAR Analyzer - AutelysT",
+      description:
+        "Analyze HAR files for slow requests, response status distribution, transfer size, and host-level traffic.",
+      keywords: [
+        "har analyzer",
+        "http archive",
+        "network analysis",
+        "performance analysis",
+        "slow requests",
+      ],
+    },
+  },
+  {
     id: "protobuf",
     name: "Protobuf",
     description:
@@ -2015,6 +2141,116 @@ export const tools: Tool[] = [
       ],
     },
   },
+  {
+    id: "semver",
+    name: "SemVer",
+    description:
+      "Compare semantic versions, evaluate ranges, increment releases, and sort version lists.",
+    category: "Data",
+    route: "/tools/semver",
+    keywords: [
+      "semver",
+      "semantic versioning",
+      "version",
+      "range",
+      "compare",
+      "increment",
+      "sort",
+      "npm",
+    ],
+    seo: {
+      title: "SemVer Tool - AutelysT",
+      description:
+        "Semantic versioning tool for compare, range checks, release increments, and sorted version output.",
+      keywords: [
+        "semver",
+        "semantic versioning",
+        "version compare",
+        "version range",
+        "version increment",
+      ],
+    },
+  },
+  {
+    id: "jsonpath-jmespath",
+    name: "JSONPath / JMESPath",
+    description:
+      "Evaluate JSONPath and JMESPath expressions against JSON input with formatted result output.",
+    category: "Data",
+    route: "/tools/jsonpath-jmespath",
+    keywords: [
+      "jsonpath",
+      "jmespath",
+      "json query",
+      "extract",
+      "json filter",
+      "api response",
+    ],
+    seo: {
+      title: "JSONPath / JMESPath Evaluator - AutelysT",
+      description:
+        "Query JSON with JSONPath or JMESPath and inspect extracted values in formatted output.",
+      keywords: [
+        "jsonpath evaluator",
+        "jmespath evaluator",
+        "json query tool",
+        "json extraction",
+      ],
+    },
+  },
+  {
+    id: "xpath",
+    name: "XPath",
+    description:
+      "Evaluate XPath expressions against XML/HTML content with node, string, number, and boolean return modes.",
+    category: "Data",
+    route: "/tools/xpath",
+    keywords: [
+      "xpath",
+      "xml",
+      "html",
+      "query",
+      "evaluate",
+      "selector",
+      "node set",
+    ],
+    seo: {
+      title: "XPath Evaluator - AutelysT",
+      description:
+        "Evaluate XPath queries against XML/HTML and inspect node, string, number, or boolean results.",
+      keywords: ["xpath evaluator", "xml xpath", "html xpath", "xpath query"],
+    },
+  },
+  {
+    id: "log-analyzer",
+    name: "Log Analyzer",
+    description:
+      "Parse access logs and JSON logs to summarize levels, status classes, top paths, and recent errors.",
+    category: "Data",
+    route: "/tools/log-analyzer",
+    keywords: [
+      "log analyzer",
+      "access log",
+      "error log",
+      "nginx",
+      "apache",
+      "json logs",
+      "status codes",
+      "observability",
+    ],
+    seo: {
+      title: "Log Analyzer - AutelysT",
+      description:
+        "Analyze mixed log streams to summarize errors, HTTP status buckets, and high-traffic routes.",
+      keywords: [
+        "log analyzer",
+        "access log parser",
+        "error log analysis",
+        "http status summary",
+        "nginx log analyzer",
+      ],
+    },
+  },
   // Utility Tools
   {
     id: "unit-converter",
@@ -2243,6 +2479,65 @@ export const tools: Tool[] = [
         "svg resize",
         "icon converter",
         "favicon generator",
+      ],
+    },
+  },
+  {
+    id: "mermaid-renderer",
+    name: "Mermaid Renderer",
+    description:
+      "Render Mermaid diagram syntax to SVG and PNG with theme options and downloadable output.",
+    category: "Utility",
+    route: "/tools/mermaid-renderer",
+    keywords: [
+      "mermaid",
+      "diagram",
+      "flowchart",
+      "sequence diagram",
+      "svg",
+      "png",
+      "renderer",
+      "visualization",
+    ],
+    seo: {
+      title: "Mermaid Renderer - AutelysT",
+      description:
+        "Render Mermaid diagrams to SVG and PNG in-browser with selectable themes and export controls.",
+      keywords: [
+        "mermaid renderer",
+        "mermaid to svg",
+        "mermaid to png",
+        "diagram generator",
+      ],
+    },
+  },
+  {
+    id: "image-optimizer",
+    name: "Image Optimizer",
+    description:
+      "Resize, compress, and convert images to JPEG/PNG/WebP/AVIF directly in your browser.",
+    category: "Utility",
+    route: "/tools/image-optimizer",
+    keywords: [
+      "image optimizer",
+      "compress image",
+      "resize image",
+      "convert image",
+      "webp",
+      "avif",
+      "jpeg",
+      "png",
+    ],
+    seo: {
+      title: "Image Optimizer - AutelysT",
+      description:
+        "Optimize images by resizing, recompressing, and converting output formats in-browser.",
+      keywords: [
+        "image optimizer",
+        "image compression",
+        "webp converter",
+        "avif converter",
+        "resize image",
       ],
     },
   },

@@ -27,9 +27,12 @@
 
 **AI-Crafted Encoding Suite** - Base85/Base91, Base64, Base58, Base45, Base36, Base32, Hex, Hex Escape, URL Escape, HTML Escape with 100+ text encodings, file upload/download, and URL-safe modes.
 
+- **Unicode Normalizer** - Normalize text (NFC/NFD/NFKC/NFKD), inspect code points, and detect confusables
+
 ### 🔐 Cryptographic Tools (AI-Implemented)
 
 - **Password Generator** - Generate secure passwords with ASCII and base serialization options
+- **TOTP / HOTP** - Generate and verify one-time passwords with otpauth URI and QR setup support
 - **Password Hash** - Generate, verify, and parse bcrypt, scrypt, and Argon2 hashes with full parameter control
 - **Keypair Generator** - Generate RSA/EC, OKP, and post-quantum (ML-KEM/ML-DSA/SLH-DSA, hybrid KEM) keypairs with PEM/JWK export
 - **SSH Key Tool** - Generate SSH keypairs, inspect OpenSSH public keys, and export PEM/JWK with fingerprints
@@ -47,7 +50,7 @@
 
 ### 🆔 Identifier Tools (AI-Designed)
 
-Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and Snowflake ID with timestamp extraction.
+Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, CUID2, BSON ObjectID, and Snowflake ID with timestamp extraction.
 
 ### 📊 Data Processing Tools (AI-Built)
 
@@ -55,6 +58,11 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and S
 - **Text Diff Viewer** - Compare text files with collapsible hunks and character highlighting
 - **JSON Schema Generator** - Generate JSON Schema from sample data
 - **Format Converter** - Convert between JSON, YAML, and TOML with auto-detection
+- **SemVer Tool** - Compare semantic versions, evaluate ranges, increment versions, and sort version lists
+- **JSONPath / JMESPath Evaluator** - Query JSON with JSONPath or JMESPath syntax
+- **XPath Evaluator** - Run XPath against XML/HTML with typed result modes
+- **HAR Analyzer** - Analyze HAR exports for slow requests, status classes, and host distribution
+- **Log Analyzer** - Summarize mixed logs by level, status bucket, top paths, and recent errors
 - **CSV Editor** - Multi-tab CSV/Excel editing with frozen rows/columns, million-row virtualization, and CSV/XLSX export
 - **Markdown Previewer** - Live Markdown editing with split preview, view modes, and shareable URL state
 - **CSP Builder** - Build and edit Content-Security-Policy headers with directive-aware editing
@@ -70,11 +78,13 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, BSON ObjectID, and S
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates
 - **CIDR/IP Calculator** - Calculate IPv4/IPv6 subnet ranges, netmasks, and host counts with inclusion checks
 - **Exif Tool** - View, edit, and strip EXIF metadata from images
+- **Image Optimizer** - Resize, compress, and convert images to JPEG/PNG/WebP/AVIF
 - **Favicon Generator** - Generate favicon .ico files and PNG size sets
 - **PDF Tool** - Merge, split, and reorder PDF files
 - **QR Code Generator** - Generate QR codes with custom sizing and colors
 - **Barcode Generator** - Generate CODE128, EAN, UPC, and other barcodes
 - **Geographic Coordinate Converter** - Parse map URLs, convert coordinate formats, and generate platform links
+- **Mermaid Renderer** - Render Mermaid diagrams to SVG/PNG with theme selection
 
 ### 🔄 Converters (AI-Optimized)
 
