@@ -7,6 +7,7 @@ Convert cURL commands to fetch and generate cURL commands from fetch options.
 - Convert cURL commands to browser fetch snippets
 - Generate cURL commands from fetch URL + options JSON
 - Copy-ready output with warnings
+- Client-only rendering for cURL parsing to avoid server-side parser bundling
 
 ## Parameters
 
