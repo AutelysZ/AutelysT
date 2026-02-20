@@ -57,6 +57,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, CUID2, BSON ObjectID
 - **JSON/YAML Diff Viewer** - Compare files with table and GitHub-style unified text views, character-level highlighting, fullscreen mode
 - **Text Diff Viewer** - Compare text files with collapsible hunks and character highlighting
 - **JSON Schema Generator** - Generate JSON Schema from sample data
+- **JSON Viewer** - Inspect JSON with collapsible tree nodes, file upload, and per-node copy
 - **Format Converter** - Convert between JSON, YAML, and TOML with auto-detection
 - **SemVer Tool** - Compare semantic versions, evaluate ranges, increment versions, and sort version lists
 - **JSONPath / JMESPath Evaluator** - Query JSON with JSONPath or JMESPath syntax
@@ -76,6 +77,7 @@ Generate and parse UUID (v1/v4/v6/v7), ULID, KSUID, NanoID, CUID2, BSON ObjectID
 - **File Type Detector** - Detect file MIME types and preview printable files
 - **MIME Lookup** - Detect MIME types by filename and list known extensions
 - **License Generator** - Choose software licenses with a guided questionnaire and SPDX templates
+- **SPDX Viewer** - Validate SPDX expressions and inspect SPDX JSON documents with package/license summaries
 - **CIDR/IP Calculator** - Calculate IPv4/IPv6 subnet ranges, netmasks, and host counts with inclusion checks
 - **Exif Tool** - View, edit, and strip EXIF metadata from images
 - **Image Optimizer** - Resize, compress, and convert images to JPEG/PNG/WebP/AVIF

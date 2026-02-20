@@ -2121,6 +2121,64 @@ export const tools: Tool[] = [
     },
   },
   {
+    id: "json-viewer",
+    name: "JSON Viewer",
+    description:
+      "View JSON as a collapsible tree with file upload, depth controls, and per-node copy.",
+    category: "Data",
+    route: "/tools/json-viewer",
+    keywords: [
+      "json viewer",
+      "json tree",
+      "json inspector",
+      "json parser",
+      "json format",
+      "json file",
+    ],
+    seo: {
+      title: "JSON Viewer - AutelysT",
+      description:
+        "Online JSON Viewer with file upload, collapsible tree nodes, depth controls, and one-click value copy.",
+      keywords: [
+        "json viewer",
+        "json tree viewer",
+        "json inspector",
+        "json file viewer",
+        "copy json value",
+      ],
+    },
+  },
+  {
+    id: "spdx-viewer",
+    name: "SPDX Viewer",
+    description:
+      "Validate SPDX expressions and inspect SPDX JSON documents with package and license summaries.",
+    category: "Data",
+    route: "/tools/spdx-viewer",
+    keywords: [
+      "spdx",
+      "spdx viewer",
+      "sbom",
+      "software bill of materials",
+      "license expression",
+      "license id",
+      "licenseref",
+      "open source license",
+    ],
+    seo: {
+      title: "SPDX Viewer - AutelysT",
+      description:
+        "Validate SPDX license expressions and inspect SPDX JSON documents, package metadata, and referenced licenses.",
+      keywords: [
+        "spdx viewer",
+        "spdx license expression",
+        "sbom viewer",
+        "software bill of materials",
+        "license id validator",
+      ],
+    },
+  },
+  {
     id: "format-converter",
     name: "Format Converter",
     description:
